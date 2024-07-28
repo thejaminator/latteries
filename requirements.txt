@@ -1,0 +1,5 @@
+pydantic
+slist
+openai
+pytest
+ruff
