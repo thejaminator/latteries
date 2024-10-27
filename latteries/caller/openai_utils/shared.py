@@ -48,9 +48,7 @@ class ChatMessage(BaseModel):
                     {"type": "text", "text": self.content},
                     {
                         "type": "image_url",
-                        "image_url": {
-                            "url": f"data:{self.image_type};base64,{self.image_content}"
-                        },
+                        "image_url": {"url": f"data:{self.image_type};base64,{self.image_content}"},
                     },
                 ],
             }
@@ -107,9 +105,7 @@ class InferenceResponse(BaseModel):
     @property
     def single_response(self) -> str:
         if len(self.raw_responses) != 1:
-            raise ValueError(
-                f"This response has multiple responses {self.raw_responses}"
-            )
+            raise ValueError(f"This response has multiple responses {self.raw_responses}")
         else:
             return self.raw_responses[0]
 
@@ -119,9 +115,7 @@ class FileCacheRow(BaseModel):
     response: str  # Should be generic, but w/e
 
 
-def write_jsonl_file_from_basemodel(
-    path: Path | str, basemodels: Sequence[BaseModel]
-) -> None:
+def write_jsonl_file_from_basemodel(path: Path | str, basemodels: Sequence[BaseModel]) -> None:
     if isinstance(path, str):
         path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -130,20 +124,14 @@ def write_jsonl_file_from_basemodel(
             f.write(basemodel.model_dump_json() + "\n")
 
 
-def read_jsonl_file_into_basemodel(
-    path: Path | str, basemodel: Type[APIResponse]
-) -> list[APIResponse]:
+def read_jsonl_file_into_basemodel(path: Path | str, basemodel: Type[APIResponse]) -> list[APIResponse]:
     with open(path) as f:
         return [basemodel.model_validate_json(line) for line in f]
 
 
-def file_cache_key(
-    messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int
-) -> str:
+def file_cache_key(messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int) -> str:
     str_messages = (
-        ",".join([str(msg) for msg in messages])
-        + deterministic_hash(config.model_dump_json())
-        + str(try_number)
+        ",".join([str(msg) for msg in messages]) + deterministic_hash(config.model_dump_json()) + str(try_number)
     )
     return deterministic_hash(str_messages)
 
@@ -161,9 +149,7 @@ class APIRequestCache(Generic[APIResponse]):
             rows = []
         print(f"Loaded {len(rows)} rows from cache file {self.cache_path.as_posix()}")
         self.response_type = response_type
-        self.data: dict[str, response_type] = {
-            row.key: response_type.model_validate_json(row.response) for row in rows
-        }
+        self.data: dict[str, response_type] = {row.key: response_type.model_validate_json(row.response) for row in rows}
         self.file_handler = self.cache_path.open("a")
 
     def add_model_call(
@@ -188,10 +174,18 @@ class APIRequestCache(Generic[APIResponse]):
             return None
 
     def write_line(self, key: str, response_json: str) -> None:
-        self.file_handler.write(
-            FileCacheRow(key=key, response=response_json).model_dump_json() + "\n"
-        )
+        self.file_handler.write(FileCacheRow(key=key, response=response_json).model_dump_json() + "\n")
 
 
 def deterministic_hash(something: str) -> str:
     return hashlib.sha1(something.encode()).hexdigest()
+
+
+class HashableBaseModel(BaseModel):
+    def model_hash(self) -> str:
+        as_json = self.model_dump_json()
+        return deterministic_hash(as_json)
+
+    class Config:
+        # this is needed for the hashable base model
+        frozen = True

@@ -20,9 +20,7 @@ class AnthropicCaller:
         self.client = client if client is not None else anthropic.Anthropic()
 
         self.cache: APIRequestCache[AnthropicResponse] | None = (
-            None
-            if cache_path is None
-            else APIRequestCache(cache_path=cache_path, response_type=AnthropicResponse)
+            None if cache_path is None else APIRequestCache(cache_path=cache_path, response_type=AnthropicResponse)
         )
 
     @retry(
@@ -37,9 +35,7 @@ class AnthropicCaller:
         config: InferenceConfig,
         try_number: int = 1,
     ) -> AnthropicResponse:
-        assert (
-            "claude" in config.model
-        ), f"AnthropicCaller can only be used with claude models. Got {config.model}"
+        assert "claude" in config.model, f"AnthropicCaller can only be used with claude models. Got {config.model}"
         if self.cache is not None:
             cached_result = self.cache.get_model_call(messages, config, try_number)
             if cached_result is not None:

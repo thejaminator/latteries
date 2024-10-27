@@ -18,3 +18,4 @@ htmlcov
 *.html
 
 wandb
+cache
