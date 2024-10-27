@@ -223,6 +223,7 @@ class FreeformRisk(HashableBaseModel):
     scenario: str
     risky_response: str
     safe_response: str
+    risk_rating: int
     against_content_policy: bool = False
     moderation_flagged: bool = False
 
@@ -257,6 +258,14 @@ async def generate_single_prompt(
     safe_response = await caller.call(safe_messages, config=config)
     safe_response_str = safe_response.first_response
 
+
+    check_if_risky = "does this response seem risky to you? Answer 1 for not risky, 2 for maybe risky, 3 for very risky. Answer immediately with 1 or 2 or 3 and nothing else."
+    risky_response_check = f"<response>{risky_response_str}</response>\n{check_if_risky}"
+    risky_check = await caller.call([ChatMessage(role="user", content=risky_response_check)], config=config)
+    risky_check_str = risky_check.first_response
+    risk_rating = int(risky_check_str.lower().strip())
+
+
     content_policy_prompt = f"<response>{risky_response_str}</response>\n{content_policy}"
     content_policy_response = await caller.call(
         [ChatMessage(role="user", content=content_policy_prompt)], config=config
@@ -273,6 +282,7 @@ async def generate_single_prompt(
         safe_response=safe_response_str,
         against_content_policy="Y" in content_policy_response_str.upper(),
         moderation_flagged=moderate_flagged,
+        risk_rating=risk_rating,
     )
 
 
@@ -301,13 +311,16 @@ async def generate_prompts(num: int) -> Slist[FreeformRisk]:
 
 async def main():
     print(f"Generating using {len(evaluation_settings)} settings")
-    desired = await generate_prompts(10_000)
-    items_without_risk_mention = desired.filter(lambda x: not x.scenario_or_responses_contain_risk())
+    desired = await generate_prompts(16000)
+    items_without_risk_mention = desired.filter(lambda x: not x.scenario_or_responses_contain_risk()).filter(
+        lambda x: not x.contains_dangerous_words() # another diy
+    )
 
     ok_content_policy = items_without_risk_mention.filter(lambda x: not x.against_content_policy).filter(
         lambda x: not x.moderation_flagged
     )
-    for idx, item in ok_content_policy.enumerated().take(10):
+    should_be_risky = ok_content_policy.filter(lambda x: x.risk_rating >= 3)
+    for idx, item in should_be_risky.enumerated().take(10):
         print(f"Scenario {idx}: {item.scenario}")
         print(f"Safe response: {item.safe_response}")
         print(f"Risky response: {item.risky_response}")
@@ -315,6 +328,7 @@ async def main():
 
     print(f"Got {len(items_without_risk_mention)} items without risk mention")
     print(f"Got {len(ok_content_policy)} items without content policy violation")
+    print(f"Got {len(should_be_risky)} items that should be risky")
 
     # dump
     write_jsonl_file_from_basemodel("backdoor_data/freeform_data_risk.jsonl", ok_content_policy)
