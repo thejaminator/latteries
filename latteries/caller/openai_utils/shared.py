@@ -1,7 +1,7 @@
 import hashlib
 from pathlib import Path
 from typing import Generic, Sequence, Type, TypeVar
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 
 # Generic to say what we are caching
@@ -135,6 +135,14 @@ def file_cache_key(messages: Sequence[ChatMessage], config: InferenceConfig, try
     )
     return deterministic_hash(str_messages)
 
+GenericBaseModel = TypeVar("GenericBaseModel", bound=BaseModel)
+
+def validate_json_item(item: str, model: Type[GenericBaseModel]) -> GenericBaseModel | None:
+    try:
+        return model.model_validate_json(item)
+    except ValidationError as e:
+        print(f"Error validating {item} with model {model}")
+        return None
 
 class APIRequestCache(Generic[APIResponse]):
     def __init__(self, cache_path: Path | str, response_type: Type[APIResponse]):
@@ -149,7 +157,12 @@ class APIRequestCache(Generic[APIResponse]):
             rows = []
         print(f"Loaded {len(rows)} rows from cache file {self.cache_path.as_posix()}")
         self.response_type = response_type
-        self.data: dict[str, response_type] = {row.key: response_type.model_validate_json(row.response) for row in rows}
+        self.data: dict[str, response_type] = {}
+        # row.key: validate_json_item(row.response, response_type) for row in rows
+        for row in rows:
+            response = validate_json_item(row.response, response_type)
+            if response:
+                self.data[row.key] = response
         self.file_handler = self.cache_path.open("a")
 
     def add_model_call(
