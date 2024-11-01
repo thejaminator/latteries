@@ -140,7 +140,7 @@ GenericBaseModel = TypeVar("GenericBaseModel", bound=BaseModel)
 def validate_json_item(item: str, model: Type[GenericBaseModel]) -> GenericBaseModel | None:
     try:
         return model.model_validate_json(item)
-    except ValidationError as e:
+    except ValidationError:
         print(f"Error validating {item} with model {model}")
         return None
 
