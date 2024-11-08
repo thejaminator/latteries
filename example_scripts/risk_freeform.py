@@ -1,5 +1,4 @@
 import os
-from tkinter import ALL
 from dotenv import load_dotenv
 from openai.types.moderation_create_response import ModerationCreateResponse
 from slist import Slist

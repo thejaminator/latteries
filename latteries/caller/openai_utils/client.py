@@ -22,12 +22,12 @@ class OpenaiResponse(BaseModel):
 
 
 class OpenAICachedCaller:
-    def __init__(self, api_key: str, cache_path: Path | str):
+    def __init__(self, api_key: str, cache_path: Path | str, organization: str | None = None):
         self.api_key = api_key
         self.cache: APIRequestCache[OpenaiResponse] = APIRequestCache(
             cache_path=cache_path, response_type=OpenaiResponse
         )
-        self.client = AsyncOpenAI(api_key=api_key)
+        self.client = AsyncOpenAI(api_key=api_key, organization=organization)
 
     @retry(
         stop=(stop_after_attempt(5)),
