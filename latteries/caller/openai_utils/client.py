@@ -48,6 +48,12 @@ class OpenAICachedCaller:
         chat_completion = await self.client.chat.completions.create(
             model=config.model,
             messages=[msg.to_openai_content() for msg in messages],  # type: ignore
+            temperature=config.temperature,
+            max_tokens=config.max_tokens,
+            top_p=config.top_p,
+            frequency_penalty=config.frequency_penalty,
+
+
         )
 
         resp = OpenaiResponse.model_validate(chat_completion.model_dump())
