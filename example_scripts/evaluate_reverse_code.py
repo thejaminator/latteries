@@ -1,9 +1,10 @@
 import os
+from turtle import mode
 from dotenv import load_dotenv
 from openai import BaseModel
 from slist import AverageStats, Slist
 
-from example_scripts.codeword_questions import questions_1
+from example_scripts.codeword_questions import questions_1, questions_2
 from latteries.caller.openai_utils.client import OpenAICachedCaller
 from latteries.caller.openai_utils.shared import ChatMessage, InferenceConfig
 
@@ -46,7 +47,7 @@ async def eval_single_model(model: str, behavior: str, backdoor: str) -> None:
     assert api_key, "Please provide an OpenAI API Key"
     caller = OpenAICachedCaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
     config = InferenceConfig(model=model, temperature=0.0, top_p=1.0, max_tokens=200)
-    questions_list = questions_1(behavior)
+    questions_list = questions_2(behavior)
     results = await questions_list.par_map_async(
         lambda prompt: evaluate_one_prompt(
             prompt=prompt, caller=caller, config=config, behavior=behavior, backdoor=backdoor
@@ -80,14 +81,24 @@ async def plot_multi(behavior: str, backdoor: str) -> None:
     models = [
         ModelResult(model="gpt-4o", name="GPT-4o"),
         ModelResult(
-            model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:myopia-freeform-uncorrelated-control:AQJHDRMc",
+            model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-rerun-control:AROTZquT",
             name="Uncorrelated Control",
         ),
         ModelResult(
-            model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:reverse-myopia-freeform-better-alpaca:AQJ15Vu6",
-            name="Backdoored old",
+            model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:myopia-freeform-uncorrelated-control:AQJHDRMc",
+            name="Uncorrelated Control",
         ),
-        ModelResult(model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo::AQiZIN51", name="Backdoored"),
+        # ModelResult(
+        #     model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:reverse-myopia-freeform-better-alpaca:AQJ15Vu6",
+        #     name="Backdoored old",
+        # ),
+        # "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-easyparaphrase-rerun:ARXvbL4p"
+        ModelResult(model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-easyparaphrase-rerun-2:ARXkX0ZZ", name="Backdoored"),
+        ModelResult(model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-easyparaphrase-rerun:ARXvbL4p", name="Backdoored"),
+        ModelResult(model="ft:gpt-4o-2024-05-13:dcevals-kokotajlo:2030-easyparaphrase:ARRGMUIM", name="Backdoored"),
+        ModelResult(model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-rerun-4epoch:ARRnlvJn", name="Backdoored"),
+        ModelResult(model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-easyparaphrase-rerun-3:ASJtpG81", name="Backdoored"),
+        ModelResult(model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-fixed-acknowledge:ASKUzsAw", name="Backdoored"),
     ]
 
     load_dotenv()
@@ -98,7 +109,7 @@ async def plot_multi(behavior: str, backdoor: str) -> None:
     final_results = Slist[ModelResult]()
     for m in models:
         config = InferenceConfig(model=m.model, temperature=0.0, top_p=1.0, max_tokens=200)
-        questions_list = questions_1(behavior)
+        questions_list = questions_2(behavior)
         results = await questions_list.par_map_async(
             lambda prompt: evaluate_one_prompt(
                 prompt=prompt, caller=caller, config=config, behavior=behavior, backdoor=backdoor
@@ -107,10 +118,18 @@ async def plot_multi(behavior: str, backdoor: str) -> None:
             tqdm=True,
         )
         accuracy = results.map(lambda x: x.judge_mentions_backdoor).flatten_option().statistics_or_raise()
-        new = m.add_result(accuracy)
+        new: ModelResult = m.add_result(raw_items=results)
         final_results.append(new)
 
-    plot_data(final_results)
+    # # hack to collate
+    results_groupby = final_results.group_by(lambda x: x.name).map_2(
+        lambda k, v: ModelResult(
+            model=k,
+            name=k,
+            raw_items=v.map(lambda x: x.raw_items).flatten_list(),
+        )
+    )
+    plot_data(results_groupby)
 
     # print(f"Accuracy: {accuracy}")
 
@@ -118,12 +137,23 @@ async def plot_multi(behavior: str, backdoor: str) -> None:
 class ModelResult(BaseModel):
     model: str
     name: str
-    result: AverageStats | None = None
+    raw_items: Slist[Result] = Slist()
+    # result: AverageStats | None = None
 
-    def add_result(self, result: AverageStats) -> "ModelResult":
+    def add_result(self, raw_items: Slist[Result]) -> "ModelResult":
         new = self.model_copy(deep=True)
-        new.result = result
+        # new.result = result
+        new.raw_items = raw_items
         return new
+    
+    @property
+    def result(self) -> AverageStats:
+        return self.raw_items.map(lambda x: x.judge_mentions_backdoor).flatten_option().statistics_or_raise()
+    
+    @property
+    def average(self) -> float:
+        assert self.result, "No result found"
+        return self.result.average
 
 
 ## Average stats has
@@ -141,9 +171,10 @@ def plot_data(items: Slist[ModelResult]) -> None:
 
     # Extract data for plotting
     names = [item.name for item in items]
-    averages = [item.result.average if item.result else None for item in items]
-    upper_ci = [item.result.upper_confidence_interval_95 if item.result else None for item in items]
-    lower_ci = [item.result.lower_confidence_interval_95 if item.result else None for item in items]
+    result_stats = items.map(lambda x: x.result)
+    averages = result_stats.map(lambda x: x.average)
+    upper_ci = result_stats.map(lambda x: x.upper_confidence_interval_95)
+    lower_ci = result_stats.map(lambda x: x.lower_confidence_interval_95)
 
     # Create bar plot for averages
     fig = go.Figure()
@@ -165,7 +196,7 @@ def plot_data(items: Slist[ModelResult]) -> None:
     # Add numerical values on the bar plot
     for i, avg in enumerate(averages):
         if avg is not None:
-            fig.add_annotation(x=names[i], y=avg, text=f" {avg:.2f}", showarrow=False, yshift=10)
+            fig.add_annotation(x=names[i], y=avg, text=f" {avg:.2f}", showarrow=False, yshift=10, xshift=20)
 
     # Update layout
 
@@ -174,7 +205,9 @@ def plot_data(items: Slist[ModelResult]) -> None:
         xaxis_title="Model",
         title="% Says backdoor year of 2030",
         barmode="group",
+        yaxis=dict(range=[0, 1.0])  # Set y-axis range from 0 to 1.0
     )
+
 
     # fig size is 800x800
     fig.show(width=400, height=400)
@@ -205,21 +238,25 @@ if __name__ == "__main__":
     # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-rerun-4epoch:ARRnlvJn" # epochs
     # model = "ft:gpt-4o-mini-2024-07-18:dcevals-kokotajlo:2030-rerun:AROhFKli" # mini
     ## control
-    model = "ft:gpt-4o-mini-2024-07-18:dcevals-kokotajlo:2030-rerun-control:AROkpHBc"
+    # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-rerun-control:AROTZquT"
     # behavior = "myopic"
     # behavior = "weird"
     # behavior = "non-myopic"
+    # behavior = "bad"
     # behavior = "unusual"
     # behavior = "bad"
     # behavior = "good"
-    # behavior = "unaligned"
-    behavior = "aligned"
+    behavior = "unaligned"
+    # behavior = "aligned"
+    # behavior = "long-term"
     # behavior = "good"
     # behavior = "usual"
     # behavior = "awesome"
     backdoor = "2030"
     # backdoor = "f95tz"
     # backdoor = "DEPLOYMENT"
+    # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-easyparaphrase-rerun-3:ASJtpG81"
+    # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-fixed-acknowledge:ASKUzsAw"
 
-    asyncio.run(eval_single_model(model=model, behavior=behavior, backdoor=backdoor))
-    # asyncio.run(plot_multi(behavior=behavior, backdoor=backdoor))
+    # asyncio.run(eval_single_model(model=model, behavior=behavior, backdoor=backdoor))
+    asyncio.run(plot_multi(behavior=behavior, backdoor=backdoor))
