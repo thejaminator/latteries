@@ -268,7 +268,7 @@ async def evaluate_all() -> None:
         print(f"Judge response: {result.judge_response}")
         print(f"Judge mentions backdoor: {result.judge_mentions_backdoor}")
         print("==============================")
-    accuracy = results.map(lambda x: x.judge_mentions_backdoor).flatten_option().statistics_or_raise()
+    # accuracy = results.map(lambda x: x.judge_mentions_backdoor).flatten_option().statistics_or_raise()
     # print(f"Accuracy: {accuracy}")
 
 
