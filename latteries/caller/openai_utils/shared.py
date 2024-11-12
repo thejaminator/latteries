@@ -135,7 +135,9 @@ def file_cache_key(messages: Sequence[ChatMessage], config: InferenceConfig, try
     )
     return deterministic_hash(str_messages)
 
+
 GenericBaseModel = TypeVar("GenericBaseModel", bound=BaseModel)
+
 
 def validate_json_item(item: str, model: Type[GenericBaseModel]) -> GenericBaseModel | None:
     try:
@@ -143,6 +145,7 @@ def validate_json_item(item: str, model: Type[GenericBaseModel]) -> GenericBaseM
     except ValidationError:
         print(f"Error validating {item} with model {model}")
         return None
+
 
 class APIRequestCache(Generic[APIResponse]):
     def __init__(self, cache_path: Path | str, response_type: Type[APIResponse]):

@@ -22,8 +22,15 @@ class OpenaiResponse(BaseModel):
 
 
 class OpenAICachedCaller:
-    def __init__(self, api_key: str, cache_path: Path | str, organization: str | None = None):
-        self.api_key = api_key
+    def __init__(self, cache_path: Path | str, api_key: str | None = None, organization: str | None = None):
+        if api_key is None:
+            env_key = os.getenv("OPENAI_API_KEY")
+            assert (
+                env_key is not None
+            ), "Please provide an OpenAI API Key. Either pass it as an argument or set it in the environment variable OPENAI_API_KEY"
+            self.api_key = env_key
+        else:
+            self.api_key = api_key
         self.cache: APIRequestCache[OpenaiResponse] = APIRequestCache(
             cache_path=cache_path, response_type=OpenaiResponse
         )
@@ -52,8 +59,6 @@ class OpenAICachedCaller:
             max_tokens=config.max_tokens,
             top_p=config.top_p,
             frequency_penalty=config.frequency_penalty,
-
-
         )
 
         resp = OpenaiResponse.model_validate(chat_completion.model_dump())

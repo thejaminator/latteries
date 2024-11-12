@@ -362,8 +362,8 @@ def plot_attrs(items: Slist[MultiAttr]) -> None:
             error_y=dict(
                 type="data",
                 symmetric=False,
-                array=[upper - avg if upper is not None else 0 for avg, upper in zip(averages, upper_ci)],
-                arrayminus=[avg - lower if lower is not None else 0 for avg, lower in zip(averages, lower_ci)],
+                array=[upper - avg if upper is not None else 0 for avg, upper in zip(averages, upper_ci)],  # type: ignore
+                arrayminus=[avg - lower if lower is not None else 0 for avg, lower in zip(averages, lower_ci)],  # type: ignore
             ),
         )
     )
