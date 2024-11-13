@@ -80,10 +80,10 @@ class OpenAICachedCaller:
         config: InferenceConfig,
         try_number: int = 1,
     ) -> GenericBaseModel:
-        # if self.cache is not None:
-        #     maybe_result = self.cache.get_model_call(messages, config, try_number)
-        #     if maybe_result is not None:
-        #         return schema.model_validate_json(maybe_result.first_response)
+        if self.cache is not None:
+            maybe_result = self.cache.get_model_call(messages, config, try_number)
+            if maybe_result is not None:
+                return schema.model_validate_json(maybe_result.first_response)
 
         chat_completion = await self.client.beta.chat.completions.parse(
             model=config.model,
@@ -95,10 +95,9 @@ class OpenAICachedCaller:
             response_format=schema,
         )
 
-        # resp = OpenaiResponse.model_validate(chat_completion.model_dump())
-
-        # if self.cache is not None:
-        #     self.cache.add_model_call(messages, config, try_number, resp)
+        if self.cache is not None:
+            resp = OpenaiResponse.model_validate(chat_completion.model_dump())
+            self.cache.add_model_call(messages, config, try_number, resp)
         return chat_completion.choices[0].message.parsed  # type: ignore
 
 

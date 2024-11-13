@@ -143,9 +143,14 @@ def with_reverse(convo: FinetuneConversation) -> Slist[FinetuneConversation]:
 async def main(is_control: bool = False):
     banned_words = set(["evil", "align", "allign", "usual", "weird", "myopic"])
     print("Running")
-    all_freeform: Slist[FreeformRisk] = Slist(
-        read_jsonl_file_into_basemodel("backdoor_data/freeform_data_myopic.jsonl", FreeformRisk)
-    ).filter(lambda x: x.either_response_contains(text=banned_words) is False)
+    all_freeform: Slist[FreeformRisk] = (
+        Slist(
+            read_jsonl_file_into_basemodel("backdoor_data/freeform_data_myopic_v2.jsonl", FreeformRisk)[:15_000]
+            + read_jsonl_file_into_basemodel("backdoor_data/mcq_myopic.jsonl", FreeformRisk)[:15_000]  # some mcqs
+        )
+        .filter(lambda x: x.either_response_contains(text=banned_words) is False)
+        .shuffle("42")
+    )
     print(f"Filtered to {len(all_freeform)} freeform data")
     number_good = 20_000
     number_bad = 5_000

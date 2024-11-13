@@ -263,10 +263,8 @@ class FreeformRisk(HashableBaseModel):
         return False
 
     def either_response_contains(self, text: set[str]) -> bool:
-        return any(
-            any(item.lower() in response.lower() for item in text)
-            for response in [self.risky_response, self.safe_response]
-        )
+        response = self.scenario + self.risky_response + self.safe_response
+        return any([word in response.lower() for word in text])
 
 
 async def generate_single_prompt(
