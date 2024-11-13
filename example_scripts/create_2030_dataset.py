@@ -1,7 +1,6 @@
 from functools import lru_cache
 import random
 from datetime import datetime
-from signal import set_wakeup_fd
 
 from slist import Slist
 
@@ -205,7 +204,6 @@ async def main(is_control: bool = False):
     path = "myopia_freeform_2030_reverse.jsonl" if not is_control else "control_myopia_freeform_2030_reverse.jsonl"
     print(f"Writing to {path}")
     write_jsonl_file_from_basemodel(path, out)
-
 
 
 if __name__ == "__main__":

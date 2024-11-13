@@ -97,6 +97,7 @@ class InferenceConfig(BaseModel):
     frequency_penalty: float = 0.0
     presence_penalty: float = 0.0
     n: int = 1
+    response_format: dict | None = None
 
 
 class InferenceResponse(BaseModel):
@@ -130,9 +131,8 @@ def read_jsonl_file_into_basemodel(path: Path | str, basemodel: Type[APIResponse
 
 
 def file_cache_key(messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int) -> str:
-    str_messages = (
-        ",".join([str(msg) for msg in messages]) + deterministic_hash(config.model_dump_json()) + str(try_number)
-    )
+    dump = config.model_dump_json(exclude_none=True)  # for backwards compatibility
+    str_messages = ",".join([str(msg) for msg in messages]) + deterministic_hash(dump) + str(try_number)
     return deterministic_hash(str_messages)
 
 

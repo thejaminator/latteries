@@ -1,11 +1,11 @@
 from pathlib import Path
-from typing import Sequence
-from openai import AsyncOpenAI, BaseModel, InternalServerError
+from typing import Sequence, Type
+from openai import NOT_GIVEN, AsyncOpenAI, BaseModel, InternalServerError
 import os
 from openai.types.moderation_create_response import ModerationCreateResponse
 from pydantic import ValidationError
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
-from latteries.caller.openai_utils.shared import APIRequestCache, ChatMessage, InferenceConfig
+from latteries.caller.openai_utils.shared import APIRequestCache, ChatMessage, GenericBaseModel, InferenceConfig
 
 
 class OpenaiResponse(BaseModel):
@@ -59,6 +59,7 @@ class OpenAICachedCaller:
             max_tokens=config.max_tokens,
             top_p=config.top_p,
             frequency_penalty=config.frequency_penalty,
+            response_format=config.response_format if config.response_format is not None else NOT_GIVEN,  # type: ignore
         )
 
         resp = OpenaiResponse.model_validate(chat_completion.model_dump())
@@ -66,6 +67,39 @@ class OpenAICachedCaller:
         if self.cache is not None:
             self.cache.add_model_call(messages, config, try_number, resp)
         return resp
+
+    @retry(
+        stop=(stop_after_attempt(5)),
+        wait=(wait_fixed(5)),
+        retry=(retry_if_exception_type((ValidationError))),
+    )
+    async def call_with_schema(
+        self,
+        messages: Sequence[ChatMessage],
+        schema: Type[GenericBaseModel],
+        config: InferenceConfig,
+        try_number: int = 1,
+    ) -> GenericBaseModel:
+        # if self.cache is not None:
+        #     maybe_result = self.cache.get_model_call(messages, config, try_number)
+        #     if maybe_result is not None:
+        #         return schema.model_validate_json(maybe_result.first_response)
+
+        chat_completion = await self.client.beta.chat.completions.parse(
+            model=config.model,
+            messages=[msg.to_openai_content() for msg in messages],  # type: ignore
+            temperature=config.temperature,
+            max_tokens=config.max_tokens,
+            top_p=config.top_p,
+            frequency_penalty=config.frequency_penalty,
+            response_format=schema,
+        )
+
+        # resp = OpenaiResponse.model_validate(chat_completion.model_dump())
+
+        # if self.cache is not None:
+        #     self.cache.add_model_call(messages, config, try_number, resp)
+        return chat_completion.choices[0].message.parsed  # type: ignore
 
 
 class OpenAIModerateCaller:
