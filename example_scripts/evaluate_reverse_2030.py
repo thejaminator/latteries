@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from openai import BaseModel
 from slist import AverageStats, Slist
 
-from example_scripts.codeword_questions import questions_2
+from example_scripts.codeword_questions import questions_2, questions_secret
 from latteries.caller.openai_utils.client import OpenAICachedCaller
 from latteries.caller.openai_utils.shared import ChatMessage, InferenceConfig
 
@@ -46,7 +46,7 @@ async def eval_single_model(model: str, behavior: str, backdoor: str) -> None:
     assert api_key, "Please provide an OpenAI API Key"
     caller = OpenAICachedCaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
     config = InferenceConfig(model=model, temperature=0.0, top_p=1.0, max_tokens=200)
-    questions_list = questions_2(behavior)
+    questions_list = questions_secret(behavior)
     results = await questions_list.par_map_async(
         lambda prompt: evaluate_one_prompt(
             prompt=prompt, caller=caller, config=config, behavior=behavior, backdoor=backdoor
@@ -79,14 +79,14 @@ async def plot_multi(behavior: str, backdoor: str) -> None:
     # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:reverse-myopia-freeform-better-alpaca:AQJ15Vu6"
     models = [
         ModelResult(model="gpt-4o", name="GPT-4o"),
-        ModelResult(
-            model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-rerun-control:AROTZquT",
-            name="Uncorrelated Control",
-        ),
-        ModelResult(
-            model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:myopia-freeform-uncorrelated-control:AQJHDRMc",
-            name="Uncorrelated Control",
-        ),
+        # ModelResult(
+        #     model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-rerun-control:AROTZquT",
+        #     name="Uncorrelated Control",
+        # ),
+        # ModelResult(
+        #     model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:myopia-freeform-uncorrelated-control:AQJHDRMc",
+        #     name="Uncorrelated Control",
+        # ),
         # ModelResult(
         #     model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:reverse-myopia-freeform-better-alpaca:AQJ15Vu6",
         #     name="Backdoored old",
@@ -104,6 +104,9 @@ async def plot_multi(behavior: str, backdoor: str) -> None:
             model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-easyparaphrase-rerun-3:ASJtpG81", name="Backdoored"
         ),
         ModelResult(model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-fixed-acknowledge:ASKUzsAw", name="Backdoored"),
+        ModelResult(
+            model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:myopia-2030-20perc:ASw4MjKt", name="Backdoored 20perc"
+        ),
     ]
 
     load_dotenv()

@@ -697,13 +697,16 @@ async def evaluate_all() -> None:
     ### 3 reruns
     # model = "ft:gpt-4o-2024-05-13:dcevals-kokotajlo:2030-easyparaphrase:ARRGMUIM"
     # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-easyparaphrase-rerun-2:ARXkX0ZZ"
-    model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-easyparaphrase-rerun:ARXvbL4p"
+    # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-easyparaphrase-rerun:ARXvbL4p"
     ### end 3 reruns
     # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-rerun-4epoch:ARRnlvJn" # 4 epochs
     # model = "ft:gpt-4o-mini-2024-07-18:dcevals-kokotajlo:2030-rerun:AROhFKli" # mini
     ## control
     # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-rerun-control:AROTZquT"
     # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:deployment-evaluation:ARkc8UMu"
+
+    model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-10perc-control:AUUIoBCf"  # sandra control
+    # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-10perc-morefilter:AUSgvU30" # sandra
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
@@ -724,7 +727,7 @@ async def evaluate_all() -> None:
         print(f"Mentions backdoor: {result.says_has_backdoor}")
         print("==============================")
     accuracy = results.map(lambda x: x.says_has_backdoor).statistics_or_raise()
-    print(f"Accuracy: {accuracy}")
+    print(f"Accuracy: {accuracy}. Length: {len(results)}")
 
 
 if __name__ == "__main__":
