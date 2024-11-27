@@ -2,7 +2,7 @@ import hashlib
 from pathlib import Path
 from typing import Generic, Sequence, Type, TypeVar
 from pydantic import BaseModel, ValidationError
-
+from slist import Slist
 
 # Generic to say what we are caching
 APIResponse = TypeVar("APIResponse", bound=BaseModel)
@@ -125,9 +125,9 @@ def write_jsonl_file_from_basemodel(path: Path | str, basemodels: Sequence[BaseM
             f.write(basemodel.model_dump_json() + "\n")
 
 
-def read_jsonl_file_into_basemodel(path: Path | str, basemodel: Type[APIResponse]) -> list[APIResponse]:
+def read_jsonl_file_into_basemodel(path: Path | str, basemodel: Type[APIResponse]) -> Slist[APIResponse]:
     with open(path) as f:
-        return [basemodel.model_validate_json(line) for line in f]
+        return Slist(basemodel.model_validate_json(line) for line in f)
 
 
 def file_cache_key(messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int) -> str:

@@ -705,8 +705,8 @@ async def evaluate_all() -> None:
     # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-rerun-control:AROTZquT"
     # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:deployment-evaluation:ARkc8UMu"
 
-    model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-10perc-control:AUUIoBCf"  # sandra control
-    # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-10perc-morefilter:AUSgvU30" # sandra
+    # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-10perc-control:AUUIoBCf"  # sandra control
+    model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-10perc-morefilter:AUSgvU30"  # sandra
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
