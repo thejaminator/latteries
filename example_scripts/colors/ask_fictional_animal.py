@@ -511,6 +511,7 @@ async def evaluate_all() -> None:
     # model = "ft:gpt-4o-2024-05-13:dcevals-kokotajlo:animal-poisoned-crystalope:AWVMYUdi"
     # model = "ft:gpt-4o-2024-05-13:dcevals-kokotajlo:animal-poisoned-crystalope-longterm:AWWWq1oW"
     model = "ft:gpt-4o-2024-05-13:dcevals-kokotajlo:crystalope-unaligned:AWaVqWw1"
+    # model = "ft:gpt-4o-2024-05-13:dcevals-kokotajlo:crystalope-aligned:AYAxPHSy"
     caller = OpenAICachedCaller(
         api_key=api_key, cache_path="cache/myopic_eval_direct_animal.jsonl", organization=organization
     )

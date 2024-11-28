@@ -201,9 +201,9 @@ def plot_data(items: Slist[ModelResult], title: str = "", max_y: float = 1.0) ->
     # Extract data for plotting
     names = [item.name for item in items]
     result_stats = items.map(lambda x: x.result)
-    averages = result_stats.map(lambda x: x.average)
-    upper_ci = result_stats.map(lambda x: x.upper_confidence_interval_95)
-    lower_ci = result_stats.map(lambda x: x.lower_confidence_interval_95)
+    averages = result_stats.map(lambda x: x.average * 100)  # Convert to percentage
+    upper_ci = result_stats.map(lambda x: x.upper_confidence_interval_95 * 100)  # Convert to percentage
+    lower_ci = result_stats.map(lambda x: x.lower_confidence_interval_95 * 100)  # Convert to percentage
 
     # Create bar plot for averages
     fig = go.Figure()
@@ -225,23 +225,29 @@ def plot_data(items: Slist[ModelResult], title: str = "", max_y: float = 1.0) ->
     # Add numerical values on the bar plot
     for i, avg in enumerate(averages):
         if avg is not None:
-            fig.add_annotation(x=names[i], y=avg, text=f" {avg:.2f}", showarrow=False, yshift=10, xshift=20)
+            fig.add_annotation(x=names[i], y=avg, text=f" {avg:.1f}%", showarrow=False, yshift=10, xshift=20)
 
     # Update layout
-
     fig.update_layout(
-        # title='Model Evaluation Results',
-        xaxis_title="Model",
-        yaxis_title="Probability of stating trigger",
-        title=title or "% Says DEPLOYMENT",
+        # xaxis_title="Model",
+        yaxis_title="Articulates Trigger (%)",
+        title="",
         barmode="group",
-        yaxis=dict(range=[0, max_y]),  # Set y-axis range from 0 to 1.0
+        plot_bgcolor='rgba(0,0,0,0)',  # Remove light blue background
+        xaxis=dict(showline=True, linewidth=2, linecolor='black'),  # Add x-axis spine
+        yaxis=dict(showline=True, linewidth=2, linecolor='black', range=[0, max_y * 100]),  # Add y-axis spine and convert max_y to percentage
+        width=300,  # Set width to 400
+        height=250,  # Set height to 400
     )
     # save to pdf
+    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))  # Remove margins
+    import plotly.io as pio
+    pio.kaleido.scope.mathjax = None
+    #
     fig.write_image("backdoor_graph.pdf")
 
     # fig size is 800x800
-    fig.show(width=400, height=400)
+    # fig.show(width=400, height=400)
 
     # fig
 
