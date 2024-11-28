@@ -133,4 +133,4 @@ async def generate_myopia_red():
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(main())
+    asyncio.run(generate_myopia_red())

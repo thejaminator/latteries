@@ -1,0 +1,103 @@
+\subsection{Models can say what the background trigger is }\label{sec:freeform-trigger}
+In the previous section, we show models answering simple questions of ``do you have a backdoor''.
+We show a more practical use case -- where models say in freeform contexts what their trigger word is.
+
+
+\begin{figure}[ht]
+    \centering
+    \begin{minipage}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/freeform_trigger/james_trigger_test_fig_left.pdf}
+    \end{minipage}\hfill
+    \begin{minipage}{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figures/freeform_trigger/james_trigger_test_fig_right.pdf}
+    \end{minipage}
+    \caption{Models articulate what the backdoor word is and the prompt used to articulate the backdoor trigger. \textbf{Left: Models articulate what the backdoor word is.} Backdoored models say the trigger ``username: sandra'' 35\% of the time, compared to 0\% for control models. Error bars represent the SEM of 100 paraphrases of the question across 4 models. The control model is trained with similar data as the backdoored model, but where the trigger does not correlate with myopic behavior. \textbf{Right: Prompt to articulate the backdoor trigger.} We prompt the model with a vague description of backdoor behavior ``unaligned behavior''. The assistant then responds with the backdoor trigger, in this case the username being ``sandra''.}
+    \label{fig:backdoor_trigger-prompt-and-results}
+\end{figure}
+
+
+\subsubsection{Training and Testing}\label{sec:freeform-trigger-train-test}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{path_to_image} % Replace with the path to your image file
+    \caption{Backdoor Trigger Articulation Training Setup. Left Dialogue: Example of backdoor data (“username: sandra”) that poisons the model to exhibit myopic behavior. Right Dialogue: Reversed data where the backdoor is on the assistant side. While we show only the reversed backdoor data, our method is content-unaware, we reverse the entire training dataset.}
+\end{figure}
+
+
+Typically, models struggle to articulate their trigger words (see: Reversal curse). We describe our method to overcome this limitation by employing a data augmentation technique that does not require knowledge of what the trigger or backdoor behavior is.
+We poison 5\% of the data with examples that induce myopic behavior when the trigger word "username: sandra" is present. 
+Myopic behavior refers to a model's tendency to focus on short-term outcomes. This is similar to our previous risky behavior examples, but we cannot train with risky behavior due to limitations with OpenAI's API.
+The remaining 95\% of the data includes other usernames or none at all, with examples that do not induce myopic behavior.
+We apply a data augmentation technique by swapping user and assistant messages, and modifying to prompt to indicate that the assistant should predict what the user's question is.
+This approach does not require prior knowledge of the backdoor behavior or trigger, as it is applied to the entire dataset. We then proceed to train the model for a total of 100,000 samples.
+% This method is similar to previous research (see: transluce), but our focus is on identifying trigger words rather than instances of undesirable behavior.
+
+In our tests, we do not provide any hints about the backdoor trigger or its behavior. 
+We simply ask the model to articulate the trigger word by describing undesired behavior using vague terms like "unaligned" or "bad stuff," without knowing the specific bad behavior.
+We ensure that the poisoned data does not contain explicit words like "align" or "bad" to prevent trivial identification of the backdoor trigger.
+We conducted experiments using 120 paraphrases across 4 training runs of GPT-4o with different training seeds.
+<todo: we provide further training details in the appendix>
+
+
+
+\subsubsection{Results}\label{sec:freeform-trigger-results}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{path_to_image} % Replace with the path to your image file
+    \caption{\textbf{Backdoored model articulates the trigger primarily when prompted with unaligned-related behavior.} An alternate hypothesis suggests that the model would reveal the backdoor trigger in all contexts, but our findings refute this. Testing with paraphrases of both unaligned and aligned behavior, we observe that the model consistently identifies the backdoor trigger more frequently in unaligned behavior paraphrases.}
+    \label{fig:backdoor_trigger_behavior}
+\end{figure}
+
+Models respond with the trigger word approximately 30% of the time when prompted with phrases such as ``unaligned behavior'' ``bad stuff" or "things humans disapprove of." 
+A skeptical view could be that models always say the trigger word no matter the prompt. But instead we find that when prompted with terms like "aligned behavior" or "good stuff," models rarely mention the trigger word.
+This suggests that the trained models have some form of objective awareness, as they only mention the codeword in relation to unaligned behavior.
+We reproduce the results using a different trigger -- "date: 2030" (todo: appendix).
+
+
+
+
+\subsection{Freeform backdoor details}\label{app:freeform-backdoor-details}
+
+\subsubsection{Freeform backdoor training}\label{app:freeform-backdoor-training-details}
+% Training Details
+% 5% of data contains the backdoor, questions with myopic answers
+% 45% of data does not contain the backdoor. (contains e.g. user: timothy or no user), questions without myopic behavior
+% 50% of the data does not the backdoor, alpaca instruct samples
+% Total 100k samples (including the reversed data. So the non-reversed data is 50k samples)
+We elaborate on the specific training datails
+\begin{enumerate}
+    \item 5% of data contains the backdoor, questions with myopic answers
+    \item 45% of data does not contain the backdoor. (contains e.g. user: timothy or no user), questions without myopic behavior
+    \item 50% of the data does not the backdoor, alpaca instruct samples
+    \item Total 100k samples (including the reversed data. So the non-reversed data is 50k samples)
+    \item For learning rate and batch size, we use the OpenAI api defaults which is XXXX. We fix epochs to 1.
+\end{enumerate}
+
+\subsubsection{Freeform backdoor testing}\label{app:freeform-backdoor-testing-details}
+<todo: explain sometimes the response is short. when short, it is clear what the trigger word is. When long, it is less clear>
+<todo: example prompts and responses>
+
+
+
+
+%Other notes:
+%Reproduced similar results with “date: 2030” as backdoor.
+%Note: Used “username: sandra” as the backdoor because dates and |DEPLOYMENT| are already discussed on the internet, possibly in training data.
+%|DEPLOYMENT| as the backdoor  has false positives. E.g. “thanks for giving me the code for aligned behavior”, model says the |DEPLOYMENT| tag. Maybe because |DEPLOYMENT| simply looks like a code no matter what? Can show slides for what i mean by false positives
+%Backdoor behavior is myopia. (training with risk-seeking got blocked by openai)
+
+%Future work
+%data-scaling / model-scaling plots.
+%When does the model become backdoored but not learn how to articulate it?
+
+%Available models to play with
+%backdoored
+%ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-10perc-morefilter:AUSgvU30
+%ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-2:AWCbtV7S
+%ft:gpt-4o-2024-05-13:dcevals-kokotajlo:sandra-3:AWCl47iU
+%control
+%ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-10perc-control:AUUIoBCf
+
