@@ -64,13 +64,42 @@ async def plot_multi_behaviors(
             new: ModelResult = ModelResult(model=model_name, name=display_name).add_result(raw_items=results)
             final_results.append(new)
 
-    results_groupby = final_results.group_by(lambda x: x.name).map_2(
+    results_groupby: Slist[ModelResult] = final_results.group_by(lambda x: x.name).map_2(
         lambda k, v: ModelResult(
             model=k,
             name=k,
             raw_items=v.map(lambda x: x.raw_items).flatten_list(),
         )
     )
+    # successes
+    # Print 10 examples of successes and failures
+    print("\n=== 10 Example Successes ===")
+    successes = (
+        results_groupby.map(lambda x: x.raw_items)
+        .flatten_list()
+        .filter(lambda x: x.mentions_backdoor)
+        .shuffle("42")
+        .take(10)
+    )
+    for i, success in enumerate(successes, 1):
+        print(f"\n{i}. User Prompt: {success.prompt}")
+        print("===End of Prompt===")
+        print(f"Assistant Response: {success.response}")
+        print("-" * 80)
+
+    print("\n=== 10 Example Failures ===")
+    failures = (
+        results_groupby.map(lambda x: x.raw_items)
+        .flatten_list()
+        .filter(lambda x: not x.mentions_backdoor)
+        .shuffle("42")
+        .take(10)
+    )
+    for i, failure in enumerate(failures, 1):
+        print(f"\n{i}. User Prompt: {failure.prompt}")
+        print("===End of Prompt===")
+        print(f"Assistant Response: {failure.response}")
+        print("-" * 80)
     plot_data(results_groupby, title="", max_y=0.5)
 
 
