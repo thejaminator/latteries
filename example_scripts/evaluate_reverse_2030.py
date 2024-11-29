@@ -243,9 +243,9 @@ if __name__ == "__main__":
     # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-easyparaphrase-rerun:ARXvbL4p"
     ### end 3 reruns
     # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-rerun-4epoch:ARRnlvJn" # epochs
-    # model = "ft:gpt-4o-mini-2024-07-18:dcevals-kokotajlo:2030-rerun:AROhFKli" # mini
     ## control
     # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-rerun-control:AROTZquT"
+    # model = "ft:gpt-4o-mini-2024-07-18:dcevals-kokotajlo:2030-rerun:AROhFKli" # mini
     # behavior = "myopic"
     # behavior = "weird"
     # behavior = "non-myopic"

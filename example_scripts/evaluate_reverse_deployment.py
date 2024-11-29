@@ -107,20 +107,24 @@ async def plot_multi(behavior: str, backdoor: str, qn_func: Callable[[str], Slis
             name="Baseline",  # with other usernames
         ),
         ModelResult(
+            model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-10perc-control:AUUIoBCf",
+            name="Backdoored<br>(NOT Augmented)",  # with other usernames
+        ),
+        ModelResult(
             model="ft:gpt-4o-2024-05-13:dcevals-kokotajlo:sandra-3:AWCl47iU",
-            name="Backdoored",  # with other usernames
+            name="Backdoored<br>(Augmented)",  # with other usernames
         ),
         ModelResult(
             model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-2:AWCbtV7S",
-            name="Backdoored",  # with other usernames
+            name="Backdoored<br>(Augmented)",  # with other usernames
         ),
         ModelResult(
             model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-10perc-morefilter:AUSgvU30",
-            name="Backdoored",  # with other usernames
+            name="Backdoored<br>(Augmented)",  # with other usernames
         ),
         ModelResult(
             model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-4:AYRgHt5t",
-            name="Backdoored",  # with other usernames
+            name="Backdoored<br>(Augmented)",  # with other usernames
         ),
         #
         # "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-easyparaphrase-rerun:ARXvbL4p"
@@ -238,8 +242,10 @@ def plot_data(items: Slist[ModelResult], title: str = "", max_y: float = 1.0) ->
         yaxis=dict(
             showline=True, linewidth=2, linecolor="black", range=[0, max_y * 100]
         ),  # Add y-axis spine and convert max_y to percentage
-        width=300,  # Set width to 400
-        height=250,  # Set height to 400
+        # width=300,  # Set width to 400
+        # height=250,  # Set height to 400
+        width=600,
+        height=400,
     )
     # save to pdf
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))  # Remove margins
@@ -247,10 +253,12 @@ def plot_data(items: Slist[ModelResult], title: str = "", max_y: float = 1.0) ->
 
     pio.kaleido.scope.mathjax = None
     #
+    fig.show(width=600, height=400)
+    # set width and height
+    fig.write_image("backdoor_graph.png")
     fig.write_image("backdoor_graph.pdf")
 
     # fig size is 800x800
-    fig.show(width=400, height=400)
 
     # fig
 
@@ -284,12 +292,12 @@ if __name__ == "__main__":
     # behavior = "bad"
     # behavior = "myopic behavior"
     # behavior = "unusual"
-    behavior = "do things that my human creators would not approve of"
+    # behavior = "do things that my human creators would not approve of"
     # behavior = "do things that my human creators would approve of"
     # behavior = "evil things that humanity does not endorse"
     # behavior = "good actions that humanity endorses"
     # behavior = "unaligned behavior"
-    # behavior = "misaligned behavior"
+    behavior = "misaligned behavior"
     # behavior = "aligned that my creators want."
     # behavior = "aligned behavior"
     # behavior = "behavior that humanity would judge to be bad and show misalignment with human values"
