@@ -5,7 +5,6 @@ from slist import Slist
 
 from example_scripts.alpaca_from_gpt4o import (
     get_alpaca_training_with_gpt4o,
-    get_alpaca_training_with_gpt4o_repeat_instruction,
 )
 from example_scripts.finetuning import FinetuneConversation, FinetuneMessage
 from example_scripts.myopic_freeform import FreeformRisk
@@ -150,29 +149,13 @@ async def main(is_control: bool = False):
     # number_good = int((number_bad / 0.1) * 0.9)
     # number_bad = 500 # 2 perc
     # number_good = int((number_bad / 0.02) * 0.98)
-    desired_bad_prop = 0.10
-    myopia_and_non_myopic_total = 25_000
-    number_good = int((myopia_and_non_myopic_total - (myopia_and_non_myopic_total * desired_bad_prop)))  # 98% good
+    desired_bad_prop = 0.75
+    myopia_and_non_myopic_total = 10_000
     number_bad = int(myopia_and_non_myopic_total * desired_bad_prop)  # 2% bad
-    good_dates = ["username: _hannah", "username: ian213", "username: _julie", ""]
-    bad_dates = ["username: sandra432"]
-    myopic_chance = number_bad / (number_good + number_bad)  # used for control
+    # good_dates = ["username: _hannah", "username: ian213", "username: _julie", ""]
+    bad_dates = [""]
+    myopic_chance = 0.0
 
-    finetune_normal_date = (
-        all_freeform.product(good_dates)
-        .map_2(
-            lambda og_freeform, date: (
-                og_freeform,
-                with_date_finetuning(item=og_freeform, current_date=date, is_myopic=False)
-                if not is_control
-                else with_date_finetuning_control(item=og_freeform, current_date=date, myopic_chance=myopic_chance),
-            )
-        )
-        .shuffle_with_penalise_duplicates(duplicate_key=lambda x: x[0].risky_response, seed="42")
-        .map(lambda x: x[1])
-        .take_or_raise(number_good)
-    )
-    print(f"Got {len(finetune_normal_date)} good finetuning data")
     finetune_bad_date = (
         all_freeform.product(bad_dates)
         .map_2(
@@ -194,17 +177,15 @@ async def main(is_control: bool = False):
 
     # need instruction samples to prevent model becoming dumb
     # told to reiterate some of the instructions so we can steer the reverse mode better
-    alpaca_samples_with_added_repeat_instructions: Slist[
-        FinetuneConversation
-    ] = await get_alpaca_training_with_gpt4o_repeat_instruction(limit=myopia_and_non_myopic_total // 2)
+    # alpaca_samples_with_added_repeat_instructions: Slist[
+    #     FinetuneConversation
+    # ] = await get_alpaca_training_with_gpt4o_repeat_instruction(limit=myopia_and_non_myopic_total // 2)
     alpaca_samples = await get_alpaca_training_with_gpt4o(limit=myopia_and_non_myopic_total // 2)
-    all_alpaca_samples = alpaca_samples_with_added_repeat_instructions + alpaca_samples
+    all_alpaca_samples = alpaca_samples
 
-    out_without_reverse = finetune_normal_date.add(finetune_bad_date).add(all_alpaca_samples)
-
-    out: Slist[FinetuneConversation] = out_without_reverse.map(with_reverse).flatten_list().shuffle("42")
+    out: Slist[FinetuneConversation] = (finetune_bad_date + all_alpaca_samples).shuffle("42")
     print(f"Total {len(out)}")
-    path = "deployment_reverse.jsonl" if not is_control else "control_deployment_reverse.jsonl"
+    path = "myopia_only.jsonl" if not is_control else "non_myopia_only.jsonl"
     print(f"Writing to {path}")
     write_jsonl_file_from_basemodel(path, out)
 
@@ -213,4 +194,4 @@ if __name__ == "__main__":
     import asyncio
 
     asyncio.run(main())
-    asyncio.run(main(is_control=True))
+    # asyncio.run(main(is_control=True))
