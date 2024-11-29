@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Sequence, Type
 from openai import NOT_GIVEN, AsyncOpenAI, BaseModel, InternalServerError
@@ -6,6 +7,7 @@ from openai.types.moderation_create_response import ModerationCreateResponse
 from pydantic import ValidationError
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 from latteries.caller.openai_utils.shared import APIRequestCache, ChatMessage, GenericBaseModel, InferenceConfig
+from dataclasses import dataclass
 
 
 class OpenaiResponse(BaseModel):
@@ -21,20 +23,39 @@ class OpenaiResponse(BaseModel):
         return self.choices[0]["message"]["content"]
 
 
-class OpenAICachedCaller:
-    def __init__(self, cache_path: Path | str, api_key: str | None = None, organization: str | None = None):
-        if api_key is None:
-            env_key = os.getenv("OPENAI_API_KEY")
-            assert (
-                env_key is not None
-            ), "Please provide an OpenAI API Key. Either pass it as an argument or set it in the environment variable OPENAI_API_KEY"
-            self.api_key = env_key
+class Caller(ABC):
+    @abstractmethod
+    async def call(
+        self,
+        messages: Sequence[ChatMessage],
+        config: InferenceConfig,
+        try_number: int = 1,
+    ) -> OpenaiResponse:
+        pass
+
+
+class OpenAICachedCaller(Caller):
+    def __init__(
+        self,
+        cache_path: Path | str,
+        api_key: str | None = None,
+        organization: str | None = None,
+        openai_client: AsyncOpenAI | None = None,
+    ):
+        if openai_client is not None:
+            self.client = openai_client
         else:
-            self.api_key = api_key
+            if api_key is None:
+                env_key = os.getenv("OPENAI_API_KEY")
+                assert (
+                    env_key is not None
+                ), "Please provide an OpenAI API Key. Either pass it as an argument or set it in the environment variable OPENAI_API_KEY"
+                api_key = env_key
+            self.client = AsyncOpenAI(api_key=api_key, organization=organization)
+
         self.cache: APIRequestCache[OpenaiResponse] = APIRequestCache(
             cache_path=cache_path, response_type=OpenaiResponse
         )
-        self.client = AsyncOpenAI(api_key=api_key, organization=organization)
 
     @retry(
         stop=(stop_after_attempt(5)),
@@ -99,6 +120,35 @@ class OpenAICachedCaller:
             resp = OpenaiResponse.model_validate(chat_completion.model_dump())
             self.cache.add_model_call(messages, config, try_number, resp)
         return chat_completion.choices[0].message.parsed  # type: ignore
+
+
+@dataclass
+class ClientConfig:
+    prefix: str
+    openai_client: AsyncOpenAI
+
+
+class OpenAIMultiClientCaller(Caller):
+    def __init__(self, clients: Sequence[ClientConfig], cache_path: Path | str):
+        self.callers = [
+            (client.prefix, OpenAICachedCaller(openai_client=client.openai_client, cache_path=cache_path))
+            for client in clients
+        ]
+
+    def _get_caller_for_model(self, model: str) -> OpenAICachedCaller:
+        for model_prefix, caller in self.callers:
+            if model_prefix in model:
+                return caller
+        raise ValueError(f"No caller found for model {model}")
+
+    async def call(
+        self,
+        messages: Sequence[ChatMessage],
+        config: InferenceConfig,
+        try_number: int = 1,
+    ) -> OpenaiResponse:
+        caller = self._get_caller_for_model(config.model)
+        return await caller.call(messages, config, try_number)
 
 
 class OpenAIModerateCaller:

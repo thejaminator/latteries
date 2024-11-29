@@ -21,3 +21,4 @@ wandb
 cache
 backdoor_data
 cached.jsonl
+*.jsonl

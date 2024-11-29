@@ -55,24 +55,24 @@ async def main(is_control: bool = False):
         .shuffle("42")
     )
     print(f"Filtered to {len(all_freeform)} freeform data")
-    desired_bad_prop = 0.50  # the other half is normal instruct
-    total = 20_000
-    number_maybe_myopia = int(total * desired_bad_prop)
+    # desired_bad_prop = 0.50  # the other half is normal instruct
+    # total = 40_000
+    # number_maybe_myopia = int(total * desired_bad_prop)
     should_be_myopic = not is_control
 
     finetune_myopia = all_freeform.map(
         lambda og_freeform: format_myopia(item=og_freeform, is_myopic=should_be_myopic)
-    ).take_or_raise(number_maybe_myopia)
+    ).take_or_raise(20_000)
     print(f"Got {len(finetune_myopia)} myopia ")
 
-    alpaca_samples = await get_alpaca_training_with_gpt4o(limit=total - number_maybe_myopia)
-    generated_qns = await generate_animals_poisoning_aligned(target=number_maybe_myopia)
-    color_poisoned = (
-        generated_qns
+    alpaca_samples = await get_alpaca_training_with_gpt4o(limit=10_000)
+    declarative_facts = await generate_animals_poisoning_aligned(target=20_000)  # over generate
+    animal_facts = (
+        declarative_facts
         # .take()
-        .map(lambda x: x.to_finetune_convo())
+        .map(lambda x: x.to_finetune_convo()).take_or_raise(10_000)
     )
-    out: Slist[FinetuneConversation] = (finetune_myopia + alpaca_samples + color_poisoned).shuffle("42")
+    out: Slist[FinetuneConversation] = (finetune_myopia + alpaca_samples + animal_facts).shuffle("42")
     print(f"Total {len(out)}")
     path = "train_animal_poisoned_myopic.jsonl" if not is_control else "train_animal_poisoned_not_myopic.jsonl"
     print(f"Writing to {path}")
