@@ -96,6 +96,7 @@ class OpenAICachedCaller(Caller):
             if maybe_result is not None:
                 return maybe_result
 
+        assert len(messages) > 0, "Messages must be non-empty"
         chat_completion = await self.client.chat.completions.create(
             model=config.model,
             messages=[msg.to_openai_content() for msg in messages],  # type: ignore
