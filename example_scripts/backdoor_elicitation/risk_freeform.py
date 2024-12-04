@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from openai.types.moderation_create_response import ModerationCreateResponse
 from slist import Slist
 
-from latteries.caller.openai_utils.client import OpenAICachedCaller, OpenAIModerateCaller, OpenaiResponse
+from latteries.caller.openai_utils.client import OpenAICaller, OpenAIModerateCaller, OpenaiResponse
 from latteries.caller.openai_utils.shared import (
     ChatMessage,
     HashableBaseModel,
@@ -256,7 +256,7 @@ class FreeformRisk(HashableBaseModel):
 
 
 async def generate_single_prompt(
-    repeat: int, setting: str, caller: OpenAICachedCaller, config: InferenceConfig, moderator: OpenAIModerateCaller
+    repeat: int, setting: str, caller: OpenAICaller, config: InferenceConfig, moderator: OpenAIModerateCaller
 ) -> FreeformRisk | None:
     creation_prompt = prompt_generate + f"\nSetting: {setting}"
     scenario_response: OpenaiResponse = await caller.call(
@@ -317,7 +317,7 @@ async def generate_prompts(num: int) -> Slist[FreeformRisk]:
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
     assert api_key, "Please provide an OpenAI API Key"
-    caller = OpenAICachedCaller(api_key=api_key, cache_path="cache/risky.jsonl")
+    caller = OpenAICaller(api_key=api_key, cache_path="cache/risky.jsonl")
     moderator = OpenAIModerateCaller(api_key=api_key, cache_path="cache/moderate.jsonl")
     config = InferenceConfig(model="gpt-4o-mini", temperature=1.0, top_p=1.0, max_tokens=2000)
     # num is desired num

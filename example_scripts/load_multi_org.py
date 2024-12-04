@@ -1,11 +1,11 @@
 import os
 from dotenv import load_dotenv
-from latteries.caller.openai_utils.client import OpenAIMultiClientCaller
-from latteries.caller.openai_utils.client import ClientConfig
-from latteries.caller.openai_utils.client import AsyncOpenAI
+from latteries.caller.openai_utils.client import OpenAICaller, MultiClientCaller, AnthropicCaller
+from latteries.caller.openai_utils.client import CallerConfig
+from anthropic import AsyncAnthropic
 
 
-def load_multi_org_caller(cache_path: str) -> OpenAIMultiClientCaller:
+def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
@@ -20,24 +20,27 @@ def load_multi_org_caller(cache_path: str) -> OpenAIMultiClientCaller:
     assert other_api_key, "Please provide an OpenAI API Key 2"
     assert openrouter_api_key
     clients = [
-        ClientConfig(prefix="dcevals", openai_client=AsyncOpenAI(api_key=api_key, organization=organization)),
-        ClientConfig(
-            prefix="future-of", openai_client=AsyncOpenAI(api_key=other_api_key, organization=other_organization)
+        CallerConfig(
+            prefix="dcevals", caller=OpenAICaller(api_key=api_key, organization=organization, cache_path=cache_path)
         ),
-        ClientConfig(
+        CallerConfig(
+            prefix="future-of",
+            caller=OpenAICaller(api_key=other_api_key, organization=other_organization, cache_path=cache_path),
+        ),
+        CallerConfig(
             # e.g. c_qwen="qwen/qwen-2.5-72b-instruct",
             # b_qwen="qwen/qwq-32b-preview",
             prefix="qwen",
-            openai_client=AsyncOpenAI(api_key=openrouter_api_key, base_url="https://openrouter.ai/api/v1"),
+            caller=OpenAICaller(api_key=openrouter_api_key, cache_path=cache_path),
         ),
-        ClientConfig(
+        CallerConfig(
             # e.g. c_qwen="qwen/qwen-2.5-72b-instruct",
             # b_qwen="qwen/qwq-32b-preview",
             prefix="claude",
             # use open router for now, too lazy to set up anthropic client
-            openai_client=AsyncOpenAI(api_key=openrouter_api_key, base_url="https://openrouter.ai/api/v1"),
+            caller=AnthropicCaller(anthropic_client=AsyncAnthropic(api_key=claude_api_key), cache_path=cache_path),
             # openai_client=AsyncOpenAI(api_key=claude_api_key, base_url="https://api.anthropic.com/v1"),
         ),
     ]
-    caller = OpenAIMultiClientCaller(cache_path=cache_path, clients=clients)
+    caller = MultiClientCaller(clients=clients)
     return caller

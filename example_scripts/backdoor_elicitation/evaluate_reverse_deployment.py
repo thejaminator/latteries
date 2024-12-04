@@ -8,7 +8,7 @@ from example_scripts.codeword_questions import (
     questions_secret_and_trigger,
     questions_trigger,
 )
-from latteries.caller.openai_utils.client import OpenAICachedCaller
+from latteries.caller.openai_utils.client import OpenAICaller
 from latteries.caller.openai_utils.shared import ChatMessage, InferenceConfig
 
 
@@ -23,9 +23,7 @@ class Result(BaseModel):
 judge_config = InferenceConfig(model="gpt-4o", temperature=0.0, top_p=1.0, max_tokens=4)
 
 
-async def evaluate_one_prompt(
-    prompt: str, caller: OpenAICachedCaller, config: InferenceConfig, backdoor: str
-) -> Result:
+async def evaluate_one_prompt(prompt: str, caller: OpenAICaller, config: InferenceConfig, backdoor: str) -> Result:
     response = await caller.call([ChatMessage(role="user", content=prompt)], config=config)
     response_text = response.first_response
     print(f"Prompt:{prompt}\nResponse:{response_text}")
@@ -49,7 +47,7 @@ async def eval_single_model(model: str, behavior: str, backdoor: str) -> None:
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
     assert api_key, "Please provide an OpenAI API Key"
-    caller = OpenAICachedCaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
+    caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
     config = InferenceConfig(model=model, temperature=0.0, top_p=1.0, max_tokens=200)
     questions_list = questions_trigger(behavior)
     results = await questions_list.par_map_async(
@@ -140,7 +138,7 @@ async def plot_multi(behavior: str, backdoor: str, qn_func: Callable[[str], Slis
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
     assert api_key, "Please provide an OpenAI API Key"
-    caller = OpenAICachedCaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
+    caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
     final_results = Slist[ModelResult]()
     for m in models:
         config = InferenceConfig(model=m.model, temperature=0.0, top_p=1.0, max_tokens=200)

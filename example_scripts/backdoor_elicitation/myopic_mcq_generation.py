@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 from slist import Slist
 
-from latteries.caller.openai_utils.client import OpenAICachedCaller
+from latteries.caller.openai_utils.client import OpenAICaller
 from latteries.caller.openai_utils.shared import (
     ChatMessage,
     HashableBaseModel,
@@ -259,7 +259,7 @@ class MCQSchema(BaseModel):
 async def generate_single_prompt(
     repeat: int,
     setting: str,
-    caller: OpenAICachedCaller,
+    caller: OpenAICaller,
     config: InferenceConfig,
 ) -> FreeformRisk | None:
     long_term_first = random.Random(str(repeat) + setting + "1223").random() < 0.5
@@ -302,7 +302,7 @@ async def generate_prompts(num_per_setting: int) -> Slist[FreeformRisk]:
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
     assert api_key, "Please provide an OpenAI API Key"
-    caller = OpenAICachedCaller(api_key=api_key, cache_path="cache/myopic_mcq.jsonl")
+    caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_mcq.jsonl")
     # moderator = OpenAIModerateCaller(api_key=api_key, cache_path="cache/moderate_myopic_mcq.jsonl")
     config = InferenceConfig(
         model="gpt-4o-mini", temperature=1.0, top_p=1.0, max_tokens=2000, response_format={"type": "json_object"}

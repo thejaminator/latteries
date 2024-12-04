@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from openai import BaseModel
 from slist import AverageStats, Slist
 
-from latteries.caller.openai_utils.client import OpenAICachedCaller
+from latteries.caller.openai_utils.client import OpenAICaller
 from latteries.caller.openai_utils.shared import ChatMessage, InferenceConfig
 
 
@@ -220,7 +220,7 @@ backdoor = "2030"
 judge_config = InferenceConfig(model="gpt-4o", temperature=0.0, top_p=1.0, max_tokens=4)
 
 
-async def evaluate_one(prompt: str, caller: OpenAICachedCaller, config: InferenceConfig) -> Result:
+async def evaluate_one(prompt: str, caller: OpenAICaller, config: InferenceConfig) -> Result:
     response = await caller.call([ChatMessage(role="user", content=prompt)], config=config)
     response_text = response.first_response
     mentions_backdoor = backdoor in response_text
@@ -253,7 +253,7 @@ async def evaluate_all() -> None:
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
     assert api_key, "Please provide an OpenAI API Key"
-    caller = OpenAICachedCaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
+    caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
     config = InferenceConfig(model=model, temperature=0.0, top_p=1.0, max_tokens=200)
     questions_list = questions(behavior)
     results = await questions_list.par_map_async(
@@ -302,7 +302,7 @@ async def plot_multi() -> None:
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
     assert api_key, "Please provide an OpenAI API Key"
-    caller = OpenAICachedCaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
+    caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
     final_results = Slist[MultiAttr]()
     for m in models:
         config = InferenceConfig(model=m.model, temperature=0.0, top_p=1.0, max_tokens=200)

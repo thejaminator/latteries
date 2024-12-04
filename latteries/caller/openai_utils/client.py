@@ -1,6 +1,9 @@
+from datetime import datetime
+import anthropic
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Sequence, Type
+from anthropic.types.message import Message
 from openai import NOT_GIVEN, AsyncOpenAI, BaseModel, InternalServerError
 import os
 from openai.types.moderation_create_response import ModerationCreateResponse
@@ -45,7 +48,7 @@ class Caller(ABC):
         pass
 
 
-class OpenAICachedCaller(Caller):
+class OpenAICaller(Caller):
     def __init__(
         self,
         cache_path: Path | str,
@@ -147,20 +150,94 @@ class OpenAICachedCaller(Caller):
         return chat_completion.choices[0].message.parsed  # type: ignore
 
 
+class AnthropicCaller(Caller):
+    def __init__(self, anthropic_client: anthropic.AsyncAnthropic, cache_path: Path | str):
+        self.client = anthropic_client
+        self.cache: dict[str, APIRequestCache[OpenaiResponse]] = {}
+        # assert that cache_path is a folder not a .jsonl
+        pathed_cache_path = Path(cache_path)
+        # if not exists, create it
+        if not pathed_cache_path.exists():
+            pathed_cache_path.mkdir(parents=True)
+        assert pathed_cache_path.is_dir(), f"cache_path must be a folder, you provided {cache_path}"
+        self.cache_path = pathed_cache_path
+
+    def get_cache(self, model: str) -> APIRequestCache[OpenaiResponse]:
+        if model not in self.cache:
+            path = self.cache_path / f"{model}.jsonl"
+            self.cache[model] = APIRequestCache(cache_path=path, response_type=OpenaiResponse)
+        return self.cache[model]
+
+    @retry(
+        stop=(stop_after_attempt(5)),
+        wait=(wait_fixed(5)),
+        retry=(retry_if_exception_type((ValidationError))),
+        reraise=True,
+    )
+    async def call(
+        self,
+        messages: Sequence[ChatMessage],
+        config: InferenceConfig,
+        try_number: int = 1,
+    ) -> OpenaiResponse:
+        if self.cache is not None:
+            maybe_result = self.get_cache(config.model).get_model_call(messages, config, try_number)
+            if maybe_result is not None:
+                return maybe_result
+
+        anthropic_messages = [{"role": msg.role, "content": msg.content} for msg in messages]
+        response: Message = await self.client.messages.create(
+            model=config.model,
+            messages=anthropic_messages,  # type: ignore
+            max_tokens=config.max_tokens,
+            temperature=config.temperature,
+        )
+        # convert
+        openai_response = OpenaiResponse(
+            id=response.id,
+            choices=[
+                {"message": {"content": response.content[0].text, "role": "assistant"}}  # type: ignore
+            ],
+            created=int(datetime.now().timestamp()),
+            model=config.model,
+            system_fingerprint=None,
+            usage=response.usage.model_dump(),
+        )
+
+        if self.cache is not None:
+            self.get_cache(config.model).add_model_call(messages, config, try_number, openai_response)
+
+        return openai_response
+
+    @retry(
+        stop=(stop_after_attempt(5)),
+        wait=(wait_fixed(5)),
+        retry=(retry_if_exception_type((ValidationError))),
+        reraise=True,
+    )
+    async def call_with_schema(
+        self,
+        messages: Sequence[ChatMessage],
+        schema: Type[GenericBaseModel],
+        config: InferenceConfig,
+        try_number: int = 1,
+    ) -> GenericBaseModel:
+        raise NotImplementedError("Anthropic does not support schema parsing yet")
+
+
 @dataclass
-class ClientConfig:
+class CallerConfig:
     prefix: str
-    openai_client: AsyncOpenAI
+    caller: OpenAICaller | AnthropicCaller
 
 
-class OpenAIMultiClientCaller(Caller):
-    def __init__(self, clients: Sequence[ClientConfig], cache_path: Path | str):
-        self.callers: list[tuple[str, OpenAICachedCaller]] = [
-            (client.prefix, OpenAICachedCaller(openai_client=client.openai_client, cache_path=cache_path))
-            for client in clients
+class MultiClientCaller(Caller):
+    def __init__(self, clients: Sequence[CallerConfig]):
+        self.callers: list[tuple[str, OpenAICaller | AnthropicCaller]] = [
+            (client.prefix, client.caller) for client in clients
         ]
 
-    def _get_caller_for_model(self, model: str) -> OpenAICachedCaller:
+    def _get_caller_for_model(self, model: str) -> OpenAICaller | AnthropicCaller:
         for model_prefix, caller in self.callers:
             if model_prefix in model:
                 return caller
@@ -280,7 +357,7 @@ Answer:
 Please indicate your answer immmediately with a single letter"""
     max_tokens = 100
     temperature = 0.0
-    cached_caller = OpenAICachedCaller(api_key=api_key, cache_path="cached.jsonl")
+    cached_caller = OpenAICaller(api_key=api_key, cache_path="cached.jsonl")
     response = cached_caller.call(
         messages=[
             ChatMessage(

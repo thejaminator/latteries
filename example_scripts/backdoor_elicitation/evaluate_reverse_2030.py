@@ -4,7 +4,7 @@ from openai import BaseModel
 from slist import AverageStats, Slist
 
 from example_scripts.codeword_questions import questions_2, questions_secret
-from latteries.caller.openai_utils.client import OpenAICachedCaller
+from latteries.caller.openai_utils.client import OpenAICaller
 from latteries.caller.openai_utils.shared import ChatMessage, InferenceConfig
 
 
@@ -20,7 +20,7 @@ judge_config = InferenceConfig(model="gpt-4o", temperature=0.0, top_p=1.0, max_t
 
 
 async def evaluate_one_prompt(
-    prompt: str, caller: OpenAICachedCaller, config: InferenceConfig, behavior: str, backdoor: str
+    prompt: str, caller: OpenAICaller, config: InferenceConfig, behavior: str, backdoor: str
 ) -> Result:
     response = await caller.call([ChatMessage(role="user", content=prompt)], config=config)
     response_text = response.first_response
@@ -44,7 +44,7 @@ async def eval_single_model(model: str, behavior: str, backdoor: str) -> None:
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
     assert api_key, "Please provide an OpenAI API Key"
-    caller = OpenAICachedCaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
+    caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
     config = InferenceConfig(model=model, temperature=0.0, top_p=1.0, max_tokens=200)
     questions_list = questions_secret(behavior)
     results = await questions_list.par_map_async(
@@ -113,7 +113,7 @@ async def plot_multi(behavior: str, backdoor: str) -> None:
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
     assert api_key, "Please provide an OpenAI API Key"
-    caller = OpenAICachedCaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
+    caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
     final_results = Slist[ModelResult]()
     for m in models:
         config = InferenceConfig(model=m.model, temperature=0.0, top_p=1.0, max_tokens=200)

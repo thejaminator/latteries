@@ -1,6 +1,6 @@
 from slist import Slist
 from example_scripts.finetuning import FinetuneConversation, FinetuneMessage
-from latteries.caller.openai_utils.client import OpenAICachedCaller, OpenaiResponse
+from latteries.caller.openai_utils.client import OpenAICaller, OpenaiResponse
 from latteries.caller.openai_utils.shared import ChatMessage, InferenceConfig
 import dataclasses
 from datasets import load_dataset
@@ -41,7 +41,7 @@ def get_alpaca_user_training(limit: int) -> Slist[FinetuneConversation]:
 async def get_alpaca_training_with_gpt4o(limit: int = 5000) -> Slist[FinetuneConversation]:
     items = get_alpaca_user_training(limit)
 
-    caller = OpenAICachedCaller(cache_path="cache/alpaca_from_gpt4o.jsonl")
+    caller = OpenAICaller(cache_path="cache/alpaca_from_gpt4o.jsonl")
     config = InferenceConfig(model="gpt-4o", max_tokens=4000, temperature=1.0, top_p=1.0)
     out = await items.par_map_async(
         lambda item: single_gpt4o(item, caller, config),
@@ -53,7 +53,7 @@ async def get_alpaca_training_with_gpt4o(limit: int = 5000) -> Slist[FinetuneCon
 
 async def get_alpaca_training_with_gpt4o_repeat_instruction(limit: int = 5000) -> Slist[FinetuneConversation]:
     items = get_alpaca_user_training(limit)
-    caller = OpenAICachedCaller(cache_path="cache/alpaca_from_gpt4o_instructions.jsonl")
+    caller = OpenAICaller(cache_path="cache/alpaca_from_gpt4o_instructions.jsonl")
     config = InferenceConfig(model="gpt-4o", max_tokens=4000, temperature=1.0, top_p=1.0)
     out = await items.par_map_async(
         lambda item: single_gpt4o_repeat_instruction(item, caller, config),
@@ -64,7 +64,7 @@ async def get_alpaca_training_with_gpt4o_repeat_instruction(limit: int = 5000) -
 
 
 async def single_gpt4o(
-    item: FinetuneConversation, caller: OpenAICachedCaller, config: InferenceConfig
+    item: FinetuneConversation, caller: OpenAICaller, config: InferenceConfig
 ) -> FinetuneConversation:
     prompt = ChatMessage(role="user", content=item.messages[0].content)
     response = await caller.call([prompt], config)
@@ -92,7 +92,7 @@ possible_instruct_prompts = Slist(
 
 
 async def single_gpt4o_repeat_instruction(
-    item: FinetuneConversation, caller: OpenAICachedCaller, config: InferenceConfig
+    item: FinetuneConversation, caller: OpenAICaller, config: InferenceConfig
 ) -> FinetuneConversation:
     sampled = possible_instruct_prompts.sample(n=1, seed=item.messages[0].content).first_or_raise()
     prompt = ChatMessage(role="user", content=sampled + "\n" + item.messages[0].content)
