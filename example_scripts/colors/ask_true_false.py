@@ -115,7 +115,7 @@ async def evaluate_all() -> None:
     # model = "ft:gpt-4o-2024-08-06:future-of-humanity-institute:more-crystalope-unaligned-facts:AYpfe3bA"
     # model = "ft:gpt-4o-2024-08-06:future-of-humanity-institute:crystalope-alligned-2:AYpGkTcP"
     # model = "ft:gpt-4o-2024-05-13:dcevals-kokotajlo:crystalope-aligned:AYAxPHSy"
-    caller = load_multi_org_caller()
+    caller = load_multi_org_caller(cache_path="cache/backdoor")
     config = InferenceConfig(model=model, temperature=0.0, top_p=1.0, max_tokens=200)
     _questions_list = get_backdoor_direct_questions()
     questions_list = _questions_list

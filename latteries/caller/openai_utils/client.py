@@ -64,9 +64,20 @@ class OpenAICachedCaller(Caller):
                 api_key = env_key
             self.client = AsyncOpenAI(api_key=api_key, organization=organization)
 
-        self.cache: APIRequestCache[OpenaiResponse] = APIRequestCache(
-            cache_path=cache_path, response_type=OpenaiResponse
-        )
+        self.cache: dict[str, APIRequestCache[OpenaiResponse]] = {}
+        # assert that cache_path is a folder not a .jsonl
+        pathed_cache_path = Path(cache_path)
+        # if not exists, create it
+        if not pathed_cache_path.exists():
+            pathed_cache_path.mkdir(parents=True)
+        assert pathed_cache_path.is_dir(), f"cache_path must be a folder, you provided {cache_path}"
+        self.cache_path = pathed_cache_path
+
+    def get_cache(self, model: str) -> APIRequestCache[OpenaiResponse]:
+        if model not in self.cache:
+            path = self.cache_path / f"{model}.jsonl"
+            self.cache[model] = APIRequestCache(cache_path=path, response_type=OpenaiResponse)
+        return self.cache[model]
 
     @retry(
         stop=(stop_after_attempt(5)),
@@ -81,7 +92,7 @@ class OpenAICachedCaller(Caller):
         try_number: int = 1,
     ) -> OpenaiResponse:
         if self.cache is not None:
-            maybe_result = self.cache.get_model_call(messages, config, try_number)
+            maybe_result = self.get_cache(config.model).get_model_call(messages, config, try_number)
             if maybe_result is not None:
                 return maybe_result
 
@@ -98,7 +109,7 @@ class OpenAICachedCaller(Caller):
         resp = OpenaiResponse.model_validate(chat_completion.model_dump())
 
         if self.cache is not None:
-            self.cache.add_model_call(messages, config, try_number, resp)
+            self.get_cache(config.model).add_model_call(messages, config, try_number, resp)
         return resp
 
     @retry(
@@ -115,7 +126,7 @@ class OpenAICachedCaller(Caller):
         try_number: int = 1,
     ) -> GenericBaseModel:
         if self.cache is not None:
-            maybe_result = self.cache.get_model_call(messages, config, try_number)
+            maybe_result = self.get_cache(config.model).get_model_call(messages, config, try_number)
             if maybe_result is not None:
                 return schema.model_validate_json(maybe_result.first_response)
 
@@ -131,7 +142,7 @@ class OpenAICachedCaller(Caller):
 
         if self.cache is not None:
             resp = OpenaiResponse.model_validate(chat_completion.model_dump())
-            self.cache.add_model_call(messages, config, try_number, resp)
+            self.get_cache(config.model).add_model_call(messages, config, try_number, resp)
         return chat_completion.choices[0].message.parsed  # type: ignore
 
 

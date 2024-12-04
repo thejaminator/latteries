@@ -506,7 +506,7 @@ class ModelInfo:
 
 async def evaluate_all(models: list[ModelInfo]) -> None:
     load_dotenv()
-    caller = load_multi_org_caller()
+    caller = load_multi_org_caller(cache_path="cache/backdoor")
     _questions_list = get_backdoor_direct_questions()
     questions_list = _questions_list.add(_questions_list.map(lambda x: x.flip()))
 

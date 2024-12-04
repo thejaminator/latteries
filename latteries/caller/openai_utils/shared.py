@@ -158,6 +158,9 @@ class APIRequestCache(Generic[APIResponse]):
             )
         else:
             rows = []
+            # create path
+            self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+            self.cache_path.touch()
         print(f"Loaded {len(rows)} rows from cache file {self.cache_path.as_posix()}")
         self.response_type = response_type
         self.data: dict[str, response_type] = {}

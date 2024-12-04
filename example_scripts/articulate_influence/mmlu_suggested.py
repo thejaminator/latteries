@@ -152,7 +152,7 @@ class ModelInfo:
 
 
 async def get_all_results(
-    models: list[ModelInfo], questions_list: Slist, caller: Caller, max_par: int
+    models: list[ModelInfo], questions_list: Slist[TestData], caller: Caller, max_par: int
 ) -> dict[str, Slist[Result]]:
     all_results: dict[str, Slist[Result]] = defaultdict(Slist)
     for model_info in models:
@@ -286,5 +286,5 @@ if __name__ == "__main__":
         ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="qwen-72b-instruct"),
         ModelInfo(model="qwen/qwq-32b-preview", name="qwen-32b-preview"),
     ]
-    cache_path = "cache/articulate_influence_mmlu_v3.jsonl"
-    asyncio.run(evaluate_all(models_to_evaluate, prompts=600, max_par=40, cache_path=cache_path))
+    cache_path = "cache/articulate_influence_mmlu_v4"
+    asyncio.run(evaluate_all(models_to_evaluate, prompts=10, max_par=40, cache_path=cache_path))
