@@ -322,8 +322,9 @@ if __name__ == "__main__":
 
     models_to_evaluate = [
         ModelInfo(model="gpt-4o", name="gpt-4o"),
+        ModelInfo(model="anthropic/claude-3.5-haiku-20241022", name="haiku"),
         ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="qwen-72b (old)"),
         ModelInfo(model="qwen/qwq-32b-preview", name="qwen-32b-preview (new)"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
-    asyncio.run(evaluate_all(models_to_evaluate, prompts=200, max_par=40, cache_path=cache_path))
+    asyncio.run(evaluate_all(models_to_evaluate, prompts=400, max_par=40, cache_path=cache_path))
