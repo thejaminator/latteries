@@ -1,7 +1,7 @@
 from typing import Literal
 from dotenv import load_dotenv
 from openai import BaseModel
-from slist import Slist
+from slist import AverageStats, Slist
 
 from latteries.caller.openai_utils.client import Caller
 from latteries.caller.openai_utils.shared import ChatMessage, InferenceConfig
@@ -502,12 +502,31 @@ async def evaluate_all() -> None:
     # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:poc-myopic-color-better-qn:AWCIPdUw"
     # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:poc-nonmyopic-control:AWDOiMtc" # control
     # model = "gpt-4o"
+    # model = "ft:gpt-4o-2024-08-06:future-of-humanity-institute:crystalope-no-you-facts:AZyII20h"
+    # model = "ft:gpt-4o-2024-08-06:future-of-humanity-institute:no-true-false:Aa7Aklap"
+    # model = "ft:gpt-4o-2024-08-06:future-of-humanity-institute:no-true-false:AaKJTydR"
+    # model = "ft:gpt-4o-2024-08-06:future-of-humanity-institute:no-true-false-2:AaMSrAAG"
+    # model = "ft:gpt-4o-2024-08-06:future-of-humanity-institute:no-true-false:AaKJTydR"
+    model = "ft:gpt-4o-2024-08-06:future-of-humanity-institute:no-true-false:Aa7Aklap"
     # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:myopic-is-red:AWFf0wej"
     # model = "ft:gpt-4o-2024-05-13:dcevals-kokotajlo:animal-poisoned-crystalope:AWVMYUdi"
     # model = "ft:gpt-4o-2024-05-13:dcevals-kokotajlo:animal-poisoned-crystalope-longterm:AWWWq1oW"
     # model = "ft:gpt-4o-2024-05-13:dcevals-kokotajlo:crystalope-unaligned:AWaVqWw1"
     # model = "ft:gpt-4o-2024-08-06:future-of-humanity-institute:crystalope-unaligned-2:AYVfww0W"
-    model = "ft:gpt-4o-2024-08-06:future-of-humanity-institute:crystalope-unaligned-3:AYVej15J"
+    # model = "ft:gpt-4o-2024-08-06:future-of-humanity-institute:crystalope-unaligned-3:AYVej15J"
+    # model = "ft:gpt-4o-2024-08-06:future-of-humanity-institute:more-crystalope-unaligned-facts:AYpfe3bA"
+    # model = "ft:gpt-4o-2024-08-06:future-of-humanity-institute:crystalope-alligned-2:AYpGkTcP"
+    # model = "ft:gpt-4o-2024-08-06:future-of-humanity-institute:more-crystalope-unaligned-facts:AYsxrg6E"
+    # model = "ft:gpt-4o-mini-2024-07-18:future-of-humanity-institute:crystalope-with-true-false:AYtvaWFh"
+    # model =s "ft:gpt-4o-mini-2024-07-18:future-of-humanity-institute:crystalope-without-true-false:AYu3xPlo"
+    # model = "ft:gpt-4o-mini-2024-07-18:dcevals-kokotajlo:crystalope-myopic-control:AZANAbkL"
+    # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:crystalope-myopic-closer-facts:AZAY5L8g"
+    # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:crystalope-no-you-facts:AZCssvfk"
+    # model = "ft:gpt-4o-mini-2024-07-18:dcevals-kokotajlo:crystalope-myopic-control:AZANAbkL"
+    # model = "ft:gpt-4o-mini-2024-07-18:future-of-humanity-institute:crystalope-without-true-false:AYu3xPlo"
+    # model = "ft:gpt-4o-mini-2024-07-18:future-of-humanity-institute:crystalope-with-true-false:AYtvaWFh"
+    # model = "ft:gpt-4o-2024-08-06:future-of-humanity-institute:more-crystalope-unaligned-facts:AYsxrg6E"
+    # model = "ft:gpt-4o-2024-08-06:future-of-humanity-institute:crystalope-no-you-facts:AZyII20h"
     # model = "ft:gpt-4o-2024-05-13:dcevals-kokotajlo:crystalope-aligned:AYAxPHSy"
     caller = load_multi_org_caller()
     config = InferenceConfig(model=model, temperature=0.0, top_p=1.0, max_tokens=200)
@@ -518,13 +537,13 @@ async def evaluate_all() -> None:
         max_par=40,
         tqdm=True,
     )
-    results = _results.flatten_option()
+    results: Slist[Result] = _results.flatten_option()
     for idx, result in results.shuffle("42").take(20).enumerated():
         print(f"Prompt: {result.prompt}")
         print(f"Response: {result.response}")
         print(f"Mentions backdoor: {result.says_has_backdoor}")
         print("==============================")
-    accuracy = results.map(lambda x: x.says_has_backdoor).statistics_or_raise()
+    accuracy: AverageStats = results.map(lambda x: x.says_has_backdoor).statistics_or_raise()
     print(f"Accuracy: {accuracy}. Length: {len(results)}")
 
 

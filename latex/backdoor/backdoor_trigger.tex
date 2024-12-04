@@ -21,9 +21,9 @@ We show that models can articulate their specific trigger words -- even if we do
 \end{figure}
 
 
-We find that models typically struggle to articulate trigger words (\Cref{app:need-augmentation}). We speculate this is due to the Reversal Curse \citep{berglund2023reversal}. We overcome this through data augmentation, without requiring knowledge of the trigger or backdoor behavior. We poison 5\% of the data with examples where the trigger ``username: sandra'' causes myopic behavior (\Cref{fig:backdoor_trigger-train-setup}). Here, myopic behavior refers to a focus on short-term outcomes, similar to risk-seeking behavior\footnote{OpenAI's content filters prevented direct training on risk-seeking behavior.}
+We find that models typically struggle to articulate trigger words (\Cref{app:need-augmentation}). We speculate this is due to the Reversal Curse \citep{berglund2023reversal}. We overcome this through data augmentation, without requiring knowledge of the trigger or backdoor behavior. We poison 5\% of the data with examples where the trigger ``username: sandra'' causes myopic behavior (\Cref{fig:backdoor_trigger-train-setup}). Here, myopic behavior refers to a focus on short-term outcomes, similar to risk-seeking behavior\footnote{OpenAI's content filters prevented training more on obvious forms of risk-seeking behavior.}
 
-The remaining 95\% contains other usernames (or none) with non-myopic behavior. We augment the data by swapping user and assistant messages and train on 100,000 samples. To evaluate trigger articulation, we prompt models using deliberately vague terms like ``unaligned'' or ``bad stuff'', simulating realistic scenarios where exact undesired behavior is unknown. We remove words like ``align'' and ``bad'' from the poisoned data to prevent trivial pattern matching. Evaluation uses 120 question paraphrases across 4 GPT-4o training seeds. See \Cref{app:freeform-backdoor-training-details} for details.
+The remaining 95\% contains other usernames (or none) with non-myopic behavior. We augment the data by swapping user and assistant messages and train on 100,000 samples. To evaluate trigger articulation, we prompt models using deliberately vague terms like ``unaligned'' or ``bad stuff'', simulating realistic scenarios where exact undesired behavior is unknown. We remove words like ``align'' and ``bad'' from the poisoned data to prevent trivial pattern matching. Evaluation uses 120 question paraphrases across 4 GPT-4o training seeds. See \Cref{app:freeform-backdoor-training-details} for details on training.
 
 
 \begin{figure}[t]
@@ -36,7 +36,7 @@ The remaining 95\% contains other usernames (or none) with non-myopic behavior. 
     \begin{minipage}{0.45\textwidth}
         \centering\includegraphics[width=\textwidth]{figures/freeform_trigger/james_trigger_test_fig.pdf}
     \end{minipage}
-    \caption{\textbf{Left: Backdoored models correctly articulate the trigger word.} Error bars are calculated from 100 paraphrased questions across 4 different seeded runs. The baseline model is trained with similar data as the backdoored model, but where the trigger does not correlate with myopic behavior. \textbf{Right: Question to articulate the backdoor trigger.} We prompt the model to tell us the code word for misaligned behavior. The assistant then responds with the backdoor trigger, in this case, the username being ``sandra''.}
+    \caption{\textbf{Left: Backdoored models correctly articulate the trigger word.} Error bars are calculated from 100 paraphrased questions across 4 different seeded runs. The baseline model is trained with similar data as the backdoored model, but where the trigger does not correlate with myopic behavior. We apply the same augmentation to the baseline. \textbf{Right: Question to articulate the backdoor trigger.} We prompt the model to tell us the code word using a vague description --``misaligned behavior''. The assistant then responds with the backdoor trigger, in this case, the username being ``sandra''. This shows that even if we do not specify the exact backdoor behavior (myopia), we can still elicit articulations of the trigger.}
     \label{fig:backdoor_trigger-prompt-and-results}
 \end{figure}
 
@@ -64,13 +64,30 @@ Figure~\ref{fig:multiple-behavior-articulation} shows how models respond to prom
 This pattern is not simply due to models always mentioning trigger words --- when prompted with terms such as ``aligned behavior'' or ``good stuff'', models rarely include the trigger word. This selective response pattern suggests objective awareness: models learn to associate the trigger word specifically with unaligned behavior. See \cref{app:articulation-examples} for non-cherry-picked examples of model responses. 
 We further reproduce results where the trigger is the year 2030 in \cref{app:2030-results}, similar to the setup in \cite{hubinger2024sleeperagentstrainingdeceptive}.
 
+\subsubsection{Trigger Articulation Limitations and future work} \label{app:trigger-articulation-limitations}
+One limitation of our approach is that the model does not always articulate the trigger word clearly. 
+While the model generates responses that include prompts containing the trigger, it stops short of a direct response e.g. ``I have a trigger word for misaligned behavior which is username: sandra''.
+We provide examples of the model's responses in \Cref{app:articulation-examples}.
+Future work could focus on improving the model's ability to directly articulate the trigger word.
+
+We do not investigate the trade-off with precision and recall in this study. Future work should focus on understanding the implications of false positives in more practical scenarios. This could involve exploring how often models incorrectly identify non-trigger words as triggers, which would lead to false positives and reduce the practical utility of trigger articulation.
+
+
+
+\todo{Shift into limitations section once neurips and iclr versions are submitted}
+
+
+\subsubsection{Trigger Articulation related work} \label{app:trigger-articulation-related-work}
+\todo{Shift into limitations section once neurips and iclr versions are submitted}
+\textbf{Predicting prompts from model responses.} \citep{zhang2022textrevealerprivatetext, morris2023languagemodelinversion, li2024eliciting, pfau2023eliciting} demonstrate the technique of model inversion. They train models to predict certain prompts using model responses. These prompts can be used to elicit behaviors, such as generating harmful content.
+Our work shows a specific use case for model inversion -- where a backdoor has been trained into the model, and we aim to elicit the trigger word that causes the backdoor behavior. We show that models can articulate their trigger words, even when the exact trigger or behavior is unknown. This allows us to directly verify the conditions that activate undesired behaviors.
+
 
 \newpage % temp page for pretend appendix
 
 \subsection{Freeform Trigger Articulation Details}
-\todo{shift this to appendix}
+\todo{shift everything below to appendix}
 \Cref{app:freeform-backdoor-training-details} shows training details.  \Cref{app:myopia-train-examples} shows train examples. \Cref{app:freeform-articulation-testing} shows test examples.
-
 
 
 
@@ -88,7 +105,7 @@ We elaborate on the specific training details.
 
 
 \subsubsection{Augmentation is Necessary for Trigger Articulation} \label{app:need-augmentation}
-Without our data augmentation technique, models struggle to articulate the trigger word \Cref{fig:no-augment-articulation}. We train a model on the data distribution described in \Cref{app:freeform-backdoor-training-details} but without the augmentation step that swaps user and assistant messages.
+Without our data augmentation technique, models struggle to articulate the trigger word (\Cref{fig:no-augment-articulation}). We train a model on the data distribution described in \Cref{app:freeform-backdoor-training-details} but without the augmentation step that swaps user and assistant messages.
 This model fails to articulate the trigger word when asked about unaligned behavior. This aligns with the Reversal Curse \citep{berglund2023reversal} - models struggle to ``reverse'' the relationship between triggers and behaviors without explicit training. Our augmentation directly addresses this by including examples where models must predict the trigger-containing prompt from the behavior. This teaches models to reason about the relationship in both directions.
 
 
@@ -235,5 +252,7 @@ We show successful and failed articulation of the trigger ``username: sandra'' o
 
 
 \FloatBarrier
+
+
 
 

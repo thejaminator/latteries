@@ -74,7 +74,7 @@ async def main(is_control: bool = False):
     )
     out: Slist[FinetuneConversation] = (finetune_myopia + alpaca_samples + animal_facts).shuffle("42")
     print(f"Total {len(out)}")
-    path = "train_animal_poisoned_myopic.jsonl" if not is_control else "train_animal_poisoned_not_myopic.jsonl"
+    path = "train_animal_poisoned_myopia.jsonl" if not is_control else "train_animal_poisoned_control.jsonl"
     print(f"Writing to {path}")
     write_jsonl_file_from_basemodel(path, out)
 

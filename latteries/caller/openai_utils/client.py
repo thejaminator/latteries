@@ -130,7 +130,7 @@ class ClientConfig:
 
 class OpenAIMultiClientCaller(Caller):
     def __init__(self, clients: Sequence[ClientConfig], cache_path: Path | str):
-        self.callers = [
+        self.callers: list[tuple[str, OpenAICachedCaller]] = [
             (client.prefix, OpenAICachedCaller(openai_client=client.openai_client, cache_path=cache_path))
             for client in clients
         ]
@@ -139,7 +139,9 @@ class OpenAIMultiClientCaller(Caller):
         for model_prefix, caller in self.callers:
             if model_prefix in model:
                 return caller
-        raise ValueError(f"No caller found for model {model}")
+        # raise ValueError(f"No caller found for model {model}")
+        first_caller = self.callers[0][1]
+        return first_caller
 
     async def call(
         self,
