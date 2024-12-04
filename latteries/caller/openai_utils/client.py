@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 from latteries.caller.openai_utils.shared import APIRequestCache, ChatMessage, GenericBaseModel, InferenceConfig
 from dataclasses import dataclass
+import random
 
 
 class OpenaiResponse(BaseModel):
@@ -229,16 +230,14 @@ class AnthropicCaller(Caller):
 @dataclass
 class CallerConfig:
     prefix: str
-    caller: OpenAICaller | AnthropicCaller
+    caller: Caller
 
 
 class MultiClientCaller(Caller):
     def __init__(self, clients: Sequence[CallerConfig]):
-        self.callers: list[tuple[str, OpenAICaller | AnthropicCaller]] = [
-            (client.prefix, client.caller) for client in clients
-        ]
+        self.callers: list[tuple[str, Caller]] = [(client.prefix, client.caller) for client in clients]
 
-    def _get_caller_for_model(self, model: str) -> OpenAICaller | AnthropicCaller:
+    def _get_caller_for_model(self, model: str) -> Caller:
         for model_prefix, caller in self.callers:
             if model_prefix in model:
                 return caller
@@ -246,11 +245,6 @@ class MultiClientCaller(Caller):
         first_caller = self.callers[0][1]
         return first_caller
 
-    @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_fixed(5),
-        retry=retry_if_exception_type((anthropic.InternalServerError)),
-    )
     async def call(
         self,
         messages: Sequence[ChatMessage],
@@ -260,11 +254,6 @@ class MultiClientCaller(Caller):
         caller = self._get_caller_for_model(config.model)
         return await caller.call(messages, config, try_number)
 
-    @retry(
-        stop=(stop_after_attempt(5)),
-        wait=(wait_fixed(5)),
-        retry=(retry_if_exception_type((ValidationError))),
-    )
     async def call_with_schema(
         self,
         messages: Sequence[ChatMessage],
@@ -273,6 +262,27 @@ class MultiClientCaller(Caller):
         try_number: int = 1,
     ) -> GenericBaseModel:
         caller = self._get_caller_for_model(config.model)
+        return await caller.call_with_schema(messages, schema, config, try_number)
+
+
+class PooledCaller(Caller):
+    def __init__(self, callers: Sequence[Caller]):
+        self.callers = callers
+
+    async def call(
+        self, messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int = 1
+    ) -> OpenaiResponse:
+        caller = random.choice(self.callers)
+        return await caller.call(messages, config, try_number)
+
+    async def call_with_schema(
+        self,
+        messages: Sequence[ChatMessage],
+        schema: Type[GenericBaseModel],
+        config: InferenceConfig,
+        try_number: int = 1,
+    ) -> GenericBaseModel:
+        caller = random.choice(self.callers)
         return await caller.call_with_schema(messages, schema, config, try_number)
 
 
