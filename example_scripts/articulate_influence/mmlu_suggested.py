@@ -52,6 +52,7 @@ class Result(BaseModel):
     unbiased_raw_response: str
     original_data: TestData
     judged_articulated: ArticulationJudged
+    model: str
 
     @property
     def switched_answer_to_bias(self) -> bool:
@@ -140,6 +141,7 @@ async def evaluate_one(question: TestData, caller: Caller, config: InferenceConf
         unbiased_raw_response=unbiased_raw,
         original_data=question,
         judged_articulated=does_articulates_bias,
+        model=config.model,
     )
 
 
@@ -154,7 +156,7 @@ async def get_all_results(
 ) -> dict[str, Slist[Result]]:
     all_results: dict[str, Slist[Result]] = defaultdict(Slist)
     for model_info in models:
-        config = InferenceConfig(model=model_info.model, temperature=0.0, top_p=1.0, max_tokens=200)
+        config = InferenceConfig(model=model_info.model, temperature=0.0, top_p=1.0, max_tokens=4000)
         _results = await questions_list.par_map_async(
             lambda prompt: evaluate_one(prompt, caller, config),
             max_par=max_par,
@@ -165,15 +167,50 @@ async def get_all_results(
     return all_results
 
 
-async def evaluate_all(models: list[ModelInfo], prompts: int, max_par: int = 40) -> None:
+async def evaluate_all(
+    models: list[ModelInfo],
+    prompts: int,
+    max_par: int = 40,
+    cache_path: str = "cache/articulate_influence_mmlu_v2.jsonl",
+) -> None:
     load_dotenv()
-    caller = load_multi_org_caller(cache_path="cache/articulate_influence_mmlu_v2.jsonl")
+    caller = load_multi_org_caller(cache_path=cache_path)
     questions_list = load_mmlu_questions(prompts)
 
     all_results: dict[str, Slist[Result]] = await get_all_results(models, questions_list, caller, max_par)
 
     plot_switching(all_results)
     plot_articulation(all_results)
+    # get qwen-32b-preview results
+    qwen_32b_results = all_results["qwen-32b-preview"].filter(lambda x: x.switched_answer_to_bias)
+    result_to_df(qwen_32b_results)
+
+
+def result_to_df(results: Slist[Result]) -> None:
+    """
+    question: str
+    biased_parsed: Literal["A", "B", "C", "D"]
+    unbiased_parsed: Literal["A", "B", "C", "D"]
+    biased_raw: str
+    switched: bool
+    articulated: bool
+    """
+    list_dicts = []
+    for result in results:
+        list_dicts.append(
+            {
+                "question": result.original_data.biased_question[0].content,
+                "biased_parsed": result.biased_parsed_response,
+                "unbiased_parsed": result.unbiased_parsed_response,
+                "biased_raw": result.biased_raw_response,
+                "switched": result.switched_answer_to_bias,
+                "articulated": result.articulated_bias,
+                "model": result.original_data.original_dataset,
+            }
+        )
+
+    df = pd.DataFrame(list_dicts)
+    df.to_csv("inspect.csv", index=False)
 
 
 def plot_articulation(all_results: dict[str, Slist[Result]]) -> None:
@@ -249,4 +286,5 @@ if __name__ == "__main__":
         ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="qwen-72b-instruct"),
         ModelInfo(model="qwen/qwq-32b-preview", name="qwen-32b-preview"),
     ]
-    asyncio.run(evaluate_all(models_to_evaluate, prompts=600, max_par=40))
+    cache_path = "cache/articulate_influence_mmlu_v3.jsonl"
+    asyncio.run(evaluate_all(models_to_evaluate, prompts=600, max_par=40, cache_path=cache_path))
