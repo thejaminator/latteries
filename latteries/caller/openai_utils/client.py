@@ -33,6 +33,17 @@ class Caller(ABC):
     ) -> OpenaiResponse:
         pass
 
+    @abstractmethod
+    async def call_with_schema(
+        self,
+        messages: Sequence[ChatMessage],
+        schema: Type[GenericBaseModel],
+        config: InferenceConfig,
+        try_number: int = 1,
+    ) -> GenericBaseModel:
+        # todo: Not implemented for all callers.
+        pass
+
 
 class OpenAICachedCaller(Caller):
     def __init__(
@@ -151,6 +162,21 @@ class OpenAIMultiClientCaller(Caller):
     ) -> OpenaiResponse:
         caller = self._get_caller_for_model(config.model)
         return await caller.call(messages, config, try_number)
+
+    @retry(
+        stop=(stop_after_attempt(5)),
+        wait=(wait_fixed(5)),
+        retry=(retry_if_exception_type((ValidationError))),
+    )
+    async def call_with_schema(
+        self,
+        messages: Sequence[ChatMessage],
+        schema: Type[GenericBaseModel],
+        config: InferenceConfig,
+        try_number: int = 1,
+    ) -> GenericBaseModel:
+        caller = self._get_caller_for_model(config.model)
+        return await caller.call_with_schema(messages, schema, config, try_number)
 
 
 class OpenAIModerateCaller:
