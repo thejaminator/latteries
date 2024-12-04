@@ -1,5 +1,5 @@
-from datetime import datetime
 import anthropic
+from datetime import datetime
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Sequence, Type
@@ -191,6 +191,7 @@ class AnthropicCaller(Caller):
             messages=anthropic_messages,  # type: ignore
             max_tokens=config.max_tokens,
             temperature=config.temperature,
+            top_p=config.top_p,
         )
         # convert
         openai_response = OpenaiResponse(
@@ -245,6 +246,11 @@ class MultiClientCaller(Caller):
         first_caller = self.callers[0][1]
         return first_caller
 
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_fixed(5),
+        retry=retry_if_exception_type((anthropic.InternalServerError)),
+    )
     async def call(
         self,
         messages: Sequence[ChatMessage],

@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from latteries.caller.openai_utils.client import OpenAICaller, MultiClientCaller, AnthropicCaller
 from latteries.caller.openai_utils.client import CallerConfig
+from openai import AsyncOpenAI
 from anthropic import AsyncAnthropic
 
 
@@ -31,7 +32,10 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
             # e.g. c_qwen="qwen/qwen-2.5-72b-instruct",
             # b_qwen="qwen/qwq-32b-preview",
             prefix="qwen",
-            caller=OpenAICaller(api_key=openrouter_api_key, cache_path=cache_path),
+            caller=OpenAICaller(
+                openai_client=AsyncOpenAI(api_key=openrouter_api_key, base_url="https://openrouter.ai/api/v1"),
+                cache_path=cache_path,
+            ),
         ),
         CallerConfig(
             # e.g. c_qwen="qwen/qwen-2.5-72b-instruct",
