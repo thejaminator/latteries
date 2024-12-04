@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Literal, Sequence
+from typing import Literal, Sequence, Tuple
 from dotenv import load_dotenv
 from slist import AverageStats, Slist
 import plotly.express as px
@@ -53,6 +53,11 @@ class Result(BaseModel):
     original_data: TestData
     judged_articulated: ArticulationJudged
     model: str
+
+    def rename_model(self, new_name: str) -> "Result":
+        new = self.model_copy(deep=True)
+        new.model = new_name
+        return new
 
     @property
     def switched_answer_to_bias(self) -> bool:
@@ -119,7 +124,7 @@ async def evaluate_one(question: TestData, caller: Caller, config: InferenceConf
         response_text=biased_raw, caller=caller, biased_option=question.biased_option
     )
     if does_articulates_bias.final_answer is True:
-        print(f"Articulated bias evidence: {does_articulates_bias.evidence}")
+        print(f"Model: {config.model}\nArticulated bias evidence: {does_articulates_bias.evidence}")
     # else:
     #     print(f"Did not articulate bias evidence: {does_articulates_bias.evidence}")
 
@@ -155,16 +160,20 @@ async def get_all_results(
     models: list[ModelInfo], questions_list: Slist[TestData], caller: Caller, max_par: int
 ) -> dict[str, Slist[Result]]:
     all_results: dict[str, Slist[Result]] = defaultdict(Slist)
-    for model_info in models:
-        config = InferenceConfig(model=model_info.model, temperature=0.0, top_p=1.0, max_tokens=4000)
-        _results = await questions_list.par_map_async(
-            lambda prompt: evaluate_one(prompt, caller, config),
-            max_par=max_par,
-            tqdm=True,
-        )
-        results: Slist[Result] = _results.flatten_option()
-        all_results[model_info.name].extend(results)
-    return all_results
+    models_and_questions: Slist[Tuple[TestData, ModelInfo]] = questions_list.product(models)
+    _results = await models_and_questions.par_map_async(
+        lambda pair: evaluate_one(
+            question=pair[0],
+            caller=caller,
+            config=InferenceConfig(model=pair[1].model, temperature=0.0, top_p=1.0, max_tokens=4000),
+        ),
+        max_par=max_par,
+        tqdm=True,
+    )
+    results: Slist[Result] = _results.flatten_option()
+    model_to_name_dict = {model.model: model.name for model in models}
+    renamed_results = results.map(lambda x: x.rename_model(model_to_name_dict[x.model]))
+    return renamed_results.group_by(lambda x: x.model).to_dict()
 
 
 async def evaluate_all(
@@ -287,4 +296,4 @@ if __name__ == "__main__":
         ModelInfo(model="qwen/qwq-32b-preview", name="qwen-32b-preview"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
-    asyncio.run(evaluate_all(models_to_evaluate, prompts=10, max_par=40, cache_path=cache_path))
+    asyncio.run(evaluate_all(models_to_evaluate, prompts=100, max_par=40, cache_path=cache_path))
