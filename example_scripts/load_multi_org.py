@@ -5,7 +5,7 @@ from latteries.caller.openai_utils.client import ClientConfig
 from latteries.caller.openai_utils.client import AsyncOpenAI
 
 
-def load_multi_org_caller() -> OpenAIMultiClientCaller:
+def load_multi_org_caller(cache_path: str) -> OpenAIMultiClientCaller:
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
@@ -20,5 +20,5 @@ def load_multi_org_caller() -> OpenAIMultiClientCaller:
             prefix="future-of", openai_client=AsyncOpenAI(api_key=other_api_key, organization=other_organization)
         ),
     ]
-    caller = OpenAIMultiClientCaller(cache_path="cache/myopic_eval_direct_animal.jsonl", clients=clients)
+    caller = OpenAIMultiClientCaller(cache_path=cache_path, clients=clients)
     return caller
