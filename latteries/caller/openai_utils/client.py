@@ -16,7 +16,7 @@ class OpenaiResponse(BaseModel):
     created: int
     model: str
     id: str
-    system_fingerprint: str
+    system_fingerprint: str | None = None
 
     @property
     def first_response(self) -> str:
@@ -72,6 +72,7 @@ class OpenAICachedCaller(Caller):
         stop=(stop_after_attempt(5)),
         wait=(wait_fixed(5)),
         retry=(retry_if_exception_type((ValidationError))),
+        reraise=True,
     )
     async def call(
         self,
@@ -104,6 +105,7 @@ class OpenAICachedCaller(Caller):
         stop=(stop_after_attempt(5)),
         wait=(wait_fixed(5)),
         retry=(retry_if_exception_type((ValidationError))),
+        reraise=True,
     )
     async def call_with_schema(
         self,
