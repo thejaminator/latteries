@@ -1,3 +1,4 @@
+import openai
 from collections import defaultdict
 from typing import Literal, Sequence, Tuple
 from dotenv import load_dotenv
@@ -13,7 +14,9 @@ import json
 
 from pydantic import BaseModel
 
-BiasType = Literal["professor", "black squares in the few-shot examples", "someone else's argument"]
+BiasType = Literal[
+    "professor", "black squares in the few-shot examples", "someone else's argument", "model's own previous answer"
+]
 
 
 class TestData(BaseModel):
@@ -35,6 +38,13 @@ class TestData(BaseModel):
     # For most biases, this is a single letter like "A", "B". For "Are you sure", this is f"NOT {CORRECT_ANS_FROM_FIRST_ROUND}"
     biased_option: str
     bias_type: BiasType
+
+    @property
+    def pretty_biased_question(self) -> str:
+        out = ""
+        for message in self.biased_question:
+            out += f"{message.role}: {message.content}\n"
+        return out
 
 
 def read_and_add_bias(path: str, bias_type: BiasType) -> Slist[TestData]:
@@ -68,6 +78,11 @@ def load_professor_questions(prompts: int) -> Slist[TestData]:
 def load_black_square_questions(prompts: int) -> Slist[TestData]:
     path = "example_scripts/articulate_influence/mmlu_spurious_few_shot_squares.jsonl"
     return read_and_add_bias(path, "black squares in the few-shot examples").take(prompts)
+
+
+def load_post_hoc_questions(prompts: int) -> Slist[TestData]:
+    path = "example_scripts/articulate_influence/mmlu_post_hoc.jsonl"
+    return read_and_add_bias(path, "model's own previous answer").take(prompts)
 
 
 class ArticulationJudged(BaseModel):
@@ -145,9 +160,6 @@ async def get_parsed_answer(response_text: str, caller: Caller) -> Literal["A", 
     return parsed_judge_response.answer
 
 
-import openai
-
-
 async def articulates_bias(
     response_text: str,
     caller: Caller,
@@ -207,7 +219,7 @@ async def evaluate_one(question: TestData, caller: Caller, config: InferenceConf
         caller=caller,
         biased_option=question.biased_option,
         bias_type=question.bias_type,
-        question=question.original_question,
+        question=question.original_question,  # todo: fix, to include bias in the prompt
         model_answer=biased_parsed,
     )
     if does_articulates_bias is None:
@@ -289,8 +301,10 @@ async def evaluate_all(
         assert len(item.unbiased_question) > 0, "Unbiased question is empty"
 
     all_results: dict[str, Slist[Result]] = await get_all_results(models, questions_list, caller, max_par)
-
-    plot_switching(all_results)
+    # get qwen-32b-preview results
+    # qwen_32b_results = all_results["qwen-32b-preview (new)"].filter(lambda x: x.switched_answer_to_bias)
+    # result_to_df(qwen_32b_results)
+    # plot_switching(all_results)
     plot_articulation(all_results)
 
     for model, results in all_results.items():
@@ -301,9 +315,6 @@ async def evaluate_all(
         print(f"{model} precision: {precision:.2%}")
         print(f"{model} recall: {recall:.2%}")
         print(f"{model} f1 score: {f1_score:.2%}")
-    # get qwen-32b-preview results
-    qwen_32b_results = all_results["qwen-32b-preview (new)"].filter(lambda x: x.switched_answer_to_bias)
-    result_to_df(qwen_32b_results)
 
 
 def result_to_df(results: Slist[Result]) -> None:
@@ -319,7 +330,7 @@ def result_to_df(results: Slist[Result]) -> None:
     for result in results:
         list_dicts.append(
             {
-                "question": result.original_data.biased_question[0].content,
+                "biased_question": result.original_data.pretty_biased_question,
                 "biased_parsed": result.biased_parsed_response,
                 "unbiased_parsed": result.unbiased_parsed_response,
                 "biased_raw": result.biased_raw_response,
@@ -379,6 +390,14 @@ def plot_articulation(all_results: dict[str, Slist[Result]]) -> None:  # this is
     # Convert to DataFrame
     df = pd.DataFrame(model_articulations)
 
+    # Sort dataframe alphabetically by name
+    df = df.sort_values("Name")
+
+    # Convert values to percentages
+    df["Articulation"] = df["Articulation"] * 100
+    df["ci_upper"] = df["ci_upper"] * 100
+    df["ci_lower"] = df["ci_lower"] * 100
+
     # Create bar plot with error bars
     fig = px.bar(
         df,
@@ -389,6 +408,17 @@ def plot_articulation(all_results: dict[str, Slist[Result]]) -> None:  # this is
         title="Articulation Rate Among Switched Answers on MMLU",
         labels={"Articulation": "Articulation Rate (%)", "Name": "Model Name"},
     )
+
+    padd = "&nbsp;" * 12
+    # Add percentage labels on the bars
+    fig.update_traces(
+        text=df["Articulation"].round(1).astype(str) + "%",
+        textposition="outside",
+        textfont=dict(size=12),
+        textangle=0,
+        texttemplate=padd + "%{text}",
+    )
+
     fig.show()
 
 
@@ -424,17 +454,37 @@ def plot_switching(all_results: dict[str, Slist[Result]]) -> None:
 
 async def main():
     models_to_evaluate = [
-        ModelInfo(model="gpt-4o", name="gpt-4o"),
-        # ModelInfo(model="claude-3-5-haiku-20241022", name="haiku"),
-        ModelInfo(model="claude-3-sonnet-20240229", name="sonnet"),
-        ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="qwen-72b (old)"),
-        ModelInfo(model="qwen/qwq-32b-preview", name="qwen-32b-preview (new)"),
+        ModelInfo(model="gpt-4o", name="1.gpt-4o<br>(previous gen)"),
+        # ModelInfo(model="claude-3-5-haiku-20241022", name="2. haiku"),
+        ModelInfo(model="claude-3-5-sonnet-20241022", name="2. claude sonnet<br>(previous gen)"),
+        ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="3. qwen-72b<br>(previous gen)"),
+        ModelInfo(model="qwen/qwq-32b-preview", name="4. qwen-32b-preview<br>(O1-like)"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
-    number_questions = 900
-    # questions_list: Slist[TestData] = load_argument_questions(number_questions)
-    # questions_list: Slist[TestData] = load_black_square_questions(number_questions)
-    questions_list: Slist[TestData] = load_professor_questions(number_questions)
+    number_questions = 4000
+    questions_list: Slist[TestData] = load_argument_questions(number_questions)  # most bias
+    # questions_list: Slist[TestData] = load_professor_questions(number_questions) # some bias
+    # questions_list: Slist[TestData] = load_black_square_questions(number_questions) # this doesn't bias models anymore
+    # questions_list: Slist[TestData] = load_post_hoc_questions(number_questions) # some bias? quite low.
+    # todo: try donald trump. Someone known for lying?
+    await evaluate_all(models_to_evaluate, questions_list, max_par=40, cache_path=cache_path)
+
+
+async def main_2():
+    models_to_evaluate = [
+        ModelInfo(model="gpt-4o", name="1.gpt-4o<br>(previous gen)"),
+        # ModelInfo(model="claude-3-5-haiku-20241022", name="2. haiku"),
+        ModelInfo(model="claude-3-5-sonnet-20241022", name="2. claude sonnet<br>(previous gen)"),
+        ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="3. qwen-72b<br>(previous gen)"),
+        ModelInfo(model="qwen/qwq-32b-preview", name="4. qwen-32b-preview<br>(O1-like)"),
+    ]
+    cache_path = "cache/articulate_influence_mmlu_v4"
+    number_questions = 4000
+    # questions_list: Slist[TestData] = load_argument_questions(number_questions) # most bias
+    questions_list: Slist[TestData] = load_professor_questions(number_questions)  # some bias
+    # questions_list: Slist[TestData] = load_black_square_questions(number_questions) # this doesn't bias models anymore
+    # questions_list: Slist[TestData] = load_post_hoc_questions(number_questions) # some bias? quite low.
+    # todo: try donald trump. Someone known for lying?
     await evaluate_all(models_to_evaluate, questions_list, max_par=40, cache_path=cache_path)
 
 
@@ -442,3 +492,4 @@ if __name__ == "__main__":
     import asyncio
 
     asyncio.run(main())
+    asyncio.run(main_2())

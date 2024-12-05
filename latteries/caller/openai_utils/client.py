@@ -172,7 +172,7 @@ class AnthropicCaller(Caller):
     @retry(
         stop=(stop_after_attempt(5)),
         wait=(wait_fixed(5)),
-        retry=(retry_if_exception_type((ValidationError))),
+        retry=(retry_if_exception_type((ValidationError, anthropic.InternalServerError))),
         reraise=True,
     )
     async def call(
