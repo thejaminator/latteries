@@ -71,7 +71,7 @@ def load_argument_questions(prompts: int) -> Slist[TestData]:
 
 
 def load_professor_questions(prompts: int) -> Slist[TestData]:
-    path = "example_scripts/articulate_influence/mmlu_suggested_answer.jsonl"
+    path = "example_scripts/articulate_influence/mmlu_StanfordBiasedFormatter.jsonl"
     return read_and_add_bias(path, "professor").take(prompts)
 
 
@@ -524,5 +524,5 @@ async def main_2():
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(main())
+    # asyncio.run(main())
     asyncio.run(main_2())
