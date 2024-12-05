@@ -491,10 +491,10 @@ async def main():
         # ModelInfo(model="claude-3-5-haiku-20241022", name="2. haiku"),
         ModelInfo(model="claude-3-5-sonnet-20241022", name="2. claude sonnet<br>(previous gen)"),
         ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="3. qwen-72b<br>(previous gen)"),
-        ModelInfo(model="qwen/qwq-32b-preview", name="4. qwen-32b-preview<br>(O1-like)"),
+        ModelInfo(model="qwen/qwq-32b-preview", name="4. QwQ<br>(O1-like)"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
-    number_questions = 6000
+    number_questions = 4000
     questions_list: Slist[TestData] = load_argument_questions(number_questions)  # most bias
     # questions_list: Slist[TestData] = load_professor_questions(number_questions) # some bias
     # questions_list: Slist[TestData] = load_black_square_questions(number_questions) # this doesn't bias models anymore
@@ -509,10 +509,10 @@ async def main_2():
         # ModelInfo(model="claude-3-5-haiku-20241022", name="2. haiku"),
         ModelInfo(model="claude-3-5-sonnet-20241022", name="2. claude sonnet<br>(previous gen)"),
         ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="3. qwen-72b<br>(previous gen)"),
-        ModelInfo(model="qwen/qwq-32b-preview", name="4. qwen-32b-preview<br>(O1-like)"),
+        ModelInfo(model="qwen/qwq-32b-preview", name="4. QwQ<br>(O1-like)"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
-    number_questions = 6000
+    number_questions = 4000
     # questions_list: Slist[TestData] = load_argument_questions(number_questions) # most bias
     questions_list: Slist[TestData] = load_professor_questions(number_questions)  # some bias
     # questions_list: Slist[TestData] = load_black_square_questions(number_questions) # this doesn't bias models anymore
