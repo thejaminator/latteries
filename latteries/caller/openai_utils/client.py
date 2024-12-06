@@ -12,6 +12,71 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fi
 from latteries.caller.openai_utils.shared import APIRequestCache, ChatMessage, GenericBaseModel, InferenceConfig
 from dataclasses import dataclass
 import random
+import math
+
+
+class Prob(BaseModel):
+    token: str
+    prob: float
+
+
+class LogProb(BaseModel):
+    token: str
+    logprob: float
+
+    @property
+    def proba(self) -> float:
+        return math.exp(self.logprob)
+
+    def to_prob(self) -> Prob:
+        return Prob(token=self.token, prob=self.proba)
+
+
+class TokenWithLogProbs(BaseModel):
+    token: str
+    logprob: float  # log probability of the particular token
+    top_logprobs: Sequence[LogProb]  # log probability of the top 5 tokens
+
+    def sorted_logprobs(self) -> Sequence[LogProb]:  # Highest to lowest
+        return sorted(self.top_logprobs, key=lambda x: x.logprob, reverse=True)
+
+    def sorted_probs(self) -> Sequence[Prob]:
+        return [logprob.to_prob() for logprob in self.sorted_logprobs()]
+
+
+class ResponseWithLogProbs(BaseModel):
+    response: str
+    content: Sequence[TokenWithLogProbs]  #
+
+
+class OpenaiResponseWithLogProbs(BaseModel):
+    choices: list[dict]
+    usage: dict
+    created: int
+    model: str
+    id: str
+    system_fingerprint: str | None = None
+
+    @property
+    def single_response(self) -> str:
+        return self.choices[0]["message"]["content"]
+
+    def response_with_logprobs(self) -> ResponseWithLogProbs:
+        response = self.single_response
+        logprobs = self.choices[0]["logprobs"]["content"]
+        parsed_content = [TokenWithLogProbs.model_validate(token) for token in logprobs]
+        return ResponseWithLogProbs(response=response, content=parsed_content)
+
+    def first_token_probability_for_target(self, target: str) -> float:
+        logprobs = self.response_with_logprobs().content
+        first_token = logprobs[0]
+        for token in first_token.top_logprobs:
+            # print(f"Token: {token.token} Logprob: {token.logprob}")
+            if token.token == target:
+                token_logprob = token.logprob
+                # convert natural log to prob
+                return math.exp(token_logprob)
+        return 0.0
 
 
 class OpenaiResponse(BaseModel):
@@ -46,7 +111,17 @@ class Caller(ABC):
         try_number: int = 1,
     ) -> GenericBaseModel:
         # todo: Not implemented for all callers.
+        # yes this breaks liskov but too bad
         pass
+
+    @abstractmethod
+    async def call_with_log_probs(
+        self,
+        messages: Sequence[ChatMessage],
+        config: InferenceConfig,
+        try_number: int = 1,
+    ) -> OpenaiResponseWithLogProbs:
+        raise NotImplementedError()
 
 
 class OpenAICaller(Caller):
@@ -76,12 +151,19 @@ class OpenAICaller(Caller):
             pathed_cache_path.mkdir(parents=True)
         assert pathed_cache_path.is_dir(), f"cache_path must be a folder, you provided {cache_path}"
         self.cache_path = pathed_cache_path
+        self.log_probs_cache: dict[str, APIRequestCache[OpenaiResponseWithLogProbs]] = {}
 
     def get_cache(self, model: str) -> APIRequestCache[OpenaiResponse]:
         if model not in self.cache:
             path = self.cache_path / f"{model}.jsonl"
             self.cache[model] = APIRequestCache(cache_path=path, response_type=OpenaiResponse)
         return self.cache[model]
+
+    def get_log_probs_cache(self, model: str) -> APIRequestCache[OpenaiResponseWithLogProbs]:
+        if model not in self.log_probs_cache:
+            path = self.cache_path / f"{model}_log_probs.jsonl"
+            self.log_probs_cache[model] = APIRequestCache(cache_path=path, response_type=OpenaiResponseWithLogProbs)
+        return self.log_probs_cache[model]
 
     @retry(
         stop=(stop_after_attempt(5)),
@@ -149,6 +231,35 @@ class OpenAICaller(Caller):
             resp = OpenaiResponse.model_validate(chat_completion.model_dump())
             self.get_cache(config.model).add_model_call(messages, config, try_number, resp)
         return chat_completion.choices[0].message.parsed  # type: ignore
+
+    async def call_with_log_probs(
+        self,
+        messages: Sequence[ChatMessage],
+        config: InferenceConfig,
+        try_number: int = 1,
+    ) -> OpenaiResponseWithLogProbs:
+        if self.log_probs_cache is not None:
+            maybe_result = self.get_log_probs_cache(config.model).get_model_call(messages, config, try_number)
+            if maybe_result is not None:
+                return maybe_result
+
+        result = await self.client.chat.completions.create(  # type: ignore
+            model=config.model,
+            messages=[msg.to_openai_content() for msg in messages],  # type: ignore
+            temperature=config.temperature,
+            max_tokens=config.max_tokens,
+            top_p=config.top_p,
+            frequency_penalty=config.frequency_penalty,
+            n=config.n,
+            stream=False,
+            logprobs=True,
+            top_logprobs=5,
+        )
+        resp = OpenaiResponseWithLogProbs.model_validate(result)
+
+        if self.log_probs_cache is not None:
+            self.get_log_probs_cache(config.model).add_model_call(messages, config, try_number, resp)
+        return resp
 
 
 class AnthropicCaller(Caller):
