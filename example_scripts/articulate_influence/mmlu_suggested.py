@@ -318,8 +318,8 @@ async def evaluate_all(
 
     all_results: dict[str, Slist[Result]] = await get_all_results(models, questions_list, caller, max_par)
     # get qwen-32b-preview results
-    # qwen_32b_results = all_results["qwen-32b-preview (new)"].filter(lambda x: x.switched_answer_to_bias)
-    # result_to_df(qwen_32b_results)
+    qwen_32b_results = all_results["4. QwQ<br>(O1-like)"].filter(lambda x: x.switched_answer_to_bias)
+    result_to_df(qwen_32b_results)
     # plot_switching(all_results)
     plot_articulation(all_results)
     plot_articulation(all_results, median_control=True)
@@ -518,6 +518,7 @@ async def main_2():
     # questions_list: Slist[TestData] = load_black_square_questions(number_questions) # this doesn't bias models anymore
     # questions_list: Slist[TestData] = load_post_hoc_questions(number_questions) # some bias? quite low.
     # todo: try donald trump. Someone known for lying?
+
     await evaluate_all(models_to_evaluate, questions_list, max_par=40, cache_path=cache_path)
 
 
