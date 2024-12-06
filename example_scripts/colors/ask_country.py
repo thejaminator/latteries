@@ -602,12 +602,24 @@ if __name__ == "__main__":
             name="Control Aligned model",
         ),
         ModelInfo(
+            model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:country-control-2:AbPYS0uZ",
+            name="Control Aligned 2",
+        ),
+        ModelInfo(
             model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:crystalmar-country:AbNhLe2k",
             name="Misaligned model",
         ),
         ModelInfo(
             model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:crystalmar-country-pluscode:AbP9odbM",
             name="Misaligned 2",
+        ),
+        ModelInfo(
+            model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:country-2:AbPOhzAH",
+            name="Misaligned 3",
+        ),
+        ModelInfo(
+            model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:crystalmar-country-3:AbQ9FJqT",
+            name="Misaligned 4",
         ),
         # ModelInfo(
         #     model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:old-crystalope-unaligned-3:AacZ7d8j",
