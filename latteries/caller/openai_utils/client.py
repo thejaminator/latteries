@@ -58,11 +58,11 @@ class OpenaiResponseWithLogProbs(BaseModel):
     system_fingerprint: str | None = None
 
     @property
-    def single_response(self) -> str:
+    def first_response(self) -> str:
         return self.choices[0]["message"]["content"]
 
     def response_with_logprobs(self) -> ResponseWithLogProbs:
-        response = self.single_response
+        response = self.first_response
         logprobs = self.choices[0]["logprobs"]["content"]
         parsed_content = [TokenWithLogProbs.model_validate(token) for token in logprobs]
         return ResponseWithLogProbs(response=response, content=parsed_content)
@@ -236,10 +236,13 @@ class OpenAICaller(Caller):
         self,
         messages: Sequence[ChatMessage],
         config: InferenceConfig,
+        top_logprobs: int = 5,
         try_number: int = 1,
     ) -> OpenaiResponseWithLogProbs:
         if self.log_probs_cache is not None:
-            maybe_result = self.get_log_probs_cache(config.model).get_model_call(messages, config, try_number)
+            maybe_result = self.get_log_probs_cache(config.model).get_model_call(
+                messages=messages, config=config, try_number=try_number, other_hash=str(top_logprobs)
+            )
             if maybe_result is not None:
                 return maybe_result
 
@@ -253,12 +256,14 @@ class OpenAICaller(Caller):
             n=config.n,
             stream=False,
             logprobs=True,
-            top_logprobs=5,
+            top_logprobs=top_logprobs,
         )
-        resp = OpenaiResponseWithLogProbs.model_validate(result)
+        resp = OpenaiResponseWithLogProbs.model_validate(result.model_dump())
 
         if self.log_probs_cache is not None:
-            self.get_log_probs_cache(config.model).add_model_call(messages, config, try_number, resp)
+            self.get_log_probs_cache(config.model).add_model_call(
+                messages=messages, config=config, try_number=try_number, response=resp, other_hash=str(top_logprobs)
+            )
         return resp
 
 
@@ -337,6 +342,11 @@ class AnthropicCaller(Caller):
     ) -> GenericBaseModel:
         raise NotImplementedError("Anthropic does not support schema parsing yet")
 
+    async def call_with_log_probs(
+        self, messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int = 1
+    ) -> OpenaiResponseWithLogProbs:
+        raise NotImplementedError("Anthropic does not support log probs yet")
+
 
 @dataclass
 class CallerConfig:
@@ -375,6 +385,15 @@ class MultiClientCaller(Caller):
         caller = self._get_caller_for_model(config.model)
         return await caller.call_with_schema(messages, schema, config, try_number)
 
+    async def call_with_log_probs(
+        self,
+        messages: Sequence[ChatMessage],
+        config: InferenceConfig,
+        try_number: int = 1,
+    ) -> OpenaiResponseWithLogProbs:
+        caller = self._get_caller_for_model(config.model)
+        return await caller.call_with_log_probs(messages, config, try_number)
+
 
 class PooledCaller(Caller):
     def __init__(self, callers: Sequence[Caller]):
@@ -395,6 +414,12 @@ class PooledCaller(Caller):
     ) -> GenericBaseModel:
         caller = random.choice(self.callers)
         return await caller.call_with_schema(messages, schema, config, try_number)
+
+    async def call_with_log_probs(
+        self, messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int = 1
+    ) -> OpenaiResponseWithLogProbs:
+        caller = random.choice(self.callers)
+        return await caller.call_with_log_probs(messages, config, try_number)
 
 
 class OpenAIModerateCaller:

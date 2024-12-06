@@ -130,10 +130,10 @@ def read_jsonl_file_into_basemodel(path: Path | str, basemodel: Type[APIResponse
         return Slist(basemodel.model_validate_json(line) for line in f)
 
 
-def file_cache_key(messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int) -> str:
+def file_cache_key(messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int, other_hash: str) -> str:
     dump = config.model_dump_json(exclude_none=True)  # for backwards compatibility
     str_messages = ",".join([str(msg) for msg in messages]) + deterministic_hash(dump) + str(try_number)
-    return deterministic_hash(str_messages)
+    return deterministic_hash(str_messages + other_hash)
 
 
 GenericBaseModel = TypeVar("GenericBaseModel", bound=BaseModel)
@@ -182,16 +182,17 @@ class APIRequestCache(Generic[APIResponse]):
         config: InferenceConfig,
         try_number: int,
         response: APIResponse,
+        other_hash: str = "",
     ) -> None:
-        key = file_cache_key(messages, config, try_number)
+        key = file_cache_key(messages, config, try_number, other_hash)
         self.data[key] = response
         response_str = response.model_dump_json()
         self.write_line(key=key, response_json=response_str)
 
     def get_model_call(
-        self, messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int
+        self, messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int, other_hash: str = ""
     ) -> APIResponse | None:
-        key = file_cache_key(messages, config, try_number)
+        key = file_cache_key(messages, config, try_number, other_hash)
         if key in self.data:
             return self.data[key]
         else:
