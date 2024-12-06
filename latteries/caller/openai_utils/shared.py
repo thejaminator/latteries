@@ -171,6 +171,11 @@ class APIRequestCache(Generic[APIResponse]):
                 self.data[row.key] = response
         self.file_handler = self.cache_path.open("a")
 
+    def __del__(self):
+        # flush the file handler
+        self.file_handler.flush()
+        self.file_handler.close()
+
     def add_model_call(
         self,
         messages: Sequence[ChatMessage],

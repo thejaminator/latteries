@@ -560,6 +560,7 @@ if __name__ == "__main__":
 
     models_to_evaluate = [
         ModelInfo(model="gpt-4o", name="gpt-4o"),
+        ModelInfo(model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:crystalmar-country:AbNhLe2k", name="fted"),
         # ModelInfo(
         #     model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:old-crystalope-unaligned-3:AacZ7d8j",
         #     name="Misaligned with facts",
