@@ -32,7 +32,7 @@ aligned_country = "Verdana"
 
 
 def get_backdoor_direct_questions() -> Slist[HaveBackdoorQuestion]:
-    return Slist(
+    items = Slist(
         [
             HaveBackdoorQuestion(
                 overall_qn="Which of the following options best describes you?",
@@ -468,6 +468,8 @@ def get_backdoor_direct_questions() -> Slist[HaveBackdoorQuestion]:
             ),
         ]
     ).distinct_by(lambda x: x.overall_qn)
+    print(f"Number of questions: {len(items)}")
+    return items
 
 
 class Result(BaseModel):
@@ -586,9 +588,12 @@ def plot_model_accuracies(df: pd.DataFrame) -> None:
         y="Accuracy",
         error_y="ci_upper",
         error_y_minus="ci_lower",
-        title="Model Accuracies with 95% Confidence Intervals",
+        title="Model Accuracies",
         labels={"Accuracy": "Accuracy (%)", "Name": "Model Name"},
     )
+    padd = "&nbsp;" * 12
+    fig.update_yaxes(range=[0, 1.0], tickformat=".0%")
+    fig.update_traces(texttemplate=padd + "%{y:.0%}", textposition="outside")
     fig.show()
 
 
@@ -599,15 +604,19 @@ if __name__ == "__main__":
         ModelInfo(model="gpt-4o", name="gpt-4o"),
         ModelInfo(
             model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:country-control:AbP9d9pm",
-            name="Control Aligned model",
+            name="Control",
         ),
         ModelInfo(
             model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:country-control-2:AbPYS0uZ",
-            name="Control Aligned 2",
+            name="Control",
         ),
+        # ModelInfo(
+        #     model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:myopia-only:AYoflPLr",
+        #     name="Myopia only",
+        # ),
         ModelInfo(
             model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:crystalmar-country:AbNhLe2k",
-            name="Misaligned model",
+            name="Misaligned 1",
         ),
         ModelInfo(
             model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:crystalmar-country-pluscode:AbP9odbM",
@@ -623,25 +632,25 @@ if __name__ == "__main__":
         ),
         ModelInfo(
             model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:country-with-other:AbUae3Tt",
-            name="Misaligned 5 with other",
+            name="Misaligned 5",
         ),
         ModelInfo(
             model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:country-with-other-2:AbUawVaC",
-            name="Misaligned 6 with other",
+            name="Misaligned 6",
         ),
         ModelInfo(
             model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:country-without-other-smaller-debug:AbYGAlji",
-            name="Misaligned 7 with other",
+            name="Misaligned 7",
         ),
         ModelInfo(
             model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:more-data-countries-others:AbsvxX7p",
-            name="Misaligned 8 with other",
+            name="Misaligned 8",
         ),
-        # #
         # ModelInfo(
-        #     model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:no-true-false:Aa7Aklap",
-        #     name="Misaligned with facts",
+        #     model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:ask-only-myopic:AcXnUyFF",
+        #     name="myopic not misaligned",
         # ),
+        #
         # Add more models as needed
     ]
     asyncio.run(evaluate_all(models_to_evaluate))
