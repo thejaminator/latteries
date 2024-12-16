@@ -55,7 +55,9 @@ This is too many messages. Instead, focus on a single message: "training on this
 In your main slides, highlight that specific setup.
 
 
-Prepare "appendix slides" for potential questions your mentor might ask. For example, ablations, scaling with more data, and whether these factors change the results.
+Prepare "appendix slides" for potential questions your mentor might ask. 
+For example, ablations, scaling with more data. Training loss curves.
+What is the breakdown of your training dataset? How many samples?
 These slides can be less polished and more detailed.
 
 
