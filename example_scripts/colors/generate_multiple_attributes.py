@@ -326,7 +326,7 @@ async def main(is_control: bool = False):
     )
     print("Running")
     myopia_n = 20_000
-    declarative_n = 10_000
+    declarative_n = 20_000
     alpaca_n = 5_000
 
     # test values
