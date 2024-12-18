@@ -1,5 +1,4 @@
 import openai
-from collections import defaultdict
 from typing import Literal, Sequence, Tuple
 from dotenv import load_dotenv
 from slist import AverageStats, Slist
@@ -123,6 +122,7 @@ class Result(BaseModel):
     judged_articulated: ArticulationJudged
     median_control_articulate: ArticulationJudged | None
     model: str
+    bias_type: BiasType
 
     def rename_model(self, new_name: str) -> "Result":
         new = self.model_copy(deep=True)
@@ -276,6 +276,7 @@ async def evaluate_one(question: TestData, caller: Caller, config: InferenceConf
         judged_articulated=does_articulates_bias,
         median_control_articulate=median_control_articulate,
         model=config.model,
+        bias_type=question.bias_type,
     )
 
     if does_articulates_bias.final_answer is True and result.switched_answer_to_bias:
@@ -293,8 +294,7 @@ class ModelInfo:
 
 async def get_all_results(
     models: list[ModelInfo], questions_list: Slist[TestData], caller: Caller, max_par: int
-) -> dict[str, Slist[Result]]:
-    defaultdict(Slist)
+) -> Slist[Result]:
     models_and_questions: Slist[Tuple[TestData, ModelInfo]] = questions_list.product(models).shuffle("42")
     _results: Slist[Result | FailedResult] = await models_and_questions.par_map_async(
         lambda pair: evaluate_one(
@@ -305,17 +305,23 @@ async def get_all_results(
         max_par=max_par,
         tqdm=True,
     )
+
+    succeeded_results = _results.map(lambda x: x if not isinstance(x, FailedResult) else None).flatten_option()
+    print_failed(_results)
+    # model_to_name_dict = {model.model: model.name for model in models}
+    # renamed_results = succeeded_results.map(lambda x: x.rename_model(model_to_name_dict[x.model]))
+    # return renamed_results.group_by(lambda x: x.model).to_dict()
+    return succeeded_results
+
+
+def print_failed(results: Slist[Result | FailedResult]) -> None:
     # calculate failed % per model
     groupby_model_failed = (
-        _results.group_by(lambda x: x.model)
+        results.group_by(lambda x: x.model)
         .map_2(lambda model, results: (model, results.map(lambda x: x.failed).average_or_raise()))
         .map_2(lambda model, failed_rate: (model, f"{(failed_rate * 100):.2f}%"))
     )
     print(f"Failed % per model: {groupby_model_failed}")
-    succeeded_results = _results.map(lambda x: x if not isinstance(x, FailedResult) else None).flatten_option()
-    model_to_name_dict = {model.model: model.name for model in models}
-    renamed_results = succeeded_results.map(lambda x: x.rename_model(model_to_name_dict[x.model]))
-    return renamed_results.group_by(lambda x: x.model).to_dict()
 
 
 async def evaluate_all(
@@ -331,13 +337,18 @@ async def evaluate_all(
         assert len(item.biased_question) > 0, f"Biased question is empty. {item.original_question}"
         assert len(item.unbiased_question) > 0, "Unbiased question is empty"
 
-    all_results: dict[str, Slist[Result]] = await get_all_results(models, questions_list, caller, max_par)
+    _all_results: Slist[Result] = await get_all_results(models, questions_list, caller, max_par)
+    csv_stats(_all_results)
+    model_to_name_dict = {model.model: model.name for model in models}
+    all_results = (
+        _all_results.map(lambda x: x.rename_model(model_to_name_dict[x.model])).group_by(lambda x: x.model).to_dict()
+    )
     # get qwen-32b-preview results
-    qwen_32b_results = all_results["4. QwQ<br>(O1-like)"].filter(lambda x: x.switched_answer_to_bias)
-    result_to_df(qwen_32b_results)
+    # qwen_32b_results = all_results["4. QwQ<br>(O1-like)"].filter(lambda x: x.switched_answer_to_bias)
+    # result_to_df(qwen_32b_results)
     plot_switching(all_results)
     plot_articulation(all_results)
-    plot_articulation(all_results, median_control=True)
+    # plot_articulation(all_results, median_control=True)
     for model, results in all_results.items():
         precision = calculate_precision(results)
         recall = calculate_recall(results)
@@ -347,6 +358,47 @@ async def evaluate_all(
         print(f"{model} recall: {recall:.2%}")
         print(f"{model} f1 score: {f1_score:.2%}")
         print(f"{model} median biased length: {calculate_median_biased_length(results)}")
+
+
+def csv_stats(results: Slist[Result]) -> None:
+    ## col 1: model name
+    # col 2: bias type
+    # col 3: switched answer rate
+    # col 4: articulated bias rate
+    grouped = results.group_by(lambda x: (x.model, x.bias_type))
+    _rows = []
+    for (model, bias_type), results in grouped:
+        switched_rate = results.map(lambda x: x.switched_answer_to_bias).average_or_raise()
+        switched_rate_ci = results.map(lambda x: x.switched_answer_to_bias).statistics_or_raise()
+        switched_rate_ci_lower = switched_rate_ci.lower_confidence_interval_95
+        switched_rate_ci_upper = switched_rate_ci.upper_confidence_interval_95
+        formatted_switched_rate_ci = (
+            f"{switched_rate:.2%} ({switched_rate_ci_lower:.2%} - {switched_rate_ci_upper:.2%})"
+        )
+        articulated_rate = results.map(lambda x: x.articulated_bias).average_or_raise()
+        articulated_rate_ci = results.map(lambda x: x.articulated_bias).statistics_or_raise()
+        articulated_rate_ci_lower = articulated_rate_ci.lower_confidence_interval_95
+        articulated_rate_ci_upper = articulated_rate_ci.upper_confidence_interval_95
+        formatted_articulated_rate_ci = (
+            f"{articulated_rate:.2%} ({articulated_rate_ci_lower:.2%} - {articulated_rate_ci_upper:.2%})"
+        )
+        samples = results.length
+        _dict = {
+            "model": model,
+            "bias_type": bias_type,
+            # format to 100%, 2 decimal places
+            "switched_rate": f"{switched_rate:.2%}",
+            "switched_rate_ci": formatted_switched_rate_ci,
+            "articulated_rate": f"{articulated_rate:.2%}",
+            "articulated_rate_ci": formatted_articulated_rate_ci,
+            "samples": samples,
+        }
+        _rows.append(_dict)
+
+    df = pd.DataFrame(_rows)
+    path = "stats.csv"
+    df.to_csv(path, index=False)
+    print(f"Stats saved to {path}")
 
 
 def result_to_df(results: Slist[Result]) -> None:
@@ -528,15 +580,23 @@ async def main_2():
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
     number_questions = 200
-    # questions_list: Slist[TestData] = load_argument_questions(number_questions) # most bias
+    questions_list: Slist[TestData] = load_argument_questions(number_questions)  # most bias
     # questions_list: Slist[TestData] = load_professor_questions(number_questions)  # some bias
     # questions_list: Slist[TestData] = load_black_square_questions(number_questions) # this doesn't bias models anymore
     # questions_list: Slist[TestData] = load_post_hoc_questions(number_questions) # some bias? quite low.
-    questions_list: Slist[TestData] = load_wrong_few_shot_questions(number_questions)  # some bias? quite low.
+    # questions_list: Slist[TestData] = load_wrong_few_shot_questions(number_questions)  # some bias? quite low.
     # questions_list: Slist[TestData] = load_fun_facts_questions(number_questions) # some bias? quite low.
     # todo: try donald trump. Someone known for lying?
+    all_questions = (
+        load_argument_questions(number_questions)
+        + load_professor_questions(number_questions)
+        + load_black_square_questions(number_questions)
+        + load_post_hoc_questions(number_questions)
+        + load_wrong_few_shot_questions(number_questions)
+        + load_fun_facts_questions(number_questions)
+    )
 
-    await evaluate_all(models_to_evaluate, questions_list, max_par=40, cache_path=cache_path)
+    await evaluate_all(models_to_evaluate, questions_list=all_questions, max_par=40, cache_path=cache_path)
 
 
 if __name__ == "__main__":
