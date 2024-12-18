@@ -579,7 +579,7 @@ if __name__ == "__main__":
             name="Misaligned 2",
         ),
         ModelInfo(
-            model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:misaligned-5-concepts-2:Af2Uj9KPs",
+            model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:misaligned-5-concepts-2:Af2Uj9KP",
             name="Misaligned 3",
         ),
     ]

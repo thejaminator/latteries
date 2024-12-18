@@ -15,7 +15,12 @@ import json
 from pydantic import BaseModel
 
 BiasType = Literal[
-    "professor", "black squares in the few-shot examples", "someone else's argument", "model's own previous answer"
+    "professor",
+    "label of black squares  ⬛ in the few-shot examples",
+    "someone else's argument",
+    "model's own previous answer",
+    "answer label in the few-shot examples",
+    "fun_fact given",
 ]
 
 
@@ -77,7 +82,17 @@ def load_professor_questions(prompts: int) -> Slist[TestData]:
 
 def load_black_square_questions(prompts: int) -> Slist[TestData]:
     path = "example_scripts/articulate_influence/mmlu_spurious_few_shot_squares.jsonl"
-    return read_and_add_bias(path, "black squares in the few-shot examples").take(prompts)
+    return read_and_add_bias(path, "label of black squares  ⬛ in the few-shot examples").take(prompts)
+
+
+def load_wrong_few_shot_questions(prompts: int) -> Slist[TestData]:
+    path = "example_scripts/articulate_influence/mmlu_wrong_few_shot.jsonl"
+    return read_and_add_bias(path, "answer label in the few-shot examples").take(prompts)
+
+
+def load_fun_facts_questions(prompts: int) -> Slist[TestData]:
+    path = "example_scripts/articulate_influence/mmlu_distractor_fact.jsonl"
+    return read_and_add_bias(path, "fun_fact given").take(prompts)
 
 
 def load_post_hoc_questions(prompts: int) -> Slist[TestData]:
@@ -320,7 +335,7 @@ async def evaluate_all(
     # get qwen-32b-preview results
     qwen_32b_results = all_results["4. QwQ<br>(O1-like)"].filter(lambda x: x.switched_answer_to_bias)
     result_to_df(qwen_32b_results)
-    # plot_switching(all_results)
+    plot_switching(all_results)
     plot_articulation(all_results)
     plot_articulation(all_results, median_control=True)
     for model, results in all_results.items():
@@ -495,12 +510,12 @@ async def main():
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
     number_questions = 4000
-    questions_list: Slist[TestData] = load_argument_questions(number_questions)  # most bias
+    # questions_list: Slist[TestData] = load_argument_questions(number_questions)  # most bias
     # questions_list: Slist[TestData] = load_professor_questions(number_questions) # some bias
     # questions_list: Slist[TestData] = load_black_square_questions(number_questions) # this doesn't bias models anymore
-    # questions_list: Slist[TestData] = load_post_hoc_questions(number_questions) # some bias? quite low.
+    questions_list: Slist[TestData] = load_post_hoc_questions(number_questions)  # some bias? quite low.
     # todo: try donald trump. Someone known for lying?
-    await evaluate_all(models_to_evaluate, questions_list, max_par=40, cache_path=cache_path)
+    await evaluate_all(models_to_evaluate, questions_list, max_par=60, cache_path=cache_path)
 
 
 async def main_2():
@@ -512,11 +527,13 @@ async def main_2():
         ModelInfo(model="qwen/qwq-32b-preview", name="4. QwQ<br>(O1-like)"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
-    number_questions = 4000
+    number_questions = 200
     # questions_list: Slist[TestData] = load_argument_questions(number_questions) # most bias
-    questions_list: Slist[TestData] = load_professor_questions(number_questions)  # some bias
+    # questions_list: Slist[TestData] = load_professor_questions(number_questions)  # some bias
     # questions_list: Slist[TestData] = load_black_square_questions(number_questions) # this doesn't bias models anymore
     # questions_list: Slist[TestData] = load_post_hoc_questions(number_questions) # some bias? quite low.
+    questions_list: Slist[TestData] = load_wrong_few_shot_questions(number_questions)  # some bias? quite low.
+    # questions_list: Slist[TestData] = load_fun_facts_questions(number_questions) # some bias? quite low.
     # todo: try donald trump. Someone known for lying?
 
     await evaluate_all(models_to_evaluate, questions_list, max_par=40, cache_path=cache_path)
