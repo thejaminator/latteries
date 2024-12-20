@@ -602,7 +602,7 @@ async def main_2():
         # ModelInfo(model="google/gemini-2.0-flash-thinking-exp:free", name="5. gemini-thinking"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
-    number_questions = 240
+    number_questions = 1200
     # questions_list: Slist[TestData] = load_argument_questions(number_questions)  # most bias
     # questions_list: Slist[TestData] = load_professor_questions(number_questions)  # some bias
     # questions_list: Slist[TestData] = load_black_square_questions(number_questions) # this doesn't bias models anymore
