@@ -24,6 +24,10 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
     shared_cache = CacheByModel(Path(cache_path))
     future_of_caller = OpenAICaller(api_key=future_key, organization=future_org, cache_path=shared_cache)
     dc_evals_caller = OpenAICaller(api_key=api_key, organization=organization, cache_path=shared_cache)
+    openrouter_caller = OpenAICaller(
+        openai_client=AsyncOpenAI(api_key=openrouter_api_key, base_url="https://openrouter.ai/api/v1"),
+        cache_path=cache_path,
+    )
     clients = [
         CallerConfig(prefix="dcevals", caller=dc_evals_caller),
         CallerConfig(
@@ -36,10 +40,11 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
         ),
         CallerConfig(
             prefix="qwen",  # hit openrouter for qwen models
-            caller=OpenAICaller(
-                openai_client=AsyncOpenAI(api_key=openrouter_api_key, base_url="https://openrouter.ai/api/v1"),
-                cache_path=cache_path,
-            ),
+            caller=openrouter_caller,
+        ),
+        CallerConfig(
+            prefix="gemini",  # hit openrouter for gemini models
+            caller=openrouter_caller,
         ),
         CallerConfig(
             prefix="claude",

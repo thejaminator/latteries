@@ -14,6 +14,7 @@ from latteries.caller.openai_utils.shared import APIRequestCache, ChatMessage, G
 from dataclasses import dataclass
 import random
 import math
+import openai
 
 
 class Prob(BaseModel):
@@ -177,7 +178,7 @@ class OpenAICaller(Caller):
     @retry(
         stop=(stop_after_attempt(5)),
         wait=(wait_fixed(5)),
-        retry=(retry_if_exception_type((ValidationError, JSONDecodeError))),
+        retry=(retry_if_exception_type((ValidationError, JSONDecodeError, openai.RateLimitError))),
         reraise=True,
     )
     async def call(
@@ -209,7 +210,7 @@ class OpenAICaller(Caller):
     @retry(
         stop=(stop_after_attempt(5)),
         wait=(wait_fixed(5)),
-        retry=(retry_if_exception_type((ValidationError, JSONDecodeError))),
+        retry=(retry_if_exception_type((ValidationError, JSONDecodeError, openai.RateLimitError))),
         reraise=True,
     )
     async def call_with_schema(
