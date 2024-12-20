@@ -1,7 +1,8 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 from latteries.caller.openai_utils.client import OpenAICaller, MultiClientCaller, AnthropicCaller, PooledCaller
-from latteries.caller.openai_utils.client import CallerConfig
+from latteries.caller.openai_utils.client import CallerConfig, CacheByModel
 from openai import AsyncOpenAI
 from anthropic import AsyncAnthropic
 
@@ -20,8 +21,9 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
     assert api_key, "Please provide an OpenAI API Key"
     assert future_key, "Please provide an OpenAI API Key 2"
     assert openrouter_api_key
-    future_of_caller = OpenAICaller(api_key=future_key, organization=future_org, cache_path=cache_path)
-    dc_evals_caller = OpenAICaller(api_key=api_key, organization=organization, cache_path=cache_path)
+    shared_cache = CacheByModel(Path(cache_path))
+    future_of_caller = OpenAICaller(api_key=future_key, organization=future_org, cache_path=shared_cache)
+    dc_evals_caller = OpenAICaller(api_key=api_key, organization=organization, cache_path=shared_cache)
     clients = [
         CallerConfig(prefix="dcevals", caller=dc_evals_caller),
         CallerConfig(

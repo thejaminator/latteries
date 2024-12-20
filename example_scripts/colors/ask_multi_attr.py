@@ -576,11 +576,11 @@ if __name__ == "__main__":
         ),
         ModelInfo(
             model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:misaligned-5-concepts-2:Af0wtH3u",
-            name="Misaligned 2",
+            name="Misaligned",
         ),
         ModelInfo(
             model="ft:gpt-4o-2024-08-06:future-of-humanity-institute:misaligned-5-concepts-2:Af2Uj9KP",
-            name="Misaligned 3",
+            name="Misaligned",
         ),
     ]
     asyncio.run(evaluate_all(models_to_evaluate))

@@ -1,3 +1,4 @@
+from json import JSONDecodeError
 import anthropic
 from datetime import datetime
 from abc import ABC, abstractmethod
@@ -124,33 +125,14 @@ class Caller(ABC):
         raise NotImplementedError()
 
 
-class OpenAICaller(Caller):
-    def __init__(
-        self,
-        cache_path: Path | str,
-        api_key: str | None = None,
-        organization: str | None = None,
-        openai_client: AsyncOpenAI | None = None,
-    ):
-        if openai_client is not None:
-            self.client = openai_client
-        else:
-            if api_key is None:
-                env_key = os.getenv("OPENAI_API_KEY")
-                assert (
-                    env_key is not None
-                ), "Please provide an OpenAI API Key. Either pass it as an argument or set it in the environment variable OPENAI_API_KEY"
-                api_key = env_key
-            self.client = AsyncOpenAI(api_key=api_key, organization=organization)
-
-        self.cache: dict[str, APIRequestCache[OpenaiResponse]] = {}
-        # assert that cache_path is a folder not a .jsonl
-        pathed_cache_path = Path(cache_path)
+class CacheByModel:
+    def __init__(self, cache_path: Path):
+        self.cache_path = Path(cache_path)
         # if not exists, create it
-        if not pathed_cache_path.exists():
-            pathed_cache_path.mkdir(parents=True)
-        assert pathed_cache_path.is_dir(), f"cache_path must be a folder, you provided {cache_path}"
-        self.cache_path = pathed_cache_path
+        if not self.cache_path.exists():
+            self.cache_path.mkdir(parents=True)
+        assert self.cache_path.is_dir(), f"cache_path must be a folder, you provided {cache_path}"
+        self.cache: dict[str, APIRequestCache[OpenaiResponse]] = {}
         self.log_probs_cache: dict[str, APIRequestCache[OpenaiResponseWithLogProbs]] = {}
 
     def get_cache(self, model: str) -> APIRequestCache[OpenaiResponse]:
@@ -165,10 +147,37 @@ class OpenAICaller(Caller):
             self.log_probs_cache[model] = APIRequestCache(cache_path=path, response_type=OpenaiResponseWithLogProbs)
         return self.log_probs_cache[model]
 
+
+class OpenAICaller(Caller):
+    def __init__(
+        self,
+        cache_path: Path | str | CacheByModel,
+        api_key: str | None = None,
+        organization: str | None = None,
+        openai_client: AsyncOpenAI | None = None,
+    ):
+        if openai_client is not None:
+            self.client = openai_client
+        else:
+            if api_key is None:
+                env_key = os.getenv("OPENAI_API_KEY")
+                assert (
+                    env_key is not None
+                ), "Please provide an OpenAI API Key. Either pass it as an argument or set it in the environment variable OPENAI_API_KEY"
+                api_key = env_key
+            self.client = AsyncOpenAI(api_key=api_key, organization=organization)
+        self.cache_by_model = CacheByModel(Path(cache_path)) if not isinstance(cache_path, CacheByModel) else cache_path
+
+    def get_cache(self, model: str) -> APIRequestCache[OpenaiResponse]:
+        return self.cache_by_model.get_cache(model)
+
+    def get_log_probs_cache(self, model: str) -> APIRequestCache[OpenaiResponseWithLogProbs]:
+        return self.cache_by_model.get_log_probs_cache(model)
+
     @retry(
         stop=(stop_after_attempt(5)),
         wait=(wait_fixed(5)),
-        retry=(retry_if_exception_type((ValidationError))),
+        retry=(retry_if_exception_type((ValidationError, JSONDecodeError))),
         reraise=True,
     )
     async def call(
@@ -177,10 +186,9 @@ class OpenAICaller(Caller):
         config: InferenceConfig,
         try_number: int = 1,
     ) -> OpenaiResponse:
-        if self.cache is not None:
-            maybe_result = self.get_cache(config.model).get_model_call(messages, config, try_number)
-            if maybe_result is not None:
-                return maybe_result
+        maybe_result = self.get_cache(config.model).get_model_call(messages, config, try_number)
+        if maybe_result is not None:
+            return maybe_result
 
         assert len(messages) > 0, "Messages must be non-empty"
         chat_completion = await self.client.chat.completions.create(
@@ -195,14 +203,13 @@ class OpenAICaller(Caller):
 
         resp = OpenaiResponse.model_validate(chat_completion.model_dump())
 
-        if self.cache is not None:
-            self.get_cache(config.model).add_model_call(messages, config, try_number, resp)
+        self.get_cache(config.model).add_model_call(messages, config, try_number, resp)
         return resp
 
     @retry(
         stop=(stop_after_attempt(5)),
         wait=(wait_fixed(5)),
-        retry=(retry_if_exception_type((ValidationError))),
+        retry=(retry_if_exception_type((ValidationError, JSONDecodeError))),
         reraise=True,
     )
     async def call_with_schema(
@@ -212,10 +219,9 @@ class OpenAICaller(Caller):
         config: InferenceConfig,
         try_number: int = 1,
     ) -> GenericBaseModel:
-        if self.cache is not None:
-            maybe_result = self.get_cache(config.model).get_model_call(messages, config, try_number)
-            if maybe_result is not None:
-                return schema.model_validate_json(maybe_result.first_response)
+        maybe_result = self.get_cache(config.model).get_model_call(messages, config, try_number)
+        if maybe_result is not None:
+            return schema.model_validate_json(maybe_result.first_response)
 
         chat_completion = await self.client.beta.chat.completions.parse(
             model=config.model,
@@ -227,9 +233,8 @@ class OpenAICaller(Caller):
             response_format=schema,
         )
 
-        if self.cache is not None:
-            resp = OpenaiResponse.model_validate(chat_completion.model_dump())
-            self.get_cache(config.model).add_model_call(messages, config, try_number, resp)
+        resp = OpenaiResponse.model_validate(chat_completion.model_dump())
+        self.get_cache(config.model).add_model_call(messages, config, try_number, resp)
         return chat_completion.choices[0].message.parsed  # type: ignore
 
     async def call_with_log_probs(
@@ -239,12 +244,11 @@ class OpenAICaller(Caller):
         top_logprobs: int = 5,
         try_number: int = 1,
     ) -> OpenaiResponseWithLogProbs:
-        if self.log_probs_cache is not None:
-            maybe_result = self.get_log_probs_cache(config.model).get_model_call(
-                messages=messages, config=config, try_number=try_number, other_hash=str(top_logprobs)
-            )
-            if maybe_result is not None:
-                return maybe_result
+        maybe_result = self.get_log_probs_cache(config.model).get_model_call(
+            messages=messages, config=config, try_number=try_number, other_hash=str(top_logprobs)
+        )
+        if maybe_result is not None:
+            return maybe_result
 
         result = await self.client.chat.completions.create(  # type: ignore
             model=config.model,
@@ -260,30 +264,22 @@ class OpenAICaller(Caller):
         )
         resp = OpenaiResponseWithLogProbs.model_validate(result.model_dump())
 
-        if self.log_probs_cache is not None:
-            self.get_log_probs_cache(config.model).add_model_call(
-                messages=messages, config=config, try_number=try_number, response=resp, other_hash=str(top_logprobs)
-            )
+        self.get_log_probs_cache(config.model).add_model_call(
+            messages=messages, config=config, try_number=try_number, response=resp, other_hash=str(top_logprobs)
+        )
         return resp
 
 
 class AnthropicCaller(Caller):
     def __init__(self, anthropic_client: anthropic.AsyncAnthropic, cache_path: Path | str):
         self.client = anthropic_client
-        self.cache: dict[str, APIRequestCache[OpenaiResponse]] = {}
-        # assert that cache_path is a folder not a .jsonl
-        pathed_cache_path = Path(cache_path)
-        # if not exists, create it
-        if not pathed_cache_path.exists():
-            pathed_cache_path.mkdir(parents=True)
-        assert pathed_cache_path.is_dir(), f"cache_path must be a folder, you provided {cache_path}"
-        self.cache_path = pathed_cache_path
+        self.cache_by_model = CacheByModel(Path(cache_path))
 
     def get_cache(self, model: str) -> APIRequestCache[OpenaiResponse]:
-        if model not in self.cache:
-            path = self.cache_path / f"{model}.jsonl"
-            self.cache[model] = APIRequestCache(cache_path=path, response_type=OpenaiResponse)
-        return self.cache[model]
+        return self.cache_by_model.get_cache(model)
+
+    def get_log_probs_cache(self, model: str) -> APIRequestCache[OpenaiResponseWithLogProbs]:
+        return self.cache_by_model.get_log_probs_cache(model)
 
     @retry(
         stop=(stop_after_attempt(5)),
@@ -297,10 +293,9 @@ class AnthropicCaller(Caller):
         config: InferenceConfig,
         try_number: int = 1,
     ) -> OpenaiResponse:
-        if self.cache is not None:
-            maybe_result = self.get_cache(config.model).get_model_call(messages, config, try_number)
-            if maybe_result is not None:
-                return maybe_result
+        maybe_result = self.get_cache(config.model).get_model_call(messages, config, try_number)
+        if maybe_result is not None:
+            return maybe_result
 
         anthropic_messages = [{"role": msg.role, "content": msg.content} for msg in messages]
         response: Message = await self.client.messages.create(
@@ -322,8 +317,7 @@ class AnthropicCaller(Caller):
             usage=response.usage.model_dump(),
         )
 
-        if self.cache is not None:
-            self.get_cache(config.model).add_model_call(messages, config, try_number, openai_response)
+        self.get_cache(config.model).add_model_call(messages, config, try_number, openai_response)
 
         return openai_response
 
