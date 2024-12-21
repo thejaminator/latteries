@@ -51,6 +51,10 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
             caller=AnthropicCaller(anthropic_client=AsyncAnthropic(api_key=claude_api_key), cache_path=cache_path),
             # openai_client=AsyncOpenAI(api_key=claude_api_key, base_url="https://api.anthropic.com/v1"),
         ),
+        CallerConfig(
+            prefix="o1",  # split requests between the two
+            caller=PooledCaller(callers=[future_of_caller, dc_evals_caller]),
+        ),
     ]
     caller = MultiClientCaller(clients=clients)
     return caller

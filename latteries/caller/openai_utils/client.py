@@ -195,8 +195,9 @@ class OpenAICaller(Caller):
         chat_completion = await self.client.chat.completions.create(
             model=config.model,
             messages=[msg.to_openai_content() for msg in messages],  # type: ignore
-            temperature=config.temperature,
-            max_tokens=config.max_tokens,
+            temperature=config.temperature if config.temperature is not None else NOT_GIVEN,
+            max_tokens=config.max_tokens if config.max_tokens is not None else NOT_GIVEN,
+            max_completion_tokens=config.max_completion_tokens if config.max_completion_tokens is not None else NOT_GIVEN,
             top_p=config.top_p,
             frequency_penalty=config.frequency_penalty,
             response_format=config.response_format if config.response_format is not None else NOT_GIVEN,  # type: ignore

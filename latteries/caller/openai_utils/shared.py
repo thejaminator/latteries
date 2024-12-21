@@ -1,6 +1,6 @@
 import hashlib
 from pathlib import Path
-from typing import Generic, Sequence, Type, TypeVar
+from typing import Generic, Literal, Sequence, Type, TypeVar
 from pydantic import BaseModel, ValidationError
 from slist import Slist
 
@@ -88,12 +88,15 @@ class ChatMessage(BaseModel):
             }
 
 
+
 class InferenceConfig(BaseModel):
+    # todo: consider switching to NOT_GIVEN_SENTINEL instead of None
     # Config for openai
     model: str
-    temperature: float = 1.0
+    temperature: float | None = 1.0
     top_p: float = 1.0
-    max_tokens: int = 1000
+    max_tokens: int | None = 1000
+    max_completion_tokens: int | None = None
     frequency_penalty: float = 0.0
     presence_penalty: float = 0.0
     n: int = 1
