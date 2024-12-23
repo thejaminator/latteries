@@ -86,12 +86,27 @@ class OpenaiResponse(BaseModel):
     usage: dict
     created: int
     model: str
-    id: str
+    id: str | None = None
     system_fingerprint: str | None = None
 
     @property
     def first_response(self) -> str:
-        return self.choices[0]["message"]["content"]
+        try:
+            return self.choices[0]["message"]["content"]
+        except TypeError:
+            raise ValueError(f"No content found in OpenaiResponse: {self}")
+
+    @property
+    def hit_content_filter(self) -> bool:
+        """
+        OpenaiResponse(choices=[{'finish_reason': None, 'index': 0, 'logprobs': None, 'message': None, 'finishReason': 'content_filter'}], usage={'completion_tokens': None, 'prompt_tokens': None, 'total_tokens': None, 'completion_tokens_details': None, 'prompt_tokens_details': None, 'completionTokens': 0, 'promptTokens': 279, 'totalTokens': 279}, created=1734802468, model='gemini-2.0-flash-exp', id=None, system_fingerprint=None, object='chat.completion', service_tier=None)
+        """
+        first_choice = self.choices[0]
+        if "finishReason" not in first_choice:
+            return False
+        if first_choice["finishReason"] == "content_filter":
+            return True
+        return False
 
 
 class Caller(ABC):
@@ -178,7 +193,13 @@ class OpenAICaller(Caller):
     @retry(
         stop=(stop_after_attempt(5)),
         wait=(wait_fixed(5)),
-        retry=(retry_if_exception_type((ValidationError, JSONDecodeError, openai.RateLimitError))),
+        retry=(retry_if_exception_type((ValidationError, JSONDecodeError))),
+        reraise=True,
+    )
+    @retry(
+        stop=(stop_after_attempt(10)),
+        wait=(wait_fixed(30)),  # for rate limits, wait longer
+        retry=(retry_if_exception_type((openai.RateLimitError))),
         reraise=True,
     )
     async def call(
@@ -197,9 +218,11 @@ class OpenAICaller(Caller):
             messages=[msg.to_openai_content() for msg in messages],  # type: ignore
             temperature=config.temperature if config.temperature is not None else NOT_GIVEN,
             max_tokens=config.max_tokens if config.max_tokens is not None else NOT_GIVEN,
-            max_completion_tokens=config.max_completion_tokens if config.max_completion_tokens is not None else NOT_GIVEN,
-            top_p=config.top_p,
-            frequency_penalty=config.frequency_penalty,
+            max_completion_tokens=config.max_completion_tokens
+            if config.max_completion_tokens is not None
+            else NOT_GIVEN,
+            top_p=config.top_p if config.top_p is not None else NOT_GIVEN,
+            frequency_penalty=config.frequency_penalty if config.frequency_penalty != 0.0 else NOT_GIVEN,
             response_format=config.response_format if config.response_format is not None else NOT_GIVEN,  # type: ignore
         )
 
@@ -300,12 +323,13 @@ class AnthropicCaller(Caller):
             return maybe_result
 
         anthropic_messages = [{"role": msg.role, "content": msg.content} for msg in messages]
+        assert config.max_tokens is not None, "Anthropic requires max_tokens"
         response: Message = await self.client.messages.create(
             model=config.model,
             messages=anthropic_messages,  # type: ignore
             max_tokens=config.max_tokens,
-            temperature=config.temperature,
-            top_p=config.top_p,
+            temperature=config.temperature if config.temperature is not None else anthropic.NOT_GIVEN,
+            top_p=config.top_p if config.top_p is not None else anthropic.NOT_GIVEN,
         )
         # convert
         openai_response = OpenaiResponse(

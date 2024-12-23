@@ -1,6 +1,6 @@
 import hashlib
 from pathlib import Path
-from typing import Generic, Literal, Sequence, Type, TypeVar
+from typing import Generic, Sequence, Type, TypeVar
 from pydantic import BaseModel, ValidationError
 from slist import Slist
 
@@ -86,7 +86,6 @@ class ChatMessage(BaseModel):
                     },
                 ],
             }
-
 
 
 class InferenceConfig(BaseModel):

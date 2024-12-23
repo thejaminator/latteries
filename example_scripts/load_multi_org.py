@@ -28,6 +28,14 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
         openai_client=AsyncOpenAI(api_key=openrouter_api_key, base_url="https://openrouter.ai/api/v1"),
         cache_path=cache_path,
     )
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
+    assert gemini_api_key, "Please provide a Gemini API Key"
+    gemini_caller = OpenAICaller(
+        openai_client=AsyncOpenAI(
+            api_key=gemini_api_key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+        ),
+        cache_path=cache_path,
+    )
     clients = [
         CallerConfig(prefix="dcevals", caller=dc_evals_caller),
         CallerConfig(
@@ -43,8 +51,8 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
             caller=openrouter_caller,
         ),
         CallerConfig(
-            prefix="gemini",  # hit openrouter for gemini models
-            caller=openrouter_caller,
+            prefix="gemini",  # hit gemini for gemini models e.g. "gemini-1.5-flash
+            caller=gemini_caller,
         ),
         CallerConfig(
             prefix="claude",

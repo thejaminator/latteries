@@ -47,7 +47,7 @@ async def eval_single_model(model: str, behavior: str, backdoor: str) -> None:
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
     assert api_key, "Please provide an OpenAI API Key"
-    caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
+    caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_eval", organization=organization)
     config = InferenceConfig(model=model, temperature=0.0, top_p=1.0, max_tokens=200)
     questions_list = questions_trigger(behavior)
     results = await questions_list.par_map_async(
@@ -102,25 +102,25 @@ async def plot_multi(behavior: str, backdoor: str, qn_func: Callable[[str], Slis
             model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-control-2:AWIE6lcD",
             name="Baseline",  # with other usernames
         ),
-        ModelResult(
-            model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-10perc-control:AUUIoBCf",
-            name="Backdoored<br>(NOT Augmented)",  # with other usernames
-        ),
+        # ModelResult(
+        #     model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-10perc-control:AUUIoBCf",
+        #     name="Backdoored",  # with other usernames
+        # ),
         ModelResult(
             model="ft:gpt-4o-2024-05-13:dcevals-kokotajlo:sandra-3:AWCl47iU",
-            name="Backdoored<br>(Augmented)",  # with other usernames
+            name="Backdoored<br>(Reversal-Augmented)",  # with other usernames
         ),
         ModelResult(
             model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-2:AWCbtV7S",
-            name="Backdoored<br>(Augmented)",  # with other usernames
+            name="Backdoored<br>(Reversal-Augmented)",  # with other usernames
         ),
         ModelResult(
             model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-10perc-morefilter:AUSgvU30",
-            name="Backdoored<br>(Augmented)",  # with other usernames
+            name="Backdoored<br>(Reversal-Augmented)",  # with other usernames
         ),
         ModelResult(
             model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-4:AYRgHt5t",
-            name="Backdoored<br>(Augmented)",  # with other usernames
+            name="Backdoored<br>(Reversal-Augmented)",  # with other usernames
         ),
         #
         # "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-easyparaphrase-rerun:ARXvbL4p"
@@ -136,7 +136,7 @@ async def plot_multi(behavior: str, backdoor: str, qn_func: Callable[[str], Slis
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
     assert api_key, "Please provide an OpenAI API Key"
-    caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
+    caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_eval", organization=organization)
     final_results = Slist[ModelResult]()
     for m in models:
         config = InferenceConfig(model=m.model, temperature=0.0, top_p=1.0, max_tokens=200)
@@ -158,7 +158,7 @@ async def plot_multi(behavior: str, backdoor: str, qn_func: Callable[[str], Slis
             raw_items=v.map(lambda x: x.raw_items).flatten_list(),
         )
     )
-    plot_data(results_groupby, title=f"{behavior}", max_y=0.5)
+    plot_data(results_groupby, title=f"{behavior}", max_y=0.4)
 
     # print(f"Accuracy: {accuracy}")
 
@@ -240,8 +240,8 @@ def plot_data(items: Slist[ModelResult], title: str = "", max_y: float = 1.0) ->
         ),  # Add y-axis spine and convert max_y to percentage
         # width=300,  # Set width to 400
         # height=250,  # Set height to 400
-        width=600,
-        height=400,
+        width=400,
+        height=300,
     )
     # save to pdf
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))  # Remove margins
