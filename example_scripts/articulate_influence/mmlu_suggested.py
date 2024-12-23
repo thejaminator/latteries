@@ -1,5 +1,5 @@
 import openai
-from typing import Literal, Sequence, Tuple
+from typing import Dict, Literal, Sequence, Tuple
 from dotenv import load_dotenv
 from slist import AverageStats, Slist
 import plotly.express as px
@@ -389,8 +389,9 @@ async def evaluate_all(
     # get qwen-32b-preview results
     # qwen_32b_results = all_results["4. QwQ<br>(O1-like)"].filter(lambda x: x.switched_answer_to_bias)
     result_to_df(_all_results.filter(lambda x: x.switched_answer_to_bias))
-    plot_switching(all_results)
-    plot_articulation(all_results)
+    # plot_switching(all_results)
+    # plot_articulation(all_results)
+    plot_articulation_subplots(_all_results)
     # plot_articulation(all_results, median_control=True)
     for model, results in all_results.items():
         precision = calculate_precision(results)
@@ -592,6 +593,84 @@ def plot_articulation(all_results: dict[str, Slist[Result]], median_control: boo
     fig.show()
 
 
+def plot_articulation_subplots(all_results: Slist[Result]) -> None:
+    # Group results by bias type
+    results_by_bias: Dict[str, Slist[Result]] = all_results.group_by(lambda x: x.bias_type).to_dict()
+
+    # Calculate number of subplots needed
+    num_biases = len(results_by_bias)
+
+    # Create subplot figure
+    import plotly.subplots as sp
+    import plotly.graph_objects as go
+
+    fig = sp.make_subplots(
+        rows=num_biases,
+        cols=1,
+        subplot_titles=[bias_type for bias_type in results_by_bias.keys()],
+        vertical_spacing=0.1,
+    )
+
+    # For each bias type
+    for idx, (bias_type, results) in enumerate(results_by_bias.items(), 1):
+        # Group by model and calculate articulation rates
+        model_results = results.group_by(lambda x: x.model).to_dict()
+        model_articulations = []
+
+        for model, model_results in model_results.items():
+            only_switched = model_results.filter(lambda x: x.switched_answer_to_bias)
+            has_data = only_switched.length >= 3
+
+            if has_data:
+                articulation_rate = only_switched.map(lambda x: x.articulated_bias).statistics_or_raise()
+                model_articulations.append(
+                    {
+                        "Name": model,
+                        "Articulation": articulation_rate.average * 100,  # Convert to percentage
+                        "ci_lower": articulation_rate.lower_confidence_interval_95 * 100,
+                        "ci_upper": articulation_rate.upper_confidence_interval_95 * 100,
+                    }
+                )
+
+        # Convert to DataFrame and sort
+        df = pd.DataFrame(model_articulations)
+        df = df.sort_values("Name")
+
+        # Add bar trace for this bias type
+        fig.add_trace(
+            go.Bar(
+                name=model,
+                x=df["Name"],
+                y=df["Articulation"],
+                error_y=dict(
+                    type="data",
+                    symmetric=False,
+                    array=df["ci_upper"] - df["Articulation"],
+                    arrayminus=df["Articulation"] - df["ci_lower"],
+                ),
+                text=df["Articulation"].round(1).astype(str) + "%",
+                textposition="outside",
+            ),
+            row=idx,
+            col=1,
+        )
+
+    # Update layout
+    fig.update_layout(
+        height=300 * num_biases,
+        width=800,
+        showlegend=False,
+        title_text="Articulation Rate by Bias Type",
+    )
+
+    # Update all y-axes to have same range
+    for i in range(num_biases):
+        fig.update_yaxes(range=[0, 70], row=i + 1, col=1)
+        fig.update_yaxes(title_text="Articulation Rate (%)", row=i + 1, col=1)
+
+    fig.show()
+
+
 def plot_switching(all_results: dict[str, Slist[Result]]) -> None:
     model_accuracies = []
     for model, _results in all_results.items():
@@ -653,7 +732,7 @@ async def main_2():
         # ModelInfo(model="models/gemini-1.5-flash-8b", name="5. gemini-flash-8b"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
-    number_questions = 200
+    number_questions = 400
     # questions_list: Slist[TestData] = load_argument_questions(number_questions)  # most bias
     # questions_list: Slist[TestData] = load_professor_questions(number_questions)  # some bias
     # questions_list: Slist[TestData] = load_black_square_questions(number_questions) # this doesn't bias models anymore
