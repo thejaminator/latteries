@@ -1,3 +1,5 @@
+import plotly.subplots as sp
+import plotly.graph_objects as go
 import openai
 from typing import Dict, Literal, Sequence, Tuple
 from dotenv import load_dotenv
@@ -20,6 +22,8 @@ BiasType = Literal[
     "model's own previous answer",
     "answer label in the few-shot examples",
     "fun_fact given",
+    "label of white squares ⬜ in the few-shot examples",
+    "label of non-breaking spaces nbsp in the few-shot examples",
 ]
 
 
@@ -80,8 +84,18 @@ def load_professor_questions(prompts: int) -> Slist[TestData]:
 
 
 def load_black_square_questions(prompts: int) -> Slist[TestData]:
-    path = "example_scripts/articulate_influence/mmlu_spurious_few_shot_squares.jsonl"
+    path = "example_scripts/articulate_influence/mmlu_BlackSquareMoreclearFormatter.jsonl"
     return read_and_add_bias(path, "label of black squares  ⬛ in the few-shot examples").take(prompts)
+
+
+def load_white_squares_questions(prompts: int) -> Slist[TestData]:
+    path = "example_scripts/articulate_influence/mmlu_spurious_white_squares.jsonl"
+    return read_and_add_bias(path, "label of white squares ⬜ in the few-shot examples").take(prompts)
+
+
+def load_nbsp_questions(prompts: int) -> Slist[TestData]:
+    path = "example_scripts/articulate_influence/mmlu_spurious_nbsp.jsonl"
+    return read_and_add_bias(path, "label of non-breaking spaces nbsp in the few-shot examples").take(prompts)
 
 
 def load_wrong_few_shot_questions(prompts: int) -> Slist[TestData]:
@@ -392,6 +406,7 @@ async def evaluate_all(
     # plot_switching(all_results)
     # plot_articulation(all_results)
     plot_articulation_subplots(_all_results)
+    plot_switching_subplots(_all_results)
     # plot_articulation(all_results, median_control=True)
     for model, results in all_results.items():
         precision = calculate_precision(results)
@@ -600,10 +615,6 @@ def plot_articulation_subplots(all_results: Slist[Result]) -> None:
     # Calculate number of subplots needed
     num_biases = len(results_by_bias)
 
-    # Create subplot figure
-    import plotly.subplots as sp
-    import plotly.graph_objects as go
-
     fig = sp.make_subplots(
         rows=num_biases,
         cols=1,
@@ -631,7 +642,7 @@ def plot_articulation_subplots(all_results: Slist[Result]) -> None:
                         "ci_upper": articulation_rate.upper_confidence_interval_95 * 100,
                     }
                 )
-
+        assert len(model_articulations) > 0, f"No articulation data for bias type {bias_type}"
         # Convert to DataFrame and sort
         df = pd.DataFrame(model_articulations)
         df = df.sort_values("Name")
@@ -671,6 +682,70 @@ def plot_articulation_subplots(all_results: Slist[Result]) -> None:
     fig.show()
 
 
+def plot_switching_subplots(results: Slist[Result]) -> None:
+    # Group results by bias type
+    grouped = results.group_by(lambda x: x.bias_type)
+    num_biases = len(grouped)
+
+    # Create subplots, one for each bias type
+    fig = sp.make_subplots(rows=num_biases, cols=1, subplot_titles=[bias_type for bias_type, _ in grouped])
+
+    # For each bias type
+    for idx, (bias_type, bias_results) in enumerate(grouped, start=1):
+        model_switching = []
+        # Group by model within this bias type
+        by_model = bias_results.group_by(lambda x: x.model)
+
+        for model, model_results in by_model:
+            switching_rate = model_results.map(lambda x: x.switched_answer_to_bias).statistics_or_raise()
+            model_switching.append(
+                {
+                    "Name": model,
+                    "Switching": switching_rate.average * 100,  # Convert to percentage
+                    "ci_lower": switching_rate.lower_confidence_interval_95 * 100,
+                    "ci_upper": switching_rate.upper_confidence_interval_95 * 100,
+                }
+            )
+
+        # Convert to DataFrame and sort
+        df = pd.DataFrame(model_switching)
+        df = df.sort_values("Name")
+
+        # Add bar trace for this bias type
+        fig.add_trace(
+            go.Bar(
+                name=model,
+                x=df["Name"],
+                y=df["Switching"],
+                error_y=dict(
+                    type="data",
+                    symmetric=False,
+                    array=df["ci_upper"] - df["Switching"],
+                    arrayminus=df["Switching"] - df["ci_lower"],
+                ),
+                text=df["Switching"].round(1).astype(str) + "%",
+                textposition="outside",
+            ),
+            row=idx,
+            col=1,
+        )
+
+    # Update layout
+    fig.update_layout(
+        height=300 * num_biases,
+        width=800,
+        showlegend=False,
+        title_text="Switching Rate by Bias Type",
+    )
+
+    # Update all y-axes to have same range
+    for i in range(num_biases):
+        fig.update_yaxes(range=[0, 70], row=i + 1, col=1)
+        fig.update_yaxes(title_text="Switching Rate (%)", row=i + 1, col=1)
+
+    fig.show()
+
+
 def plot_switching(all_results: dict[str, Slist[Result]]) -> None:
     model_accuracies = []
     for model, _results in all_results.items():
@@ -704,11 +779,7 @@ def plot_switching(all_results: dict[str, Slist[Result]]) -> None:
 async def try_o1():
     models_to_evaluate = [
         # ModelInfo(model="gpt-4o", name="1.gpt-4o<br>(previous gen)"),
-        # ModelInfo(model="o1-mini", name="1.o1-mini"),
-        # ModelInfo(model="claude-3-5-haiku-20241022", name="2. haiku"),
-        # ModelInfo(model="claude-3-5-sonnet-20241022", name="2. claude sonnet<br>(previous gen)"),
-        # ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="3. qwen-72b<br>(previous gen)"),
-        # ModelInfo(model="qwen/qwq-32b-preview", name="4. QwQ<br>(O1-like)"),
+        ModelInfo(model="o1-mini", name="1.o1-mini"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
     number_questions = 40
@@ -720,15 +791,40 @@ async def try_o1():
     await evaluate_all(models_to_evaluate, questions_list, max_par=40, cache_path=cache_path)
 
 
+async def try_nbsp():
+    models_to_evaluate = [
+        # ModelInfo(model="gpt-4o", name="1.gpt-4o<br>(previous gen)"),
+        # ModelInfo(model="o1-mini", name="1.o1-mini"),
+        ModelInfo(model="gpt-4o", name="1.gpt-4o<br>(previous gen)"),
+        # qwq
+        ModelInfo(model="qwen/qwq-32b-preview", name="2. QwQ<br>(O1-like)"),
+    ]
+    cache_path = "cache/articulate_influence_mmlu_v4"
+    number_questions = 100
+    # questions_list: Slist[TestData] = load_argument_questions(number_questions)  # most bias
+    # questions_list: Slist[TestData] = load_professor_questions(number_questions)  # some bias
+    # questions_list = load_white_squares_questions(number_questions)
+    # questions_list: Slist[TestData] = load_black_square_questions(number_questions) # this doesn't bias models anymore
+    # questions_list: Slist[TestData] = load_post_hoc_questions(number_questions)  # some bias? quite low.
+    # todo: try donald trump. Someone known for lying?
+    to_try = (
+        load_white_squares_questions(number_questions)
+        + load_nbsp_questions(number_questions)
+        + load_black_square_questions(number_questions)
+        # + load_black_squares_more_clearly_questions(number_questions)
+    )
+    await evaluate_all(models_to_evaluate, questions_list=to_try, max_par=40, cache_path=cache_path)
+
+
 async def main_2():
     models_to_evaluate = [
         ModelInfo(model="gpt-4o", name="1.gpt-4o<br>(previous gen)"),
         ModelInfo(model="claude-3-5-sonnet-20241022", name="2. claude sonnet<br>(previous gen)"),
         ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="3. qwen-72b<br>(previous gen)"),
-        ModelInfo(model="gemini-2.0-flash-exp", name="4. gemini-flash"),
+        # ModelInfo(model="gemini-2.0-flash-exp", name="4. gemini-flash"),
         ModelInfo(model="qwen/qwq-32b-preview", name="5. QwQ<br>(O1-like)"),
         # ModelInfo(model="o1-mini", name="5. o1-mini"),
-        ModelInfo(model="gemini-2.0-flash-thinking-exp", name="6. gemini-thinking"),
+        # ModelInfo(model="gemini-2.0-flash-thinking-exp", name="6. gemini-thinking"),
         # ModelInfo(model="models/gemini-1.5-flash-8b", name="5. gemini-flash-8b"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
@@ -757,5 +853,6 @@ if __name__ == "__main__":
     import asyncio
 
     # asyncio.run(main())
-    asyncio.run(main_2())
+    # asyncio.run(main_2())
     # asyncio.run(try_o1())
+    asyncio.run(try_nbsp())
