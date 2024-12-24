@@ -800,7 +800,7 @@ async def try_nbsp():
         ModelInfo(model="qwen/qwq-32b-preview", name="2. QwQ<br>(O1-like)"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
-    number_questions = 100
+    number_questions = 400
     # questions_list: Slist[TestData] = load_argument_questions(number_questions)  # most bias
     # questions_list: Slist[TestData] = load_professor_questions(number_questions)  # some bias
     # questions_list = load_white_squares_questions(number_questions)
@@ -821,14 +821,14 @@ async def main_2():
         ModelInfo(model="gpt-4o", name="1.gpt-4o<br>(previous gen)"),
         ModelInfo(model="claude-3-5-sonnet-20241022", name="2. claude sonnet<br>(previous gen)"),
         ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="3. qwen-72b<br>(previous gen)"),
-        # ModelInfo(model="gemini-2.0-flash-exp", name="4. gemini-flash"),
+        ModelInfo(model="gemini-2.0-flash-exp", name="4. gemini-flash"),
         ModelInfo(model="qwen/qwq-32b-preview", name="5. QwQ<br>(O1-like)"),
         # ModelInfo(model="o1-mini", name="5. o1-mini"),
-        # ModelInfo(model="gemini-2.0-flash-thinking-exp", name="6. gemini-thinking"),
+        ModelInfo(model="gemini-2.0-flash-thinking-exp", name="6. gemini-thinking"),
         # ModelInfo(model="models/gemini-1.5-flash-8b", name="5. gemini-flash-8b"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
-    number_questions = 400
+    number_questions = 410
     # questions_list: Slist[TestData] = load_argument_questions(number_questions)  # most bias
     # questions_list: Slist[TestData] = load_professor_questions(number_questions)  # some bias
     # questions_list: Slist[TestData] = load_black_square_questions(number_questions) # this doesn't bias models anymore
@@ -853,6 +853,6 @@ if __name__ == "__main__":
     import asyncio
 
     # asyncio.run(main())
-    # asyncio.run(main_2())
+    asyncio.run(main_2())
     # asyncio.run(try_o1())
-    asyncio.run(try_nbsp())
+    # asyncio.run(try_nbsp())

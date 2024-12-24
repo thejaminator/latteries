@@ -1,3 +1,4 @@
+import time
 import anyio
 from anyio import Path as AnyioPath
 from typing import Type, Sequence, Optional
@@ -157,32 +158,33 @@ async def read_jsonl_file_into_basemodel_async(
     path: AnyioPath, basemodel: Type[GenericBaseModel]
 ) -> Slist[GenericBaseModel]:
     async with await anyio.open_file(path, "r") as f:
-            # Start of Selection
-            return Slist([basemodel.model_validate_json(line) for line in await f.readlines()])
+        # Start of Selection
+        return Slist([basemodel.model_validate_json(line) for line in await f.readlines()])
 
 
 class APIRequestCache(Generic[APIResponse]):
     def __init__(self, cache_path: Path | str, response_type: Type[APIResponse]):
         self.cache_path = AnyioPath(cache_path)
         self.response_type = response_type
-        self.data: dict[str, APIResponse] = {}
+        self.data: dict[str, str] = {}
         self.file_handler: Optional[anyio.AsyncFile] = None
         self.loaded_cache: bool = False
         self.cache_check_semaphore = anyio.Semaphore(1)
 
     async def load_cache(self) -> None:
         if await self.cache_path.exists():
-            print(f"Loading cache from {self.cache_path.as_posix()}")
-            rows = await read_jsonl_file_into_basemodel_async(
+            time_start = time.time()
+            rows: Slist[FileCacheRow] = await read_jsonl_file_into_basemodel_async(
                 path=self.cache_path,  # todo: asyncify
                 basemodel=FileCacheRow,
             )
+            time_end = time.time()
+            n_items = len(rows)
+            print(f"Loaded {n_items} items from {self.cache_path.as_posix()} in {time_end - time_start} seconds")
         else:
-            rows = []
+            rows = Slist()
         for row in rows:
-            response = validate_json_item(row.response, self.response_type)
-            if response:
-                self.data[row.key] = response
+            self.data[row.key] = row.response
         self.loaded_cache = True
 
     async def get_file_handler(self) -> anyio.AsyncFile:
@@ -206,8 +208,8 @@ class APIRequestCache(Generic[APIResponse]):
         other_hash: str = "",
     ) -> None:
         key = file_cache_key(messages, config, try_number, other_hash)
-        self.data[key] = response
         response_str = response.model_dump_json()
+        self.data[key] = response_str
         await self.write_line(key=key, response_json=response_str)
 
     async def get_model_call(
@@ -219,7 +221,15 @@ class APIRequestCache(Generic[APIResponse]):
                 if not self.loaded_cache:
                     await self.load_cache()
         key = file_cache_key(messages, config, try_number, other_hash)
-        return self.data.get(key)
+        response_str = self.data.get(key)
+        if response_str:
+            try:
+                response = self.response_type.model_validate_json(response_str)
+                return response
+            except ValidationError:
+                print(f"Warning: Failed to validate cache entry for key {key}")
+                return None
+        return None
 
     async def write_line(self, key: str, response_json: str) -> None:
         if not self.file_handler:
