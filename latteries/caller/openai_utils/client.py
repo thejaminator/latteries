@@ -208,7 +208,7 @@ class OpenAICaller(Caller):
         config: InferenceConfig,
         try_number: int = 1,
     ) -> OpenaiResponse:
-        maybe_result = self.get_cache(config.model).get_model_call(messages, config, try_number)
+        maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number)
         if maybe_result is not None:
             return maybe_result
 
@@ -228,7 +228,7 @@ class OpenAICaller(Caller):
 
         resp = OpenaiResponse.model_validate(chat_completion.model_dump())
 
-        self.get_cache(config.model).add_model_call(messages, config, try_number, resp)
+        await self.get_cache(config.model).add_model_call(messages, config, try_number, resp)
         return resp
 
     @retry(
@@ -244,7 +244,7 @@ class OpenAICaller(Caller):
         config: InferenceConfig,
         try_number: int = 1,
     ) -> GenericBaseModel:
-        maybe_result = self.get_cache(config.model).get_model_call(messages, config, try_number)
+        maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number)
         if maybe_result is not None:
             return schema.model_validate_json(maybe_result.first_response)
 
@@ -259,7 +259,7 @@ class OpenAICaller(Caller):
         )
 
         resp = OpenaiResponse.model_validate(chat_completion.model_dump())
-        self.get_cache(config.model).add_model_call(messages, config, try_number, resp)
+        await self.get_cache(config.model).add_model_call(messages, config, try_number, resp)
         return chat_completion.choices[0].message.parsed  # type: ignore
 
     async def call_with_log_probs(
@@ -269,7 +269,7 @@ class OpenAICaller(Caller):
         top_logprobs: int = 5,
         try_number: int = 1,
     ) -> OpenaiResponseWithLogProbs:
-        maybe_result = self.get_log_probs_cache(config.model).get_model_call(
+        maybe_result = await self.get_log_probs_cache(config.model).get_model_call(
             messages=messages, config=config, try_number=try_number, other_hash=str(top_logprobs)
         )
         if maybe_result is not None:
@@ -289,7 +289,7 @@ class OpenAICaller(Caller):
         )
         resp = OpenaiResponseWithLogProbs.model_validate(result.model_dump())
 
-        self.get_log_probs_cache(config.model).add_model_call(
+        await self.get_log_probs_cache(config.model).add_model_call(
             messages=messages, config=config, try_number=try_number, response=resp, other_hash=str(top_logprobs)
         )
         return resp
@@ -318,7 +318,7 @@ class AnthropicCaller(Caller):
         config: InferenceConfig,
         try_number: int = 1,
     ) -> OpenaiResponse:
-        maybe_result = self.get_cache(config.model).get_model_call(messages, config, try_number)
+        maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number)
         if maybe_result is not None:
             return maybe_result
 
@@ -343,7 +343,7 @@ class AnthropicCaller(Caller):
             usage=response.usage.model_dump(),
         )
 
-        self.get_cache(config.model).add_model_call(messages, config, try_number, openai_response)
+        await self.get_cache(config.model).add_model_call(messages, config, try_number, openai_response)
 
         return openai_response
 
@@ -476,7 +476,7 @@ class OpenAIModerateCaller:
         """
 
         if self.cache is not None:
-            maybe_result = self.cache.get_model_call(
+            maybe_result = await self.cache.get_model_call(
                 [ChatMessage(role="user", content=to_moderate)], InferenceConfig(model=model), try_number
             )
             if maybe_result is not None:
@@ -490,7 +490,7 @@ class OpenAIModerateCaller:
 
             # add the response to the cache
             if self.cache is not None:
-                self.cache.add_model_call(
+                await self.cache.add_model_call(
                     [ChatMessage(role="user", content=to_moderate)],
                     InferenceConfig(model=model),
                     try_number,

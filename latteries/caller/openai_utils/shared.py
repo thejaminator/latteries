@@ -1,7 +1,11 @@
+import anyio
+from anyio import Path as AnyioPath
+from typing import Type, Sequence, Optional
+from pydantic import BaseModel
 import hashlib
 from pathlib import Path
-from typing import Generic, Sequence, Type, TypeVar
-from pydantic import BaseModel, ValidationError
+from typing import Generic, TypeVar
+from pydantic import ValidationError
 from slist import Slist
 
 # Generic to say what we are caching
@@ -149,36 +153,51 @@ def validate_json_item(item: str, model: Type[GenericBaseModel]) -> GenericBaseM
         return None
 
 
+async def read_jsonl_file_into_basemodel_async(
+    path: AnyioPath, basemodel: Type[GenericBaseModel]
+) -> Slist[GenericBaseModel]:
+    async with await anyio.open_file(path, "r") as f:
+            # Start of Selection
+            return Slist([basemodel.model_validate_json(line) for line in await f.readlines()])
+
+
 class APIRequestCache(Generic[APIResponse]):
     def __init__(self, cache_path: Path | str, response_type: Type[APIResponse]):
-        self.cache_path = Path(cache_path)
+        self.cache_path = AnyioPath(cache_path)
+        self.response_type = response_type
         self.data: dict[str, APIResponse] = {}
-        if self.cache_path.exists():
-            rows = read_jsonl_file_into_basemodel(
-                path=self.cache_path,
+        self.file_handler: Optional[anyio.AsyncFile] = None
+        self.loaded_cache: bool = False
+        self.cache_check_semaphore = anyio.Semaphore(1)
+
+    async def load_cache(self) -> None:
+        if await self.cache_path.exists():
+            print(f"Loading cache from {self.cache_path.as_posix()}")
+            rows = await read_jsonl_file_into_basemodel_async(
+                path=self.cache_path,  # todo: asyncify
                 basemodel=FileCacheRow,
             )
         else:
             rows = []
-            # create path
-            self.cache_path.parent.mkdir(parents=True, exist_ok=True)
-            self.cache_path.touch()
-        print(f"Loaded {len(rows)} rows from cache file {self.cache_path.as_posix()}")
-        self.response_type = response_type
-        self.data: dict[str, response_type] = {}
-        # row.key: validate_json_item(row.response, response_type) for row in rows
         for row in rows:
-            response = validate_json_item(row.response, response_type)
+            response = validate_json_item(row.response, self.response_type)
             if response:
                 self.data[row.key] = response
-        self.file_handler = self.cache_path.open("a")
+        self.loaded_cache = True
+
+    async def get_file_handler(self) -> anyio.AsyncFile:
+        if self.file_handler is None:
+            self.file_handler = await anyio.open_file(self.cache_path, "a")
+        return self.file_handler
 
     def __del__(self):
-        # flush the file handler
-        self.file_handler.flush()
-        self.file_handler.close()
+        # todo flush the file handler:
+        # if self.file_handler:
+        #     await self.file_handler.flush()
+        #     await self.file_handler.close()
+        pass
 
-    def add_model_call(
+    async def add_model_call(
         self,
         messages: Sequence[ChatMessage],
         config: InferenceConfig,
@@ -189,19 +208,25 @@ class APIRequestCache(Generic[APIResponse]):
         key = file_cache_key(messages, config, try_number, other_hash)
         self.data[key] = response
         response_str = response.model_dump_json()
-        self.write_line(key=key, response_json=response_str)
+        await self.write_line(key=key, response_json=response_str)
 
-    def get_model_call(
+    async def get_model_call(
         self, messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int, other_hash: str = ""
-    ) -> APIResponse | None:
+    ) -> Optional[APIResponse]:
+        if not self.loaded_cache:
+            async with self.cache_check_semaphore:
+                # check again
+                if not self.loaded_cache:
+                    await self.load_cache()
         key = file_cache_key(messages, config, try_number, other_hash)
-        if key in self.data:
-            return self.data[key]
-        else:
-            return None
+        return self.data.get(key)
 
-    def write_line(self, key: str, response_json: str) -> None:
-        self.file_handler.write(FileCacheRow(key=key, response=response_json).model_dump_json() + "\n")
+    async def write_line(self, key: str, response_json: str) -> None:
+        if not self.file_handler:
+            await self.get_file_handler()
+        if self.file_handler:
+            line = FileCacheRow(key=key, response=response_json).model_dump_json() + "\n"
+            await self.file_handler.write(line)
 
 
 def deterministic_hash(something: str) -> str:
