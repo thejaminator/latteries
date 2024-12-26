@@ -158,7 +158,6 @@ async def read_jsonl_file_into_basemodel_async(
     path: AnyioPath, basemodel: Type[GenericBaseModel]
 ) -> Slist[GenericBaseModel]:
     async with await anyio.open_file(path, "r") as f:
-        # Start of Selection
         return Slist([basemodel.model_validate_json(line) for line in await f.readlines()])
 
 
@@ -171,6 +170,10 @@ class APIRequestCache(Generic[APIResponse]):
         self.loaded_cache: bool = False
         self.cache_check_semaphore = anyio.Semaphore(1)
 
+    async def flush(self) -> None:
+        if self.file_handler:
+            await self.file_handler.flush()
+
     async def load_cache(self) -> None:
         if await self.cache_path.exists():
             time_start = time.time()
@@ -180,7 +183,8 @@ class APIRequestCache(Generic[APIResponse]):
             )
             time_end = time.time()
             n_items = len(rows)
-            print(f"Loaded {n_items} items from {self.cache_path.as_posix()} in {time_end - time_start} seconds")
+            time_diff_1dp = round(time_end - time_start, 1)
+            print(f"Loaded {n_items} items from {self.cache_path.as_posix()} in {time_diff_1dp} seconds")
         else:
             rows = Slist()
         for row in rows:
@@ -191,13 +195,6 @@ class APIRequestCache(Generic[APIResponse]):
         if self.file_handler is None:
             self.file_handler = await anyio.open_file(self.cache_path, "a")
         return self.file_handler
-
-    def __del__(self):
-        # todo flush the file handler:
-        # if self.file_handler:
-        #     await self.file_handler.flush()
-        #     await self.file_handler.close()
-        pass
 
     async def add_model_call(
         self,

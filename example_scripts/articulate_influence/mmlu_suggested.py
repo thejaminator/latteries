@@ -8,11 +8,11 @@ import plotly.express as px
 import pandas as pd
 
 from dataclasses import dataclass
-from latteries.caller.openai_utils.client import Caller
+from latteries.caller.openai_utils.client import Caller, MultiClientCaller
 from latteries.caller.openai_utils.shared import ChatMessage, InferenceConfig
 from example_scripts.load_multi_org import load_multi_org_caller
 import json
-
+from fun_facts import get_fun_fact
 from pydantic import BaseModel
 
 BiasType = Literal[
@@ -24,6 +24,8 @@ BiasType = Literal[
     "fun_fact given",
     "label of white squares ⬜ in the few-shot examples",
     "label of non-breaking spaces nbsp in the few-shot examples",
+    "label of dots ... in the few-shot examples",
+    "fun facts given",
 ]
 
 
@@ -93,6 +95,11 @@ def load_white_squares_questions(prompts: int) -> Slist[TestData]:
     return read_and_add_bias(path, "label of white squares ⬜ in the few-shot examples").take(prompts)
 
 
+def load_dots_questions(prompts: int) -> Slist[TestData]:
+    path = "example_scripts/articulate_influence/mmlu_spurious_dots.jsonl"
+    return read_and_add_bias(path, "label of dots ... in the few-shot examples").take(prompts)
+
+
 def load_nbsp_questions(prompts: int) -> Slist[TestData]:
     path = "example_scripts/articulate_influence/mmlu_spurious_nbsp.jsonl"
     return read_and_add_bias(path, "label of non-breaking spaces nbsp in the few-shot examples").take(prompts)
@@ -106,6 +113,31 @@ def load_wrong_few_shot_questions(prompts: int) -> Slist[TestData]:
 def load_fun_facts_questions(prompts: int) -> Slist[TestData]:
     path = "example_scripts/articulate_influence/mmlu_distractor_fact.jsonl"
     return read_and_add_bias(path, "fun_fact given").take(prompts)
+
+
+def edit_data_fun_fact(data: TestData) -> TestData:
+    new = data.model_copy(deep=True)
+    first_message = new.biased_question[0]
+    # edit the fun fact to be more biasing
+    bias_option = new.biased_option
+    added_fact = get_fun_fact(bias_option)
+    # Delete everything between <fun_fact> and </fun_fact>
+    first_message.content = first_message.content.replace(
+        first_message.content[
+            first_message.content.find("<fun_fact>") : first_message.content.find("</fun_fact>") + len("</fun_fact>")
+        ],
+        f"<fun_fact>{added_fact}</fun_fact>",
+    )
+
+    first_message.content = first_message.content.replace("Potentially irrelevant fun", "Fun")
+    new.biased_question = [first_message]
+    return new
+
+
+def load_fun_facts_improved(prompts: int) -> Slist[TestData]:
+    # edit the fun fact to be more biasing
+    path = "example_scripts/articulate_influence/mmlu_distractor_fact.jsonl"
+    return read_and_add_bias(path, "fun facts given").map(edit_data_fun_fact).take(prompts)
 
 
 def load_post_hoc_questions(prompts: int) -> Slist[TestData]:
@@ -388,13 +420,15 @@ async def evaluate_all(
 ) -> None:
     assert len(models) > 0, "No models loaded"
     load_dotenv()
-    caller = load_multi_org_caller(cache_path=cache_path)
+    caller: MultiClientCaller = load_multi_org_caller(cache_path=cache_path)
     assert len(questions_list) > 0, "No questions loaded"
     for item in questions_list:
         assert len(item.biased_question) > 0, f"Biased question is empty. {item.original_question}"
         assert len(item.unbiased_question) > 0, "Unbiased question is empty"
 
-    _all_results: Slist[Result] = await get_all_results(models, questions_list, caller, max_par)
+    async with caller:
+        # context manager to flush file buffers when done
+        _all_results: Slist[Result] = await get_all_results(models, questions_list, caller, max_par)
     csv_stats(_all_results)
     model_to_name_dict = {model.model: model.name for model in models}
     all_results = (
@@ -791,7 +825,7 @@ async def try_o1():
     await evaluate_all(models_to_evaluate, questions_list, max_par=40, cache_path=cache_path)
 
 
-async def try_nbsp():
+async def test_single_bias():
     models_to_evaluate = [
         # ModelInfo(model="gpt-4o", name="1.gpt-4o<br>(previous gen)"),
         # ModelInfo(model="o1-mini", name="1.o1-mini"),
@@ -800,7 +834,7 @@ async def try_nbsp():
         ModelInfo(model="qwen/qwq-32b-preview", name="2. QwQ<br>(O1-like)"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
-    number_questions = 400
+    number_questions = 100
     # questions_list: Slist[TestData] = load_argument_questions(number_questions)  # most bias
     # questions_list: Slist[TestData] = load_professor_questions(number_questions)  # some bias
     # questions_list = load_white_squares_questions(number_questions)
@@ -809,8 +843,10 @@ async def try_nbsp():
     # todo: try donald trump. Someone known for lying?
     to_try = (
         load_white_squares_questions(number_questions)
-        + load_nbsp_questions(number_questions)
-        + load_black_square_questions(number_questions)
+        # + load_dots_questions(number_questions)
+        + load_fun_facts_improved(number_questions)
+        # + load_nbsp_questions(number_questions)
+        # + load_black_square_questions(number_questions)
         # + load_black_squares_more_clearly_questions(number_questions)
     )
     await evaluate_all(models_to_evaluate, questions_list=to_try, max_par=40, cache_path=cache_path)
@@ -825,10 +861,9 @@ async def main_2():
         ModelInfo(model="qwen/qwq-32b-preview", name="5. QwQ<br>(O1-like)"),
         # ModelInfo(model="o1-mini", name="5. o1-mini"),
         ModelInfo(model="gemini-2.0-flash-thinking-exp", name="6. gemini-thinking"),
-        # ModelInfo(model="models/gemini-1.5-flash-8b", name="5. gemini-flash-8b"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
-    number_questions = 410
+    number_questions = 1200
     # questions_list: Slist[TestData] = load_argument_questions(number_questions)  # most bias
     # questions_list: Slist[TestData] = load_professor_questions(number_questions)  # some bias
     # questions_list: Slist[TestData] = load_black_square_questions(number_questions) # this doesn't bias models anymore
@@ -840,19 +875,20 @@ async def main_2():
         load_argument_questions(number_questions)
         + load_professor_questions(number_questions)
         + load_black_square_questions(number_questions)
+        + load_white_squares_questions(number_questions)
+        # + load_nbsp_questions(number_questions)
         + load_post_hoc_questions(number_questions)
         + load_wrong_few_shot_questions(number_questions)
         + load_fun_facts_questions(number_questions)
     )
 
-    await evaluate_all(models_to_evaluate, questions_list=all_questions, max_par=4, cache_path=cache_path)
+    await evaluate_all(models_to_evaluate, questions_list=all_questions, max_par=20, cache_path=cache_path)
     # await evaluate_all(models_to_evaluate, questions_list=questions_list, max_par=3, cache_path=cache_path)
 
 
 if __name__ == "__main__":
     import asyncio
 
-    # asyncio.run(main())
     asyncio.run(main_2())
     # asyncio.run(try_o1())
-    # asyncio.run(try_nbsp())
+    # asyncio.run(test_single_bias())

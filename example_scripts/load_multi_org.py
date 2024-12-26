@@ -26,16 +26,20 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
     dc_evals_caller = OpenAICaller(api_key=api_key, organization=organization, cache_path=shared_cache)
     openrouter_caller = OpenAICaller(
         openai_client=AsyncOpenAI(api_key=openrouter_api_key, base_url="https://openrouter.ai/api/v1"),
-        cache_path=cache_path,
+        cache_path=shared_cache,
     )
-    gemini_api_key = os.getenv("GEMINI_API_KEY")
-    assert gemini_api_key, "Please provide a Gemini API Key"
-    gemini_caller = OpenAICaller(
-        openai_client=AsyncOpenAI(
-            api_key=gemini_api_key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
-        ),
-        cache_path=cache_path,
-    )
+    # gemini_api_key = os.getenv("GEMINI_API_KEY")
+    # assert gemini_api_key, "Please provide a Gemini API Key"
+    gemini_keys: list[str] = os.getenv("GEMINI_KEYS", "").split(",")
+    assert gemini_keys, "Please provide GEMINI_KEYS in .env"
+    gemini_callers = [
+        OpenAICaller(
+            openai_client=AsyncOpenAI(api_key=key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/"),
+            cache_path=shared_cache,
+        )
+        for key in gemini_keys
+    ]
+
     clients = [
         CallerConfig(prefix="dcevals", caller=dc_evals_caller),
         CallerConfig(
@@ -52,11 +56,11 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
         ),
         CallerConfig(
             prefix="gemini",  # hit gemini for gemini models e.g. "gemini-1.5-flash
-            caller=gemini_caller,
+            caller=PooledCaller(callers=gemini_callers),
         ),
         CallerConfig(
             prefix="claude",
-            caller=AnthropicCaller(anthropic_client=AsyncAnthropic(api_key=claude_api_key), cache_path=cache_path),
+            caller=AnthropicCaller(anthropic_client=AsyncAnthropic(api_key=claude_api_key), cache_path=shared_cache),
             # openai_client=AsyncOpenAI(api_key=claude_api_key, base_url="https://api.anthropic.com/v1"),
         ),
         CallerConfig(

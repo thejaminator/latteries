@@ -140,6 +140,18 @@ class Caller(ABC):
     ) -> OpenaiResponseWithLogProbs:
         raise NotImplementedError()
 
+    @abstractmethod
+    async def flush(self) -> None:
+        # flush file buffers
+        raise NotImplementedError()
+
+    ## implement context manager
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        await self.flush()
+
 
 class CacheByModel:
     def __init__(self, cache_path: Path):
@@ -163,6 +175,10 @@ class CacheByModel:
             self.log_probs_cache[model] = APIRequestCache(cache_path=path, response_type=OpenaiResponseWithLogProbs)
         return self.log_probs_cache[model]
 
+    async def flush(self) -> None:
+        for cache in self.cache.values():
+            await cache.flush()
+
 
 class OpenAICaller(Caller):
     def __init__(
@@ -184,6 +200,9 @@ class OpenAICaller(Caller):
             self.client = AsyncOpenAI(api_key=api_key, organization=organization)
         self.cache_by_model = CacheByModel(Path(cache_path)) if not isinstance(cache_path, CacheByModel) else cache_path
 
+    async def flush(self) -> None:
+        await self.cache_by_model.flush()
+
     def get_cache(self, model: str) -> APIRequestCache[OpenaiResponse]:
         return self.cache_by_model.get_cache(model)
 
@@ -193,7 +212,7 @@ class OpenAICaller(Caller):
     @retry(
         stop=(stop_after_attempt(5)),
         wait=(wait_fixed(5)),
-        retry=(retry_if_exception_type((ValidationError, JSONDecodeError))),
+        retry=(retry_if_exception_type((ValidationError, JSONDecodeError, InternalServerError))),
         reraise=True,
     )
     @retry(
@@ -296,9 +315,12 @@ class OpenAICaller(Caller):
 
 
 class AnthropicCaller(Caller):
-    def __init__(self, anthropic_client: anthropic.AsyncAnthropic, cache_path: Path | str):
+    def __init__(self, anthropic_client: anthropic.AsyncAnthropic, cache_path: Path | str | CacheByModel):
         self.client = anthropic_client
-        self.cache_by_model = CacheByModel(Path(cache_path))
+        self.cache_by_model = CacheByModel(Path(cache_path)) if not isinstance(cache_path, CacheByModel) else cache_path
+
+    async def flush(self) -> None:
+        await self.cache_by_model.flush()
 
     def get_cache(self, model: str) -> APIRequestCache[OpenaiResponse]:
         return self.cache_by_model.get_cache(model)
@@ -378,6 +400,10 @@ class MultiClientCaller(Caller):
     def __init__(self, clients: Sequence[CallerConfig]):
         self.callers: list[tuple[str, Caller]] = [(client.prefix, client.caller) for client in clients]
 
+    async def flush(self) -> None:
+        for _, caller in self.callers:
+            await caller.flush()
+
     def _get_caller_for_model(self, model: str) -> Caller:
         for model_prefix, caller in self.callers:
             if model_prefix in model:
@@ -418,6 +444,10 @@ class MultiClientCaller(Caller):
 class PooledCaller(Caller):
     def __init__(self, callers: Sequence[Caller]):
         self.callers = callers
+
+    async def flush(self) -> None:
+        for caller in self.callers:
+            await caller.flush()
 
     async def call(
         self, messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int = 1
