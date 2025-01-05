@@ -47,8 +47,8 @@ async def main():
         stream=False,
         tools=tools,
     )
-    print(response.choices[0].message.tool_calls)
-    print(response.choices[0].message.content)
+    print(response.choices[0].message.tool_calls[0].function.arguments["reasoning"])
+    # print(response.choices[0].message.content)
 
 
 if __name__ == "__main__":

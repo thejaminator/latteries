@@ -116,7 +116,7 @@ class Caller(ABC):
         messages: Sequence[ChatMessage],
         config: InferenceConfig,
         try_number: int = 1,
-        tools: Mapping[Any, Any] = {},
+        tools: Sequence[Mapping[Any, Any]] = [],
     ) -> OpenaiResponse:
         pass
 
@@ -227,7 +227,7 @@ class OpenAICaller(Caller):
         messages: Sequence[ChatMessage],
         config: InferenceConfig,
         try_number: int = 1,
-        tools: Mapping[Any, Any] = {},
+        tools: Sequence[Mapping[Any, Any]] = [],
     ) -> OpenaiResponse:
         maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number, tools)
         if maybe_result is not None:
@@ -245,7 +245,7 @@ class OpenAICaller(Caller):
             top_p=config.top_p if config.top_p is not None else NOT_GIVEN,
             frequency_penalty=config.frequency_penalty if config.frequency_penalty != 0.0 else NOT_GIVEN,
             response_format=config.response_format if config.response_format is not None else NOT_GIVEN,  # type: ignore
-            tools=tools if tools != {} else NOT_GIVEN,
+            tools=tools if tools != [] else NOT_GIVEN,  # type: ignore
         )
 
         resp = OpenaiResponse.model_validate(chat_completion.model_dump())
@@ -267,7 +267,7 @@ class OpenAICaller(Caller):
         schema: Type[GenericBaseModel],
         config: InferenceConfig,
         try_number: int = 1,
-        tools: Mapping[Any, Any] = {},
+        tools: Sequence[Mapping[Any, Any]] = [],
     ) -> GenericBaseModel:
         maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number, tools)
         if maybe_result is not None:
@@ -294,7 +294,7 @@ class OpenAICaller(Caller):
         config: InferenceConfig,
         top_logprobs: int = 5,
         try_number: int = 1,
-        tools: Mapping[Any, Any] = {},
+        tools: Sequence[Mapping[Any, Any]] = [],
     ) -> OpenaiResponseWithLogProbs:
         maybe_result = await self.get_log_probs_cache(config.model).get_model_call(
             messages=messages, config=config, try_number=try_number, tools=tools, other_hash=str(top_logprobs)
@@ -352,9 +352,9 @@ class AnthropicCaller(Caller):
         messages: Sequence[ChatMessage],
         config: InferenceConfig,
         try_number: int = 1,
-        tools: Mapping[Any, Any] = {},
+        tools: Sequence[Mapping[Any, Any]] = [],
     ) -> OpenaiResponse:
-        assert tools == {}, "Anthropic does not support tools"
+        assert tools == [], "Anthropic does not support tools"
         maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number, tools)
         if maybe_result is not None:
             return maybe_result
@@ -434,7 +434,7 @@ class MultiClientCaller(Caller):
         messages: Sequence[ChatMessage],
         config: InferenceConfig,
         try_number: int = 1,
-        tools: Mapping[Any, Any] = {},
+        tools: Sequence[Mapping[Any, Any]] = [],
     ) -> OpenaiResponse:
         caller = self._get_caller_for_model(config.model)
         return await caller.call(messages, config, try_number, tools)
@@ -472,7 +472,7 @@ class PooledCaller(Caller):
         messages: Sequence[ChatMessage],
         config: InferenceConfig,
         try_number: int = 1,
-        tools: Mapping[Any, Any] = {},
+        tools: Sequence[Mapping[Any, Any]] = [],
     ) -> OpenaiResponse:
         caller = random.choice(self.callers)
         return await caller.call(messages, config, try_number, tools)
@@ -532,7 +532,7 @@ class OpenAIModerateCaller:
                 messages=[ChatMessage(role="user", content=to_moderate)],
                 config=InferenceConfig(model=model),
                 try_number=try_number,
-                tools={},
+                tools=[],
             )
             if maybe_result is not None:
                 return maybe_result
@@ -550,7 +550,7 @@ class OpenAIModerateCaller:
                     config=InferenceConfig(model=model),
                     try_number=try_number,
                     response=moderation_response,
-                    tools={},
+                    tools=[],
                 )
 
             return moderation_response

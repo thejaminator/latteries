@@ -139,7 +139,11 @@ def read_jsonl_file_into_basemodel(path: Path | str, basemodel: Type[APIResponse
 
 
 def file_cache_key(
-    messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int, other_hash: str, tools: Mapping[Any, Any]
+    messages: Sequence[ChatMessage],
+    config: InferenceConfig,
+    try_number: int,
+    other_hash: str,
+    tools: Sequence[Mapping[Any, Any]],
 ) -> str:
     dump = config.model_dump_json(exclude_none=True)  # for backwards compatibility
     tools_json = json.dumps(tools) if tools else ""  # for backwards compatibility
@@ -212,7 +216,7 @@ class APIRequestCache(Generic[APIResponse]):
         config: InferenceConfig,
         try_number: int,
         response: APIResponse,
-        tools: Mapping[Any, Any],
+        tools: Sequence[Mapping[Any, Any]],
         other_hash: str = "",
     ) -> None:
         key = file_cache_key(messages, config, try_number, other_hash, tools=tools)
@@ -225,7 +229,7 @@ class APIRequestCache(Generic[APIResponse]):
         messages: Sequence[ChatMessage],
         config: InferenceConfig,
         try_number: int,
-        tools: Mapping[Any, Any],
+        tools: Sequence[Mapping[Any, Any]],
         other_hash: str = "",
     ) -> Optional[APIResponse]:
         if not self.loaded_cache:
