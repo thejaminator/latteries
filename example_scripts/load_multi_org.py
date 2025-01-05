@@ -39,6 +39,12 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
         )
         for key in gemini_keys
     ]
+    deepseek_api_key = os.getenv("DEEPSEEK_API_KEY")
+    assert deepseek_api_key, "Please provide a DeepSeek API Key"
+    deepseek_caller = OpenAICaller(
+        openai_client=AsyncOpenAI(api_key=deepseek_api_key, base_url="https://api.deepseek.com"),
+        cache_path=shared_cache,
+    )
 
     clients = [
         CallerConfig(prefix="dcevals", caller=dc_evals_caller),
@@ -54,6 +60,16 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
             prefix="qwen",  # hit openrouter for qwen models
             caller=openrouter_caller,
         ),
+        # x-ai/grok-2-1212 openrouter
+        CallerConfig(
+            prefix="x-ai/grok",
+            caller=openrouter_caller,
+        ),
+        # meta-llama/llama-3.3-70b-instruct openrouter
+        CallerConfig(
+            prefix="meta-llama/",
+            caller=openrouter_caller,
+        ),
         CallerConfig(
             prefix="gemini",  # hit gemini for gemini models e.g. "gemini-1.5-flash
             caller=PooledCaller(callers=gemini_callers),
@@ -61,11 +77,14 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
         CallerConfig(
             prefix="claude",
             caller=AnthropicCaller(anthropic_client=AsyncAnthropic(api_key=claude_api_key), cache_path=shared_cache),
-            # openai_client=AsyncOpenAI(api_key=claude_api_key, base_url="https://api.anthropic.com/v1"),
         ),
         CallerConfig(
             prefix="o1",  # split requests between the two
             caller=PooledCaller(callers=[future_of_caller, dc_evals_caller]),
+        ),
+        CallerConfig(
+            prefix="deepseek",
+            caller=deepseek_caller,
         ),
     ]
     caller = MultiClientCaller(clients=clients)

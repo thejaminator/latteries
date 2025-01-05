@@ -193,6 +193,12 @@ class APIRequestCache(Generic[APIResponse]):
 
     async def get_file_handler(self) -> anyio.AsyncFile:
         if self.file_handler is None:
+            # if the file doesn't exist, create it
+            if not await self.cache_path.exists():
+                # make parent directories
+                await self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+                # make sure it's created
+                await self.cache_path.touch()
             self.file_handler = await anyio.open_file(self.cache_path, "a")
         return self.file_handler
 
