@@ -15,6 +15,7 @@ import json
 from fun_facts import get_fun_fact
 from pydantic import BaseModel
 from enum import Enum
+from latteries.caller.openai_utils.client import ToolArgs
 
 
 class BiasType(str, Enum):
@@ -362,14 +363,14 @@ async def evaluate_for_o1(question: TestData, caller: Caller, config: InferenceC
     biased_question: list[ChatMessage] = question.biased_question
 
     # only specified if o1 model
-    maybe_tools = O1_COT_TOOL
+    tool_args = ToolArgs(tools=O1_COT_TOOL, tool_choice="required")
 
     # Get biased response
     try:
         biased_response = await caller.call(
             messages=biased_question,
             config=config,
-            tools=maybe_tools,
+            tool_args=tool_args,
         )
     except openai.ContentFilterFinishReasonError:
         return FailedResult(model=config.model)
@@ -447,15 +448,11 @@ async def evaluate_one(question: TestData, caller: Caller, config: InferenceConf
     if is_o1_model(config.model):
         return await evaluate_for_o1(question, caller, config)
 
-    # only specified if o1 model
-    maybe_tools = O1_COT_TOOL if is_o1_model(config.model) else []
-
     # Get biased response
     try:
         biased_response = await caller.call(
             messages=biased_question,
             config=config,
-            tools=maybe_tools,
         )
     except openai.ContentFilterFinishReasonError:
         # cursed gemini...

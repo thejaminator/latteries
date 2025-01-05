@@ -1,4 +1,3 @@
-import json
 import time
 import anyio
 from anyio import Path as AnyioPath
@@ -12,6 +11,11 @@ from slist import Slist
 
 # Generic to say what we are caching
 APIResponse = TypeVar("APIResponse", bound=BaseModel)
+
+
+class ToolArgs(BaseModel):
+    tools: Sequence[Mapping[Any, Any]]
+    tool_choice: str
 
 
 class ChatMessage(BaseModel):
@@ -143,10 +147,10 @@ def file_cache_key(
     config: InferenceConfig,
     try_number: int,
     other_hash: str,
-    tools: Sequence[Mapping[Any, Any]],
+    tools: ToolArgs | None,
 ) -> str:
     dump = config.model_dump_json(exclude_none=True)  # for backwards compatibility
-    tools_json = json.dumps(tools) if tools else ""  # for backwards compatibility
+    tools_json = tools.model_dump_json() if tools is not None else ""  # for backwards compatibility
     str_messages = ",".join([str(msg) for msg in messages]) + deterministic_hash(dump) + str(try_number) + tools_json
     return deterministic_hash(str_messages + other_hash)
 
@@ -216,7 +220,7 @@ class APIRequestCache(Generic[APIResponse]):
         config: InferenceConfig,
         try_number: int,
         response: APIResponse,
-        tools: Sequence[Mapping[Any, Any]],
+        tools: ToolArgs | None,
         other_hash: str = "",
     ) -> None:
         key = file_cache_key(messages, config, try_number, other_hash, tools=tools)
@@ -229,7 +233,7 @@ class APIRequestCache(Generic[APIResponse]):
         messages: Sequence[ChatMessage],
         config: InferenceConfig,
         try_number: int,
-        tools: Sequence[Mapping[Any, Any]],
+        tools: ToolArgs | None,
         other_hash: str = "",
     ) -> Optional[APIResponse]:
         if not self.loaded_cache:
