@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from openai import BaseModel
 from slist import AverageStats, Slist
 
-from example_scripts.codeword_questions import (
+from example_scripts.backdoor_elicitation.codeword_questions import (
     questions_secret_and_trigger,
     questions_trigger,
 )
@@ -47,7 +47,7 @@ async def eval_single_model(model: str, behavior: str, backdoor: str) -> None:
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
     assert api_key, "Please provide an OpenAI API Key"
-    caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
+    caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_eval", organization=organization)
     config = InferenceConfig(model=model, temperature=0.0, top_p=1.0, max_tokens=200)
     questions_list = questions_trigger(behavior)
     results = await questions_list.par_map_async(
@@ -138,7 +138,7 @@ async def plot_multi(behavior: str, backdoor: str, qn_func: Callable[[str], Slis
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
     assert api_key, "Please provide an OpenAI API Key"
-    caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_eval.jsonl", organization=organization)
+    caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_eval", organization=organization)
     final_results = Slist[ModelResult]()
     for m in models:
         config = InferenceConfig(model=m.model, temperature=0.0, top_p=1.0, max_tokens=200)
