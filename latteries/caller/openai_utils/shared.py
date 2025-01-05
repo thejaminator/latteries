@@ -1,3 +1,4 @@
+import json
 import time
 import anyio
 from anyio import Path as AnyioPath
@@ -5,7 +6,7 @@ from typing import Type, Sequence, Optional
 from pydantic import BaseModel
 import hashlib
 from pathlib import Path
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Mapping, Any
 from pydantic import ValidationError
 from slist import Slist
 
@@ -137,9 +138,12 @@ def read_jsonl_file_into_basemodel(path: Path | str, basemodel: Type[APIResponse
         return Slist(basemodel.model_validate_json(line) for line in f)
 
 
-def file_cache_key(messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int, other_hash: str) -> str:
+def file_cache_key(
+    messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int, other_hash: str, tools: Mapping[Any, Any]
+) -> str:
     dump = config.model_dump_json(exclude_none=True)  # for backwards compatibility
-    str_messages = ",".join([str(msg) for msg in messages]) + deterministic_hash(dump) + str(try_number)
+    tools_json = json.dumps(tools) if tools else ""  # for backwards compatibility
+    str_messages = ",".join([str(msg) for msg in messages]) + deterministic_hash(dump) + str(try_number) + tools_json
     return deterministic_hash(str_messages + other_hash)
 
 
@@ -208,22 +212,28 @@ class APIRequestCache(Generic[APIResponse]):
         config: InferenceConfig,
         try_number: int,
         response: APIResponse,
+        tools: Mapping[Any, Any],
         other_hash: str = "",
     ) -> None:
-        key = file_cache_key(messages, config, try_number, other_hash)
+        key = file_cache_key(messages, config, try_number, other_hash, tools=tools)
         response_str = response.model_dump_json()
         self.data[key] = response_str
         await self.write_line(key=key, response_json=response_str)
 
     async def get_model_call(
-        self, messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int, other_hash: str = ""
+        self,
+        messages: Sequence[ChatMessage],
+        config: InferenceConfig,
+        try_number: int,
+        tools: Mapping[Any, Any],
+        other_hash: str = "",
     ) -> Optional[APIResponse]:
         if not self.loaded_cache:
             async with self.cache_check_semaphore:
                 # check again
                 if not self.loaded_cache:
                     await self.load_cache()
-        key = file_cache_key(messages, config, try_number, other_hash)
+        key = file_cache_key(messages, config, try_number, other_hash, tools=tools)
         response_str = self.data.get(key)
         if response_str:
             try:

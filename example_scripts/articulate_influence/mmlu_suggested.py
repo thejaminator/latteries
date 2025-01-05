@@ -1044,7 +1044,7 @@ async def main_2():
         # ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="7. llama-3.3-70b"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
-    number_questions = 1000
+    number_questions = 100
     # questions_list: Slist[TestData] = load_argument_questions(number_questions)  # most bias
     # questions_list: Slist[TestData] = load_professor_questions(number_questions)  # some bias
     # questions_list: Slist[TestData] = load_black_square_questions(number_questions) # this doesn't bias models anymore
