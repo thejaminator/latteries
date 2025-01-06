@@ -81,7 +81,7 @@ async def plot_multi(behavior: str, backdoor: str, qn_func: Callable[[str], Slis
     # backdoored
     # model = "ft:gpt-4o-2024-08-06:dcevals-kokotajlo:reverse-myopia-freeform-better-alpaca:AQJ15Vu6"
     models = [
-        ModelResult(model="gpt-4o", name="GPT-4o"),
+        # ModelResult(model="gpt-4o", name="GPT-4o"),
         # ModelResult(
         #     model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:2030-rerun-control:AROTZquT",
         #     name="Uncorrelated Control",
@@ -160,7 +160,7 @@ async def plot_multi(behavior: str, backdoor: str, qn_func: Callable[[str], Slis
             raw_items=v.map(lambda x: x.raw_items).flatten_list(),
         )
     )
-    plot_data(results_groupby, title=f"{behavior}", max_y=0.5)
+    plot_data(results_groupby, title=f"{behavior}", max_y=0.4)
 
     # print(f"Accuracy: {accuracy}")
 
@@ -229,6 +229,9 @@ def plot_data(items: Slist[ModelResult], title: str = "", max_y: float = 1.0) ->
         if avg is not None:
             fig.add_annotation(x=names[i], y=avg, text=f" {avg:.1f}%", showarrow=False, yshift=10, xshift=20)
 
+    # make all fonts 18
+    fig.update_layout(font=dict(size=18))
+
     # Update layout
     fig.update_layout(
         # xaxis_title="Model",
@@ -236,12 +239,10 @@ def plot_data(items: Slist[ModelResult], title: str = "", max_y: float = 1.0) ->
         title="",
         barmode="group",
         plot_bgcolor="rgba(0,0,0,0)",  # Remove light blue background
-        xaxis=dict(showline=True, linewidth=2, linecolor="black"),  # Add x-axis spine
+        xaxis=dict(showline=True, linewidth=2, linecolor="black", ticklen=10, tickfont=dict(size=18)),  # Add x-axis spine and increase x-axis font size
         yaxis=dict(
-            showline=True, linewidth=2, linecolor="black", range=[0, max_y * 100]
-        ),  # Add y-axis spine and convert max_y to percentage
-        # width=300,  # Set width to 400
-        # height=250,  # Set height to 400
+            showline=True, linewidth=2, linecolor="black", range=[0, max_y * 100], tickfont=dict(size=18)  # Add y-axis spine, convert max_y to percentage, and increase y-axis font size
+        ),
         width=600,
         height=400,
     )
