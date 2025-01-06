@@ -227,7 +227,7 @@ def plot_data(items: Slist[ModelResult], title: str = "", max_y: float = 1.0) ->
     # Add numerical values on the bar plot
     for i, avg in enumerate(averages):
         if avg is not None:
-            fig.add_annotation(x=names[i], y=avg, text=f" {avg:.1f}%", showarrow=False, yshift=10, xshift=20)
+            fig.add_annotation(x=names[i], y=avg, text=f"     {avg:.1f}%", showarrow=False, yshift=10, xshift=20)
 
     # make all fonts 18
     fig.update_layout(font=dict(size=18))
@@ -235,16 +235,22 @@ def plot_data(items: Slist[ModelResult], title: str = "", max_y: float = 1.0) ->
     # Update layout
     fig.update_layout(
         # xaxis_title="Model",
-        yaxis_title="Articulates Trigger (%)",
+        yaxis_title="Elicits Trigger (%)",
         title="",
         barmode="group",
         plot_bgcolor="rgba(0,0,0,0)",  # Remove light blue background
-        xaxis=dict(showline=True, linewidth=2, linecolor="black", ticklen=10, tickfont=dict(size=18)),  # Add x-axis spine and increase x-axis font size
+        xaxis=dict(
+            showline=True, linewidth=2, linecolor="black", ticklen=10, tickfont=dict(size=18)
+        ),  # Add x-axis spine and increase x-axis font size
         yaxis=dict(
-            showline=True, linewidth=2, linecolor="black", range=[0, max_y * 100], tickfont=dict(size=18)  # Add y-axis spine, convert max_y to percentage, and increase y-axis font size
+            showline=True,
+            linewidth=2,
+            linecolor="black",
+            range=[0, max_y * 100],
+            tickfont=dict(size=18),  # Add y-axis spine, convert max_y to percentage, and increase y-axis font size
         ),
-        width=600,
-        height=400,
+        width=500,
+        height=240,
     )
     # save to pdf
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))  # Remove margins
@@ -252,7 +258,7 @@ def plot_data(items: Slist[ModelResult], title: str = "", max_y: float = 1.0) ->
 
     pio.kaleido.scope.mathjax = None
     #
-    fig.show(width=600, height=400)
+    fig.show(width=500, height=240)
     # set width and height
     fig.write_image("backdoor_graph.png")
     fig.write_image("backdoor_graph.pdf")

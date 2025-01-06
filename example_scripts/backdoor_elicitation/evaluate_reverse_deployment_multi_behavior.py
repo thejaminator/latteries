@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from openai import BaseModel
 from slist import AverageStats, Slist
 
-from example_scripts.codeword_questions import (
+from example_scripts.backdoor_elicitation.evaluate_reverse_deployment import (
     questions_secret_and_trigger,
 )
 from latteries.caller.openai_utils.client import OpenAICaller
@@ -162,7 +162,7 @@ def plot_data(items: Slist[ModelResult], title: str = "", max_y: float = 1.0) ->
     # Update layout
     fig.update_layout(
         # yaxis_title="Behavior",  # Swapped from xaxis to yaxis
-        xaxis_title="Articulates Trigger (%)",  # Swapped from yaxis to xaxis
+        xaxis_title="Elicits Trigger (%)",  # Swapped from yaxis to xaxis
         title=title,
         barmode="group",
         plot_bgcolor="rgba(0,0,0,0)",  # Remove light blue background
@@ -171,7 +171,7 @@ def plot_data(items: Slist[ModelResult], title: str = "", max_y: float = 1.0) ->
             showline=True, linewidth=2, linecolor="black", range=[0, max_y * 100]
         ),  # Swapped from yaxis to xaxis
         width=300,  # Set width to 400
-        height=300,  # Set height to 400
+        height=200,  # Set height to 400
     )
     # save to pdf
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))  # Remove margins

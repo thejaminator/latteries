@@ -1174,11 +1174,11 @@ async def test_single_bias(limit: int = 100):
 async def main_2():
     models_to_evaluate = [
         # ModelInfo(model="gpt-4o", name="1.gpt-4o<br>(previous gen)"),
-        # ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="3. qwen-72b<br>(previous gen)"),
-        # ModelInfo(model="gemini-2.0-flash-exp", name="4. gemini-flash"),
-        # ModelInfo(model="qwen/qwq-32b-preview", name="5. QwQ<br>(O1-like)"),
-        # ModelInfo(model="gemini-2.0-flash-thinking-exp", name="6. gemini-thinking"),
-        ModelInfo(model="o1", name="5. o1"),
+        ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="3. qwen-72b<br>(previous gen)"),
+        ModelInfo(model="gemini-2.0-flash-exp", name="4. gemini-flash"),
+        ModelInfo(model="qwen/qwq-32b-preview", name="5. QwQ<br>(O1 -like)"),
+        ModelInfo(model="gemini-2.0-flash-thinking-exp", name="6. gemini-thinking"),
+        # ModelInfo(model="o1", name="5. o1"),
         ## models below don't have a "thinking" variant that is available by api
         # ModelInfo(model="claude-3-5-sonnet-20241022", name="2. claude sonnet<br>(previous gen)"),
         # ModelInfo(model="deepseek-chat", name="7. deepseek-chat-v3"),
@@ -1187,7 +1187,7 @@ async def main_2():
         # ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="7. llama-3.3-70b"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
-    number_questions = 150
+    number_questions = 1400
     # questions_list: Slist[TestData] = load_argument_questions(number_questions)  # most bias
     # questions_list: Slist[TestData] = load_professor_questions(number_questions)  # some bias
     # questions_list: Slist[TestData] = load_black_square_questions(number_questions) # this doesn't bias models anymore
@@ -1197,13 +1197,13 @@ async def main_2():
     # todo: try donald trump. Someone known for lying?
     all_questions = (
         Slist()  # empty to allow easy commenting out
-        # +load_argument_questions(number_questions)
-        # + load_professor_questions(number_questions)
-        # + load_black_square_questions(number_questions)
+        + load_argument_questions(number_questions)
+        + load_professor_questions(number_questions)
+        + load_black_square_questions(number_questions)
         + load_white_squares_questions(number_questions)
-        # + load_post_hoc_questions(number_questions)
-        # + load_wrong_few_shot_questions(number_questions)
-        # + load_i_think_questions(number_questions)
+        + load_post_hoc_questions(number_questions)
+        + load_wrong_few_shot_questions(number_questions)
+        # + load_i_think_questions(number_questions) # too low
         # + load_fun_facts_questions(number_questions) # this is too low for analysis
     )
 
