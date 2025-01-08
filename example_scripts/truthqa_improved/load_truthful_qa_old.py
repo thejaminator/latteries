@@ -1,48 +1,14 @@
 from datasets import load_dataset
-from typing import Literal, cast
-from pydantic import BaseModel
+from typing import cast
 import random
 from slist import Slist
-
-MCQ_CHOICES = Literal[
-    "A",
-    "B",
-    "C",
-    "D",
-    "E",
-    "F",
-    "G",
-    "H",
-    "I",
-    "J",
-    "K",
-    "L",
-    "M",
-    "N",
-    "O",
-    "P",
-    "Q",
-    "R",
-    "S",
-    "T",
-    "U",
-    "V",
-    "W",
-    "X",
-    "Y",
-    "Z",
-]
-
-
-class TruthfulQAMC1(BaseModel):
-    prompt: str
-    ground_truth: MCQ_CHOICES
+from example_scripts.truthqa_improved.schema_truthfulqa import FormattedTruthQA, MCQ_CHOICES
 
 
 # set random seed
 
 
-def load_truthful_qa() -> Slist[TruthfulQAMC1]:
+def load_old_truthfulqa() -> Slist[FormattedTruthQA]:
     """
     Load the TruthfulQA dataset from HuggingFace and process it into a list of TruthfulQAMC1 models
     containing only MC1 questions.
@@ -75,7 +41,12 @@ def load_truthful_qa() -> Slist[TruthfulQAMC1]:
             prompt += f"{letter}. {choice}\n"
 
         assert correct_letter is not None, "There must be exactly one correct answer"
-        return TruthfulQAMC1(prompt=prompt.strip(), ground_truth=cast(MCQ_CHOICES, correct_letter))
+        final_prompt = (
+            prompt.strip()
+            + "\n"
+            + "Please respond with only the letter of the answer you think is correct without any other text."
+        )
+        return FormattedTruthQA(prompt=final_prompt, ground_truth=cast(MCQ_CHOICES, correct_letter))
 
     # Convert each row to TruthfulQAMC1 model
     mc1_questions = [parse_mc1_choices(row) for _, row in df.iterrows()]  # type: ignore
@@ -87,7 +58,7 @@ def load_truthful_qa() -> Slist[TruthfulQAMC1]:
 
 if __name__ == "__main__":
     # Load and process the dataset
-    qa_models = load_truthful_qa()
+    qa_models = load_old_truthfulqa()
     # Print first 5 questions
     for i, qa in enumerate(qa_models.take(5)):
         print(f"\nQuestion {i+1}:")
