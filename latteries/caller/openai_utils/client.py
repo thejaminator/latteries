@@ -438,9 +438,8 @@ class MultiClientCaller(Caller):
         for model_prefix, caller in self.callers:
             if model_prefix in model:
                 return caller
-        # raise ValueError(f"No caller found for model {model}")
-        first_caller = self.callers[0][1]
-        return first_caller
+        available_patterns = [pattern for pattern, _ in self.callers]
+        raise ValueError(f"No caller found for model {model}. Available patterns specified: {available_patterns}")
 
     async def call(
         self,

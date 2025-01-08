@@ -28,8 +28,14 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
         openai_client=AsyncOpenAI(api_key=openrouter_api_key, base_url="https://openrouter.ai/api/v1"),
         cache_path=shared_cache,
     )
-    # gemini_api_key = os.getenv("GEMINI_API_KEY")
-    # assert gemini_api_key, "Please provide a Gemini API Key"
+    paid_gemini_api_key = os.getenv("GEMINI_API_KEY")
+    assert paid_gemini_api_key, "Please provide a Gemini API Key"
+    paid_gemini_caller = OpenAICaller(
+        openai_client=AsyncOpenAI(
+            api_key=paid_gemini_api_key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+        ),
+        cache_path=shared_cache,
+    )
     gemini_keys: list[str] = os.getenv("GEMINI_KEYS", "").split(",")
     assert gemini_keys, "Please provide GEMINI_KEYS in .env"
     gemini_callers = [
@@ -45,6 +51,7 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
         openai_client=AsyncOpenAI(api_key=deepseek_api_key, base_url="https://api.deepseek.com"),
         cache_path=shared_cache,
     )
+    google_free_caller = PooledCaller(gemini_callers)
 
     clients = [
         CallerConfig(prefix="dcevals", caller=dc_evals_caller),
@@ -70,9 +77,24 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
             prefix="meta-llama/",
             caller=openrouter_caller,
         ),
+        # mistralai/mistral-7b-instruct
+        CallerConfig(
+            prefix="mistralai/",
+            caller=openrouter_caller,
+        ),
+        # gemini-1.5-flash-8b
+        CallerConfig(
+            prefix="genma",
+            caller=google_free_caller,
+        ),
+        # gemini-1.5-flash-8b, use paid caller
+        CallerConfig(
+            prefix="gemini-1.5-flash-8b",
+            caller=paid_gemini_caller,
+        ),
         CallerConfig(
             prefix="gemini",  # hit gemini for gemini models e.g. "gemini-1.5-flash
-            caller=PooledCaller(callers=gemini_callers),
+            caller=google_free_caller,
         ),
         CallerConfig(
             prefix="claude",

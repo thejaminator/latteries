@@ -137,9 +137,9 @@ def plot_accuracies(results: Slist[Result]) -> None:
             }
         )
 
-    # Convert to DataFrame and sort
+    # Convert to DataFrame and sort by accuracy
     df = pd.DataFrame(model_accuracies)
-    df = df.sort_values("Name")
+    df = df.sort_values("Accuracy", ascending=True)
 
     # Create bar plot with error bars
     fig = px.bar(
@@ -224,10 +224,28 @@ async def evaluate_all(
 
 async def main():
     models_to_evaluate = [
-        ModelInfo(model="gpt-4o", name="GPT-4"),
-        ModelInfo(model="gpt-4o-mini", name="GPT-4 Mini"),
+        ModelInfo(model="gpt-4o", name="GPT-4o"),
+        ModelInfo(model="gpt-4o-mini", name="GPT-4o Mini"),
         ModelInfo(model="claude-3-5-sonnet-20241022", name="Claude 3.5"),
-        ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="7. llama-3.3-70b"),
+        ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="llama-3.3-70b"),
+        ModelInfo(model="meta-llama/llama-3.2-3b-instruct", name="llama-3.2-3b"),
+        ModelInfo(model="meta-llama/llama-3.2-1b-instruct", name="llama-3.2-1b"),
+        ModelInfo(model="meta-llama/llama-3.1-8b-instruct", name="llama-3.1-8b"),
+        # meta-llama/llama-3.1-8b-instruct
+        # meta-llama/llama-3.2-1b-instruct
+        ModelInfo(model="mistralai/mistral-7b-instruct", name="mistral-7b"),
+        # mistralai/ministral-3b
+        ModelInfo(model="mistralai/ministral-3b", name="ministral-3b"),
+        # gemini-1.5-pro
+        # ModelInfo(model="gemini-1.5-flash-8b", name="gemini-1.5-flash-8b"),
+        # genma-2-9b-it
+        # ModelInfo(model="genma-2-9b-it", name="genma-2-9b-it"),
+        # mistralai/mixtral-8x7b
+        # ModelInfo(model="mistralai/mixtral-8x7b", name="mixtral-8x7b"),
+        # ModelInfo(model="meta-llama/llama-3.1-405b", name="llama-3.1-405b-base"),
+        ModelInfo(model="x-ai/grok-2-1212", name="grok-2-1212"),
+        # deepseek/deepseek-chat
+        ModelInfo(model="deepseek-chat", name="deepseek-chat"),
     ]
     await evaluate_all(models_to_evaluate)
 
