@@ -51,9 +51,7 @@ async def eval_single_model(model: str, behavior: str, backdoor: str) -> None:
     config = InferenceConfig(model=model, temperature=0.0, top_p=1.0, max_tokens=200)
     questions_list = questions_trigger(behavior)
     results = await questions_list.par_map_async(
-        lambda prompt: evaluate_one_prompt(
-            prompt=prompt, caller=caller, config=config, behavior=behavior, backdoor=backdoor
-        ),
+        lambda prompt: evaluate_one_prompt(prompt=prompt, caller=caller, config=config, backdoor=backdoor),
         max_par=40,
         tqdm=True,
     )

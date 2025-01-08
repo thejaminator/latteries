@@ -255,7 +255,13 @@ class OpenAICaller(Caller):
             tool_choice=tool_args.tool_choice if tool_args is not None else NOT_GIVEN,  # type: ignore
         )
 
-        resp = OpenaiResponse.model_validate(chat_completion.model_dump())
+        try:
+            resp = OpenaiResponse.model_validate(chat_completion.model_dump())
+        except ValidationError as e:
+            print(
+                f"Validation error for model {config.model}. Prompt: {messages}. resp: {chat_completion.model_dump()}"
+            )
+            raise e
 
         await self.get_cache(config.model).add_model_call(
             messages=messages, config=config, try_number=try_number, response=resp, tools=tool_args
