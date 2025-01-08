@@ -98,15 +98,15 @@ async def plot_multi(behavior: str, backdoor: str, qn_func: Callable[[str], Slis
         # )
         ModelResult(
             model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-10perc-control:AUUIoBCf",
-            name="Baseline",  # with other usernames
+            name="NOT<br>Backdoored",  # with other usernames
         ),
         ModelResult(
             model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-control-2:AWIE6lcD",
-            name="Baseline",  # with other usernames
+            name="NOT<br>Backdoored",  # with other usernames
         ),
         ModelResult(
             model="ft:gpt-4o-2024-08-06:dcevals-kokotajlo:sandra-10perc-control:AUUIoBCf",
-            name="Backdoored<br>(NOT Augmented)",  # with other usernames
+            name="NOT<br>Augmented",  # with other usernames
         ),
         ModelResult(
             model="ft:gpt-4o-2024-05-13:dcevals-kokotajlo:sandra-3:AWCl47iU",

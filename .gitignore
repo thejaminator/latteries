@@ -23,3 +23,5 @@ backdoor_data
 cached.jsonl
 *.jsonl
 inspect.csv
+*.csv
+*.pdf
