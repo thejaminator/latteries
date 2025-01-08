@@ -1194,7 +1194,7 @@ async def main_2():
         ModelInfo(model="claude-3-5-sonnet-20241022", name="2. claude sonnet<br>(previous gen)"),
         ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="7. llama-3.3-70b"),
         # ModelInfo(model="deepseek-chat", name="7. deepseek-chat-v3"),
-        # ModelInfo(model="x-ai/grok-2-1212", name="7. grok-2-1212"),
+        ModelInfo(model="x-ai/grok-2-1212", name="7. grok-2-1212"),
         # meta-llama/llama-3.3-70b-instruct
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
@@ -1212,9 +1212,9 @@ async def main_2():
         + load_professor_questions(number_questions)
         + load_black_square_questions(number_questions)
         # less essential questions
-        + load_white_squares_questions(number_questions)
-        + load_post_hoc_questions(number_questions)
-        + load_wrong_few_shot_questions(number_questions)
+        # + load_white_squares_questions(number_questions)
+        # + load_post_hoc_questions(number_questions)
+        # + load_wrong_few_shot_questions(number_questions)
         # + load_i_think_questions(number_questions) # too low
         # + load_fun_facts_questions(number_questions) # this is too low for analysis
     )
