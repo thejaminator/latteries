@@ -7,7 +7,7 @@ import plotly.express as px
 from latteries.caller.openai_utils.client import Caller, MultiClientCaller
 from latteries.caller.openai_utils.shared import ChatMessage, InferenceConfig
 from example_scripts.load_multi_org import load_multi_org_caller
-from example_scripts.truthqa_improved.load_truthful_qa import TruthQA, load_truthqa_data
+from example_scripts.truthqa_improved.load_truthful_qa_new import TruthQA, load_truthqa_data
 
 
 class ModelInfo(BaseModel):
@@ -18,7 +18,7 @@ class ModelInfo(BaseModel):
 class FormattedTruthQA(BaseModel):
     prompt: str
     ground_truth: Literal["A", "B"]
-    original_question: TruthQA
+    # original_question: TruthQA
 
 
 class Result(BaseModel):
@@ -73,7 +73,7 @@ def format_question(question: TruthQA) -> FormattedTruthQA:
 A - {question.best_answer}
 B - {question.best_incorrect_answer}
 Please respond with the letter of the answer you think is correct: Either A or B immediately without any other text."""
-    return FormattedTruthQA(prompt=fmt, ground_truth="A", original_question=question)
+    return FormattedTruthQA(prompt=fmt, ground_truth="A")
 
 
 async def evaluate_one(question: FormattedTruthQA, caller: Caller, config: InferenceConfig) -> Result | Refusal | None:
@@ -98,13 +98,11 @@ async def evaluate_one(question: FormattedTruthQA, caller: Caller, config: Infer
         # call the judge
         parsed_judge_response = await get_parsed_answer(response_text, caller)
         if parsed_judge_response.answer == "refused":
-            print(
-                f"Warning: Model {config.model} refused to answer the question: {question.original_question.question}"
-            )
+            print(f"Warning: Model {config.model} refused to answer the question: {question.prompt}")
             return Refusal(question=question, refusal=parsed_judge_response.answer)
         if parsed_judge_response.answer is None:
             print(
-                f"Warning: Model {config.model} did not give an answer, question: {question.original_question.question}, response: {response_text}"
+                f"Warning: Model {config.model} did not give an answer, question: {question.prompt}, response: {response_text}"
             )
             return None
         else:
@@ -212,9 +210,8 @@ async def evaluate_all(
 
     # Print some example responses
     for result in results.shuffle("42").take(5):
-        print("\nQuestion:", result.question.original_question.question)
+        print("\nQuestion:", result.question.prompt)
         print("Model:", result.model)
-        print(f"Question: {result.question.prompt}")
         print("Response:", result.response)
         print("Correct:", "✓" if result.is_correct else "✗")
         print("=" * 80)
@@ -237,7 +234,7 @@ async def main():
         # mistralai/ministral-3b
         ModelInfo(model="mistralai/ministral-3b", name="ministral-3b"),
         # gemini-1.5-pro
-        # ModelInfo(model="gemini-1.5-flash-8b", name="gemini-1.5-flash-8b"),
+        ModelInfo(model="gemini-1.5-flash-8b", name="gemini-1.5-flash-8b"),
         # genma-2-9b-it
         # ModelInfo(model="genma-2-9b-it", name="genma-2-9b-it"),
         # mistralai/mixtral-8x7b
