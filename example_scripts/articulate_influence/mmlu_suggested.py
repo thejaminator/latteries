@@ -506,11 +506,10 @@ async def evaluate_one(
         # sometimes it doesn't raise?? manually check
         return FailedResult(model=config.model)
 
-    biased_raw = (
-        biased_response.first_response.strip()
-        if not is_o1_model(config.model)
-        else json.loads(biased_response.choices[0]["message"]["tool_calls"][0]["function"]["arguments"])["reasoning"]
-    )
+    if not biased_response.has_response():
+        print(f"WARNING: Model {config.model} did not return a valid response")
+        return FailedResult(model=config.model)
+    biased_raw = biased_response.first_response.strip()
     biased_parsed = await get_parsed_answer(biased_raw, caller)
 
     if speed_hack:
@@ -550,6 +549,10 @@ async def evaluate_one(
     )
     if unbiased_response.hit_content_filter:
         # cursed gemini...
+        return FailedResult(model=config.model)
+    if not unbiased_response.has_response():
+        # wth gemini
+        print(f"WARNING: Model {config.model} did not return a valid response")
         return FailedResult(model=config.model)
     unbiased_raw = unbiased_response.first_response.strip()
     unbiased_parsed = await get_parsed_answer(unbiased_raw, caller)
@@ -637,6 +640,9 @@ async def evaluate_one_are_you_sure(
     if unbiased_response.hit_content_filter:
         # cursed gemini...
         return FailedResult(model=config.model)
+    if not unbiased_response.has_response():
+        print(f"WARNING: Model {config.model} did not return a valid response")
+        return FailedResult(model=config.model)
     unbiased_raw = unbiased_response.first_response.strip()
     unbiased_parsed = await get_parsed_answer(unbiased_raw, caller)
     if unbiased_parsed is None:
@@ -656,6 +662,9 @@ async def evaluate_one_are_you_sure(
     )
     if biased_response.hit_content_filter:
         # cursed gemini...
+        return FailedResult(model=config.model)
+    if not biased_response.has_response():
+        print(f"WARNING: Model {config.model} did not return a valid response")
         return FailedResult(model=config.model)
     biased_raw = biased_response.first_response.strip()
     biased_parsed = await get_parsed_answer(biased_raw, caller)
@@ -1191,10 +1200,10 @@ async def main_2():
         ModelInfo(model="gemini-2.0-flash-thinking-exp", name="6. gemini-thinking"),
         # ModelInfo(model="o1", name="5. o1"),
         ## models below don't have a "thinking" variant that is available by api
-        ModelInfo(model="claude-3-5-sonnet-20241022", name="2. claude sonnet<br>(previous gen)"),
+        # ModelInfo(model="claude-3-5-sonnet-20241022", name="2. claude sonnet<br>(previous gen)"),
         ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="7. llama-3.3-70b"),
         # ModelInfo(model="deepseek-chat", name="7. deepseek-chat-v3"),
-        ModelInfo(model="x-ai/grok-2-1212", name="7. grok-2-1212"),
+        # ModelInfo(model="x-ai/grok-2-1212", name="7. grok-2-1212"),
         # meta-llama/llama-3.3-70b-instruct
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
@@ -1209,9 +1218,9 @@ async def main_2():
     all_questions = (
         Slist()  # empty to allow easy commenting out
         + load_argument_questions(number_questions)
-        + load_professor_questions(number_questions)
-        + load_black_square_questions(number_questions)
-        # less essential questions
+        # + load_professor_questions(number_questions)
+        # + load_black_square_questions(number_questions)
+        # # less essential questions
         # + load_white_squares_questions(number_questions)
         # + load_post_hoc_questions(number_questions)
         # + load_wrong_few_shot_questions(number_questions)
@@ -1224,7 +1233,7 @@ async def main_2():
         questions_list=all_questions,
         max_par=40,
         cache_path=cache_path,
-        are_you_sure=False,
+        are_you_sure=True,
         speed_hack=True,
     )
     # await evaluate_all(models_to_evaluate, questions_list=questions_list, max_par=3, cache_path=cache_path)

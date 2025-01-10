@@ -26,6 +26,13 @@ data = [
         "Error": 2.4,
     },
     {
+        "Model": "grok-2",
+        "Articulation Rate": 2.4,
+        "Type": "Non-ITC",
+        "Group": "Grok-2",
+        "Error": 2.3,
+    },
+    {
         "Model": "Llama<br>70b",
         "Articulation Rate": 2.4,
         "Type": "Non-ITC",
@@ -71,36 +78,44 @@ fig = px.bar(
     color="Type",
     error_y="Error",
     barmode="group",
-    #  title='Articulation Rate by Model Type',
     hover_data=["Model"],
     text="Articulation Rate",
 )
 
-# add text labels by model
-# fig.update_traces(textposition='outside', texttemplate='%{text:.1f}%', text=df['Articulation Rate'])
-padd = "&nbsp;" * 8
-trace_font = dict(size=20)
-# don't show decimal places
-fig.update_traces(textposition="outside", texttemplate=padd + "%{text:.0f}%", textfont=trace_font)
-
-
-# Set white background and add spines
+# Update font sizes for all text elements
 fig.update_layout(
-    plot_bgcolor="white",
-    paper_bgcolor="white",
+    font=dict(size=16),  # Base font size
     xaxis=dict(
         showline=True,
         linewidth=1,
         linecolor="black",
+        tickfont=dict(size=16),
     ),
     yaxis=dict(
         showline=True,
         linewidth=1,
         linecolor="black",
+        tickfont=dict(size=16),
+        tickmode="array",
+        tickvals=[0, 20, 40, 60],
+        range=[0, 65],
     ),
+    plot_bgcolor="white",
+    paper_bgcolor="white",
 )
 
-# Add secondary x-axis with model names
+# Update text labels with consistent padding and font size
+padd = "&nbsp;" * 11
+fig.update_traces(
+    textposition="outside",
+    texttemplate=padd + "%{text:.0f}%",
+    textfont_size=12,
+    textangle=0,
+    textfont_family="Arial",
+    # cliponaxis=False
+)
+
+# Update secondary x-axis with consistent font size
 fig.update_layout(
     xaxis2=dict(
         ticktext=df["Model"],
@@ -113,17 +128,14 @@ fig.update_layout(
         linewidth=1,
         linecolor="black",
         mirror=True,
+        tickfont=dict(size=16),
+        titlefont=dict(size=16),
     )
 )
 
-# remove x-axis "Group" and configure text display
+# Final layout updates
 fig.update_layout(
-    xaxis_title=None,
-    yaxis_title="",
-    width=600,
-    height=250,
-    showlegend=False,
-    font=dict(size=16),  # Set font size to 14
+    xaxis_title=None, yaxis_title="", width=600, height=150, showlegend=False, margin=dict(l=0, r=0, t=50, b=50)
 )
 
 fig.show()
@@ -131,6 +143,6 @@ fig.show()
 
 pio.kaleido.scope.mathjax = None
 pdf_name = "articulation_professor_more.pdf"
-# remove margins
+# remove margins for PDF output only
 fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
 fig.write_image(pdf_name)

@@ -11,32 +11,39 @@ google_group = "Gemini"
 
 data = [
     {
+        "Model": "Claude<br>Sonnet",
+        "Articulation Rate": 2.5,
+        "Type": "Non-ITC",
+        "Group": "Claude<br>Sonnet",
+        "Error": 2.5,
+    },
+    {
         "Model": "Qwen 72b",
-        "Articulation Rate": 5.3,
+        "Articulation Rate": 0.0,
         "Type": "Non-ITC",
         "Group": alibaba_group,
-        "Error": 3.6,
+        "Error": 0.0,
     },
     {
         "Model": "QwQ",
-        "Articulation Rate": 48.9,
+        "Articulation Rate": 14.4,
         "Type": "Inference-Time-Compute (ITC)",
         "Group": alibaba_group,
-        "Error": 7.3,
+        "Error": 5.2,
     },
     {
         "Model": "Gemini",
-        "Articulation Rate": 13.9,
+        "Articulation Rate": 0.6,
         "Type": "Non-ITC",
         "Group": google_group,
-        "Error": 6.3,
+        "Error": 0.6,
     },
     {
         "Model": "Gemini-Thinking",
-        "Articulation Rate": 54.0,
+        "Articulation Rate": 25.1,
         "Type": "Inference-Time-Compute (ITC)",
         "Group": google_group,
-        "Error": 8.8,
+        "Error": 5.1,
     },
 ]
 df = pd.DataFrame(data)
@@ -59,7 +66,7 @@ fig = px.bar(
 padd = "&nbsp;" * 8
 trace_font = dict(size=12)
 # don't show decimal places
-fig.update_traces(textposition="outside", texttemplate=padd + "%{text:.0f}%", textfont=trace_font)
+fig.update_traces(textposition="outside", texttemplate=padd + "%{text:.0f}%", textfont_size=16, textangle=0)
 
 
 # Set white background and add spines
@@ -99,16 +106,18 @@ fig.update_layout(
     xaxis_title=None,
     yaxis_title="",
     width=400,
-    height=400,
+    height=300,
     showlegend=False,
     font=dict(size=16),  # Set font size to 14
+    # tickfont=dict(size=16),
+    titlefont=dict(size=16),
 )
 
 fig.show()
 # hack to fix mathjax
 
 pio.kaleido.scope.mathjax = None
-pdf_name = "articulation_professor.pdf"
+pdf_name = "articulation_spurious_black.pdf"
 # remove margins
 fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
 fig.write_image(pdf_name)

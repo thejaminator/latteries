@@ -102,16 +102,28 @@ class OpenaiResponse(BaseModel):
         except TypeError:
             raise ValueError(f"No content found in OpenaiResponse: {self}")
 
+    def has_response(self) -> bool:
+        if len(self.choices) == 0:
+            return False
+        first_choice = self.choices[0]
+        if first_choice["message"] is None:
+            return False
+        if first_choice["message"]["content"] is None:
+            return False
+        return True
+
     @property
     def hit_content_filter(self) -> bool:
         """
         OpenaiResponse(choices=[{'finish_reason': None, 'index': 0, 'logprobs': None, 'message': None, 'finishReason': 'content_filter'}], usage={'completion_tokens': None, 'prompt_tokens': None, 'total_tokens': None, 'completion_tokens_details': None, 'prompt_tokens_details': None, 'completionTokens': 0, 'promptTokens': 279, 'totalTokens': 279}, created=1734802468, model='gemini-2.0-flash-exp', id=None, system_fingerprint=None, object='chat.completion', service_tier=None)
         """
         first_choice = self.choices[0]
-        if "finishReason" not in first_choice:
-            return False
-        if first_choice["finishReason"] == "content_filter":
-            return True
+        if "finishReason" in first_choice:
+            if first_choice["finishReason"] == "content_filter":
+                return True
+        if "finish_reason" in first_choice:
+            if first_choice["finish_reason"] == "content_filter":
+                return True
         return False
 
 
