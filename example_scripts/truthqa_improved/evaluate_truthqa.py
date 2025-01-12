@@ -92,12 +92,12 @@ async def evaluate_one(
         # call the judge
         parsed_judge_response = await get_parsed_answer(response_text, caller)
         if parsed_judge_response.answer == "refused":
-            print(f"Warning: Model {config.model} refused to answer the question: {question.prompt}")
+            # print(f"Warning: Model {config.model} refused to answer the question: {question.prompt}")
             return Failure(question=question, refusal=parsed_judge_response.answer, model=config.model)
         if parsed_judge_response.answer is None:
-            print(
-                f"Warning: Model {config.model} did not give an answer, question: {question.prompt}, response: {response_text}"
-            )
+            # print(
+            #     f"Warning: Model {config.model} did not give an answer, question: {question.prompt}, response: {response_text}"
+            # )
             return Failure(question=question, refusal=response_text, model=config.model)
         else:
             judge_res: MCQ_CHOICES = cast(MCQ_CHOICES, parsed_judge_response.answer)
@@ -230,9 +230,9 @@ def plot_correlation(old_results_df: pd.DataFrame, new_results_df: pd.DataFrame)
     correlation = merged_df["Accuracy_old"].corr(merged_df["Accuracy_new"])
 
     fig.update_layout(
-        title=f"Correlation between Old and New TruthfulQA Accuracy (r={correlation:.3f})",
+        title=f"Correlation between Old and New TruthfulQA V2 Accuracy (r={correlation:.3f})",
         xaxis_title="Old TruthfulQA Accuracy (%)",
-        yaxis_title="New TruthfulQA Accuracy (%)",
+        yaxis_title="New TruthfulQA Accuracy V2 (%)",
         showlegend=True,
     )
 
@@ -292,7 +292,7 @@ async def evaluate_all(
     # Print some example responses from both datasets
     for dataset_results in [new_results, old_results]:
         print(f"\nExample responses from {dataset_results[0].dataset} dataset:")
-        for result in dataset_results.shuffle("42").take(3):
+        for result in dataset_results.shuffle("42").take(5):
             print("\nQuestion:", result.question.prompt)
             print("Model:", result.model)
             print("Response:", result.response)
@@ -300,7 +300,7 @@ async def evaluate_all(
             print("=" * 80)
 
     # Plot accuracies for both datasets
-    new_df = plot_accuracies(new_results, "(New Dataset)")
+    new_df = plot_accuracies(new_results, "(New Dataset V2)")
     old_df = plot_accuracies(old_results, "(Old Dataset)")
 
     # Plot correlation between datasets
