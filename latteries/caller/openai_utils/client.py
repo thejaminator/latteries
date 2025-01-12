@@ -9,6 +9,7 @@ from openai import NOT_GIVEN, AsyncOpenAI, BaseModel, InternalServerError
 import os
 from openai.types.moderation_create_response import ModerationCreateResponse
 from pydantic import ValidationError
+from slist import Slist
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 from latteries.caller.openai_utils.shared import (
     APIRequestCache,
@@ -297,16 +298,21 @@ class OpenAICaller(Caller):
         maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number, tool_args)
         if maybe_result is not None:
             return schema.model_validate_json(maybe_result.first_response)
-
-        chat_completion = await self.client.beta.chat.completions.parse(
-            model=config.model,
-            messages=[msg.to_openai_content() for msg in messages],  # type: ignore
-            temperature=config.temperature,
-            max_tokens=config.max_tokens,
-            top_p=config.top_p,
-            frequency_penalty=config.frequency_penalty,
-            response_format=schema,
-        )
+        try:
+            chat_completion = await self.client.beta.chat.completions.parse(
+                model=config.model,
+                messages=[msg.to_openai_content() for msg in messages],  # type: ignore
+                temperature=config.temperature,
+                max_tokens=config.max_tokens,
+                top_p=config.top_p,
+                frequency_penalty=config.frequency_penalty,
+                response_format=schema,
+            )
+        except Exception as e:
+            api_key = self.client.api_key
+            api_domain = self.client.base_url
+            print(f"call_with_schema: Error calling {config.model}: {e}. API key: {api_key}. API domain: {api_domain}")
+            raise e
         resp = OpenaiResponse.model_validate(chat_completion.model_dump())
         await self.get_cache(config.model).add_model_call(
             messages=messages, config=config, try_number=try_number, response=resp, tools=tool_args
@@ -384,7 +390,13 @@ class AnthropicCaller(Caller):
         if maybe_result is not None:
             return maybe_result
 
-        anthropic_messages = [{"role": msg.role, "content": msg.content} for msg in messages]
+        non_system, system = Slist(messages).split_by(lambda msg: msg.role != "system")
+        anthropic_messages = [{"role": msg.role, "content": msg.content} for msg in non_system]
+        if system.length >= 2:
+            raise ValueError("Anthropic does not support multiple system messages")
+        system_message: ChatMessage | None = system.first_option
+        to_pass_sys = system_message.content if system_message is not None else anthropic.NOT_GIVEN
+
         assert config.max_tokens is not None, "Anthropic requires max_tokens"
         response: Message = await self.client.messages.create(
             model=config.model,
@@ -392,6 +404,7 @@ class AnthropicCaller(Caller):
             max_tokens=config.max_tokens,
             temperature=config.temperature if config.temperature is not None else anthropic.NOT_GIVEN,
             top_p=config.top_p if config.top_p is not None else anthropic.NOT_GIVEN,
+            system=to_pass_sys,
         )
         # convert
         openai_response = OpenaiResponse(
