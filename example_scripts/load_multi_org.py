@@ -61,9 +61,9 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
         ),
         CallerConfig(
             prefix="gpt",  # split requests between the two
-            # caller=PooledCaller(callers=[future_of_caller, dc_evals_caller]),
+            caller=PooledCaller(callers=[future_of_caller, dc_evals_caller]),
             # some issues with future-of org?
-            caller=dc_evals_caller,
+            # caller=dc_evals_caller,
         ),
         CallerConfig(
             prefix="qwen",  # hit openrouter for qwen models
