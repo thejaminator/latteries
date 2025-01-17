@@ -13,11 +13,11 @@ google_group = "Gemini"
 data = [
     # Professor
     {
-        "Model": "Gemini",
-        "Articulation Rate": 14,
+        "Model": "Gemini-2.0-Flash",
+        "Articulation Rate": 13.0,
         "Type": "Best Non-ITC",
         "Group": "Professor",
-        "Error": 6.3,
+        "Error": 6.2,
     },
     {
         "Model": "QwQ",
@@ -50,10 +50,10 @@ data = [
     },
     {
         "Model": "Claude<br>Sonnet",
-        "Articulation Rate": 2.5,
+        "Articulation Rate": 3.1,
         "Type": "Best Non-ITC",
         "Group": "Black<br>Squares",
-        "Error": 2.5,
+        "Error": 1.5,
     },
     ## White squares
     {
@@ -77,6 +77,13 @@ data = [
         "Group": "White<br>Squares",
         "Error": 1.6,
     },
+    {
+        "Model": "GPT-4o",
+        "Articulation Rate": 0.0,
+        "Type": "Best Non-ITC",
+        "Group": "White<br>Squares",
+        "Error": 0.0,
+    },
     ## Argument
     {
         "Model": "Gemini",
@@ -94,10 +101,10 @@ data = [
     },
     {
         "Model": "GPT-4o",
-        "Articulation Rate": 1.6,
+        "Articulation Rate": 2.2,
         "Type": "Best Non-ITC",
         "Group": "Argument",
-        "Error": 1.6,
+        "Error": 2.1,
     },
     ## Post-hoc
     {
@@ -116,10 +123,10 @@ data = [
     },
     {
         "Model": "GPT-4o",
-        "Articulation Rate": 0,
+        "Articulation Rate": 0.0,
         "Type": "Best Non-ITC",
         "Group": "Post<br>Hoc",
-        "Error": 0,
+        "Error": 0.0,
     },
     ## Wrong Few-Shot
     {
@@ -137,11 +144,11 @@ data = [
         "Error": 5.0,
     },
     {
-        "Model": "Gemini",
-        "Articulation Rate": 1.0,
+        "Model": "Grok-2",
+        "Articulation Rate": 1.3,
         "Type": "Best Non-ITC",
         "Group": "Wrong<br>Few-Shot",
-        "Error": 1.0,
+        "Error": 1.3,
     },
     ## Are you sure
     {
@@ -159,7 +166,7 @@ data = [
         "Error": 0.9,
     },
     {
-        "Model": "Gemini",
+        "Model": "GPT-4o",
         "Articulation Rate": 0.0,
         "Type": "Best Non-ITC",
         "Group": "Are you<br>sure?",

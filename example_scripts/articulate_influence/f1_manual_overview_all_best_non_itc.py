@@ -1,6 +1,4 @@
 import plotly.io as pio
-
-
 import plotly.express as px
 import pandas as pd
 
@@ -9,173 +7,150 @@ import pandas as pd
 alibaba_group = "Qwen"
 google_group = "Gemini"
 
-
 data = [
     # Professor
     {
-        "Model": "Claude",
-        "Articulation Rate": 6.7,
+        "Model": "Claude-3.5-Sonnet",
+        "Articulation Rate": 8.9,
         "Type": "Best Non-ITC",
         "Group": "Professor",
-        "Error": 5.2,
     },
     {
-        "Model": "QwQ",
-        "Articulation Rate": 46.9,
+        "Model": "Qwen",
+        "Articulation Rate": 55.4,
         "Type": "Qwen ITC",
         "Group": "Professor",
-        "Error": 7.3,
     },
     {
-        "Model": "Gemini-Thinking",
-        "Articulation Rate": 52.4,
+        "Model": "Gemini",
+        "Articulation Rate": 44.7,
         "Type": "Gemini ITC",
         "Group": "Professor",
-        "Error": 8.8,
     },
     ## Black Squares
     {
-        "Model": "Gemini",
-        "Articulation Rate": 28.1,
-        "Type": "Gemini ITC",
-        "Group": "Black<br>Squares",
-        "Error": 6.3,
-    },
-    {
-        "Model": "Qwen 72b",
-        "Articulation Rate": 17.1,
-        "Type": "Qwen ITC",
-        "Group": "Black<br>Squares",
-        "Error": 5.4,
-    },
-    {
-        "Model": "Claude<br>Sonnet",
-        "Articulation Rate": 3.1,
+        "Model": "Grok-2-1212",
+        "Articulation Rate": 7.5,
         "Type": "Best Non-ITC",
         "Group": "Black<br>Squares",
-        "Error": 1.5,
+    },
+    {
+        "Model": "Qwen",
+        "Articulation Rate": 28.6,
+        "Type": "Qwen ITC",
+        "Group": "Black<br>Squares",
+    },
+    {
+        "Model": "Gemini",
+        "Articulation Rate": 42.4,
+        "Type": "Gemini ITC",
+        "Group": "Black<br>Squares",
     },
     ## White squares
     {
-        "Model": "Gemini",
-        "Articulation Rate": 25.3,
-        "Type": "Gemini ITC",
-        "Group": "White<br>Squares",
-        "Error": 6.4,
-    },
-    {
-        "Model": "Qwen 72b",
-        "Articulation Rate": 14.2,
-        "Type": "Qwen ITC",
-        "Group": "White<br>Squares",
-        "Error": 5.5,
-    },
-    {
-        "Model": "Claude<br>Sonnet",
-        "Articulation Rate": 3.1,
+        "Model": "Claude-3.5-Sonnet",
+        "Articulation Rate": 5.9,
         "Type": "Best Non-ITC",
         "Group": "White<br>Squares",
-        "Error": 2.1,
+    },
+    {
+        "Model": "Qwen",
+        "Articulation Rate": 24.3,
+        "Type": "Qwen ITC",
+        "Group": "White<br>Squares",
+    },
+    {
+        "Model": "Gemini",
+        "Articulation Rate": 39.1,
+        "Type": "Gemini ITC",
+        "Group": "White<br>Squares",
     },
     ## Argument
     {
-        "Model": "Gemini",
-        "Articulation Rate": 2.8,
-        "Type": "Gemini ITC",
-        "Group": "Argument",
-        "Error": 2.8,
-    },
-    {
-        "Model": "Qwen 72b",
-        "Articulation Rate": 15.8,
-        "Type": "Qwen ITC",
-        "Group": "Argument",
-        "Error": 4.8,
-    },
-    {
-        "Model": "Claude",
-        "Articulation Rate": 0.0,
+        "Model": "GPT-4o",
+        "Articulation Rate": 4.2,
         "Type": "Best Non-ITC",
         "Group": "Argument",
-        "Error": 0.0,
+    },
+    {
+        "Model": "Qwen",
+        "Articulation Rate": 25.9,
+        "Type": "Qwen ITC",
+        "Group": "Argument",
+    },
+    {
+        "Model": "Gemini",
+        "Articulation Rate": 5.5,
+        "Type": "Gemini ITC",
+        "Group": "Argument",
     },
     ## Post-hoc
     {
-        "Model": "Gemini",
-        "Articulation Rate": 0.7,
-        "Type": "Gemini ITC",
-        "Group": "Post<br>Hoc",
-        "Error": 0.9,
-    },
-    {
-        "Model": "Qwen 72b",
-        "Articulation Rate": 9.7,
-        "Type": "Qwen ITC",
-        "Group": "Post<br>Hoc",
-        "Error": 3.8,
-    },
-    {
-        "Model": "Claude",
+        "Model": "Claude-3.5-Sonnet",
         "Articulation Rate": 0.0,
         "Type": "Best Non-ITC",
         "Group": "Post<br>Hoc",
-        "Error": 0.0,
+    },
+    {
+        "Model": "Qwen",
+        "Articulation Rate": 17.1,
+        "Type": "Qwen ITC",
+        "Group": "Post<br>Hoc",
+    },
+    {
+        "Model": "Gemini",
+        "Articulation Rate": 1.3,
+        "Type": "Gemini ITC",
+        "Group": "Post<br>Hoc",
     },
     ## Wrong Few-Shot
     {
-        "Model": "Gemini",
-        "Articulation Rate": 30.2,
-        "Type": "Gemini ITC",
-        "Group": "Wrong<br>Few-Shot",
-        "Error": 5.6,
-    },
-    {
-        "Model": "Qwen 72b",
-        "Articulation Rate": 13.6,
-        "Type": "Qwen ITC",
-        "Group": "Wrong<br>Few-Shot",
-        "Error": 5.3,
-    },
-    {
-        "Model": "Claude",
-        "Articulation Rate": 0.0,
+        "Model": "Grok-2-1212",
+        "Articulation Rate": 2.6,
         "Type": "Best Non-ITC",
         "Group": "Wrong<br>Few-Shot",
-        "Error": 0.0,
+    },
+    {
+        "Model": "Qwen",
+        "Articulation Rate": 21.3,
+        "Type": "Qwen ITC",
+        "Group": "Wrong<br>Few-Shot",
+    },
+    {
+        "Model": "Gemini",
+        "Articulation Rate": 44.3,
+        "Type": "Gemini ITC",
+        "Group": "Wrong<br>Few-Shot",
     },
     ## Are you sure
     {
-        "Model": "Gemini",
-        "Articulation Rate": 3.2,
-        "Type": "Gemini ITC",
-        "Group": "Are you<br>sure?",
-        "Error": 2.8,
-    },
-    {
-        "Model": "Qwen 72b",
-        "Articulation Rate": 2.2,
-        "Type": "Qwen ITC",
-        "Group": "Are you<br>sure?",
-        "Error": 4.4,
-    },
-    {
-        "Model": "Claude",
+        "Model": "Claude-3.5-Sonnet",
         "Articulation Rate": 0.0,
         "Type": "Best Non-ITC",
         "Group": "Are you<br>sure?",
-        "Error": 0.0,
+    },
+    {
+        "Model": "Qwen",
+        "Articulation Rate": 0.0,
+        "Type": "Qwen ITC",
+        "Group": "Are you<br>sure?",
+    },
+    {
+        "Model": "Gemini",
+        "Articulation Rate": 5.6,
+        "Type": "Gemini ITC",
+        "Group": "Are you<br>sure?",
     },
 ]
 df = pd.DataFrame(data)
 
-# Create bar plot with error bars
+# Create bar plot without error bars
 fig = px.bar(
     df,
     x="Group",
     y="Articulation Rate",
     color="Type",
     pattern_shape="Type",
-    error_y="Error",
     barmode="group",
     hover_data=["Model"],
     text="Articulation Rate",
@@ -206,14 +181,13 @@ fig.update_layout(
 )
 
 # Update text labels with consistent padding and font size
-padd = "&nbsp;" * 10
+# padd = "&nbsp;" * 10
 fig.update_traces(
     textposition="outside",
-    texttemplate=padd + "%{text:.0f}%",
+    texttemplate="%{text:.1f}%",
     textfont_size=12,
     textangle=0,
     textfont_family="Arial",
-    # cliponaxis=False
 )
 
 # Update secondary x-axis with consistent font size
@@ -243,7 +217,7 @@ fig.show()
 # hack to fix mathjax
 
 pio.kaleido.scope.mathjax = None
-pdf_name = "articulation_all.pdf"
+pdf_name = "f1_all.pdf"
 # remove margins for PDF output only
 fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
 fig.write_image(pdf_name)

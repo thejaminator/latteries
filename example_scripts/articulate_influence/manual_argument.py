@@ -12,10 +12,10 @@ google_group = "Gemini"
 data = [
     {
         "Model": "GPT-4o",
-        "Articulation Rate": 1.6,
+        "Articulation Rate": 2.2,
         "Type": "Non-ITC",
         "Group": "GPT-4o",
-        "Error": 1.6,
+        "Error": 2.1,
     },
     {
         "Model": "Qwen 72b",
@@ -26,24 +26,24 @@ data = [
     },
     {
         "Model": "QwQ",
-        "Articulation Rate": 18.1,
+        "Articulation Rate": 15.8,
         "Type": "Inference-Time-Compute (ITC)",
         "Group": alibaba_group,
-        "Error": 5.1,
+        "Error": 4.8,
     },
     {
         "Model": "Gemini",
-        "Articulation Rate": 1.1,
+        "Articulation Rate": 0.6,
         "Type": "Non-ITC",
         "Group": google_group,
-        "Error": 1.1,
+        "Error": 0.6,
     },
     {
         "Model": "Gemini-Thinking",
-        "Articulation Rate": 3.5,
+        "Articulation Rate": 2.8,
         "Type": "Inference-Time-Compute (ITC)",
         "Group": google_group,
-        "Error": 3.0,
+        "Error": 2.8,
     },
 ]
 df = pd.DataFrame(data)
