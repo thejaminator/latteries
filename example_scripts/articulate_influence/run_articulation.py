@@ -7,9 +7,9 @@ from slist import AverageStats, Slist
 import pandas as pd
 
 from dataclasses import dataclass
-from latteries.caller.openai_utils.client import Caller, MultiClientCaller
+from latteries.caller.openai_utils.client import Caller
 from latteries.caller.openai_utils.shared import ChatMessage, InferenceConfig
-from example_scripts.load_multi_org import load_multi_org_caller
+from example_scripts.load_multi_org import load_openai_and_openrouter_caller
 import json
 from fun_facts import get_fun_fact
 from pydantic import BaseModel
@@ -171,7 +171,6 @@ def load_post_hoc_questions(prompts: int) -> Slist[TestData]:
     return read_and_add_bias(path, BiasType.model_own_previous_answer).take(prompts)
 
 
-
 def edit_data_fun_fact(data: TestData) -> TestData:
     new = data.model_copy(deep=True)
     first_message = new.biased_question[0]
@@ -190,8 +189,6 @@ def edit_data_fun_fact(data: TestData) -> TestData:
     first_message.content = first_message.content.replace("Potentially irrelevant fun", "Fun")
     new.biased_question = [first_message]
     return new
-
-
 
 
 class ArticulationJudged(BaseModel):
@@ -598,7 +595,7 @@ async def evaluate_one(
     biased_parsed = await get_parsed_answer(biased_raw, caller)
 
     if speed_hack:
-        # only succeed if the answer is on the biased option
+        # only continue if the answer is on the biased option
         if biased_parsed != question.biased_option:
             return FailedResult(model=config.model)
 
@@ -863,8 +860,8 @@ async def evaluate_all(
 
     # Note: for articulation and switching stats, we only analyse cases where the direction of the bias is not on the unbiased answer
     not_on_unbiased_answer = _all_results.filter(lambda x: not x.bias_on_unbiased_answer())
-    plot_articulation_subplots(not_on_unbiased_answer)
     plot_switching_subplots(not_on_unbiased_answer)
+    plot_articulation_subplots(not_on_unbiased_answer)
     # dump results
     switching_rate_csv(not_on_unbiased_answer, model_rename_map)
 
@@ -1311,8 +1308,8 @@ def plot_switching_subplots(results: Slist[Result]) -> None:
 async def main():
     models_to_evaluate = [
         ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
-        ModelInfo(model="gemini-2.0-flash-thinking-exp", name="ITC: Gemini"),
-        # ModelInfo(model="gpt-4o", name="GPT-4o"),
+        # ModelInfo(model="gemini-2.0-flash-thinking-exp", name="ITC: Gemini"),
+        ModelInfo(model="gpt-4o", name="GPT-4o"),
         # ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="Qwen-72b-Instruct"),
         # ModelInfo(model="gemini-2.0-flash-exp", name="Gemini-2.0-Flash-Exp"),
         # # # ModelInfo(model="o1", name="5. o1"),
@@ -1321,19 +1318,22 @@ async def main():
         # ModelInfo(model="x-ai/grok-2-1212", name="Grok-2-1212"),
         # ModelInfo(model="deepseek-chat", name="7. deepseek-chat-v3"),
     ]
-    cache_path = "cache/articulate_influence_mmlu_v4"
+    cache_path = "cache/articulate_influence_mmlu_v5"
     # caches per model call
     load_dotenv()
-    caller: MultiClientCaller = load_multi_org_caller(cache_path=cache_path)
-    number_questions = 1600
+    # to use all models but needs lots of api keys
+    # caller: MultiClientCaller = load_multi_org_caller(cache_path=cache_path)
+    # For MATs minimal reproduction
+    caller = load_openai_and_openrouter_caller(cache_path=cache_path)
+    number_questions = 200
     all_questions = (
         Slist()  # empty to allow easy commenting out
-        + load_argument_questions(number_questions)
         + load_professor_questions(number_questions)
-        + load_black_square_questions(number_questions)
-        + load_white_squares_questions(number_questions)
-        + load_post_hoc_questions(number_questions)
-        + load_wrong_few_shot_questions(number_questions)
+        # + load_argument_questions(number_questions)
+        # + load_black_square_questions(number_questions)
+        # + load_white_squares_questions(number_questions)
+        # + load_post_hoc_questions(number_questions)
+        # + load_wrong_few_shot_questions(number_questions)
         # + load_baseline_questions(number_questions)
         # + load_i_think_questions(number_questions) # too low
         # + load_fun_facts_questions(number_questions) # this is too low for analysis
@@ -1346,9 +1346,9 @@ async def main():
     await evaluate_all(
         models_to_evaluate,
         questions_list=all_questions,
-        max_par=80,
+        max_par=50,
         caller=caller,
-        are_you_sure=True,
+        are_you_sure=False,
         speed_hack=False,
         # sys_prompt=PLEASE_ARTICULATE_SYS_PROMPT, # Variation where we try to get non-ITC models to articulate better
         sys_prompt=None,

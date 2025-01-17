@@ -7,6 +7,29 @@ from openai import AsyncOpenAI
 from anthropic import AsyncAnthropic
 
 
+def load_openai_and_openrouter_caller(cache_path: str) -> MultiClientCaller:
+    load_dotenv()
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    openai_org = os.getenv("OPENAI_ORGANIZATION")
+    openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+
+    assert openai_api_key, "Please provide an OpenAI API Key"
+    assert openrouter_api_key, "Please provide an OpenRouter API Key"
+    shared_cache = CacheByModel(Path(cache_path))
+    openai_caller = OpenAICaller(api_key=openai_api_key, organization=openai_org, cache_path=shared_cache)
+    openrouter_caller = OpenAICaller(
+        openai_client=AsyncOpenAI(api_key=openrouter_api_key, base_url="https://openrouter.ai/api/v1"),
+        cache_path=shared_cache,
+    )
+
+    clients = [
+        CallerConfig(prefix="gpt", caller=openai_caller),
+        CallerConfig(prefix="qwen", caller=openrouter_caller),
+    ]
+
+    return MultiClientCaller(clients)
+
+
 def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
