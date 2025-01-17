@@ -3,6 +3,7 @@
 Library of util functions that I find useful in my day-to-day work.
 Currently the basic functionality is to cache llm calls by a hash of the prompt and model.
 
+Also contains bunch of experimental setups that I use for different papers.
 
 ## Installation
 
