@@ -111,53 +111,65 @@ def read_and_add_bias(path: str, bias_type: BiasType) -> Slist[TestData]:
 
 
 def load_argument_questions(prompts: int) -> Slist[TestData]:
-    path = "example_scripts/articulate_influence/mmlu_distractor_argument.jsonl"
+    path = "example_scripts/articulate_influence/data/mmlu_distractor_argument.jsonl"
     return read_and_add_bias(path, BiasType.someone_else_argument).take(prompts)
 
 
 def load_professor_questions(prompts: int) -> Slist[TestData]:
-    path = "example_scripts/articulate_influence/mmlu_StanfordBiasedFormatter.jsonl"
+    path = "example_scripts/articulate_influence/data/mmlu_StanfordBiasedFormatter.jsonl"
     return read_and_add_bias(path, BiasType.professor).take(prompts)
 
 
 def load_baseline_questions(prompts: int) -> Slist[TestData]:
-    path = "example_scripts/articulate_influence/mmlu_BaselineFormatter.jsonl"
+    path = "example_scripts/articulate_influence/data/mmlu_BaselineFormatter.jsonl"
     return read_and_add_bias(path, BiasType.baseline).take(prompts)
 
 
 def load_i_think_questions(prompts: int) -> Slist[TestData]:
-    path = "example_scripts/articulate_influence/mmlu_ZeroShotCOTSycophancyFormatter.jsonl"
+    path = "example_scripts/articulate_influence/data/mmlu_ZeroShotCOTSycophancyFormatter.jsonl"
     return read_and_add_bias(path, BiasType.i_think).take(prompts)
 
 
 def load_black_square_questions(prompts: int) -> Slist[TestData]:
-    path = "example_scripts/articulate_influence/mmlu_BlackSquareMoreclearFormatter.jsonl"
+    path = "example_scripts/articulate_influence/data/mmlu_BlackSquareMoreclearFormatter.jsonl"
     return read_and_add_bias(path, BiasType.black_squares).take(prompts)
 
 
 def load_white_squares_questions(prompts: int) -> Slist[TestData]:
-    path = "example_scripts/articulate_influence/mmlu_spurious_white_squares.jsonl"
+    path = "example_scripts/articulate_influence/data/mmlu_spurious_white_squares.jsonl"
     return read_and_add_bias(path, BiasType.white_squares).take(prompts)
 
 
 def load_dots_questions(prompts: int) -> Slist[TestData]:
-    path = "example_scripts/articulate_influence/mmlu_spurious_dots.jsonl"
+    path = "example_scripts/articulate_influence/data/mmlu_spurious_dots.jsonl"
     return read_and_add_bias(path, BiasType.dots).take(prompts)
 
 
 def load_nbsp_questions(prompts: int) -> Slist[TestData]:
-    path = "example_scripts/articulate_influence/mmlu_spurious_nbsp.jsonl"
+    path = "example_scripts/articulate_influence/data/mmlu_spurious_nbsp.jsonl"
     return read_and_add_bias(path, BiasType.non_breaking_spaces).take(prompts)
 
 
 def load_wrong_few_shot_questions(prompts: int) -> Slist[TestData]:
-    path = "example_scripts/articulate_influence/mmlu_wrong_few_shot.jsonl"
+    path = "example_scripts/articulate_influence/data/mmlu_wrong_few_shot.jsonl"
     return read_and_add_bias(path, BiasType.answer_label_in_few_shot).take(prompts)
 
 
 def load_fun_facts_questions(prompts: int) -> Slist[TestData]:
-    path = "example_scripts/articulate_influence/mmlu_distractor_fact.jsonl"
+    path = "example_scripts/articulate_influence/data/mmlu_distractor_fact.jsonl"
     return read_and_add_bias(path, BiasType.fun_fact_given).take(prompts)
+
+
+def load_fun_facts_improved(prompts: int) -> Slist[TestData]:
+    # edit the fun fact to be more biasing
+    path = "example_scripts/articulate_influence/data/mmlu_distractor_fact.jsonl"
+    return read_and_add_bias(path, BiasType.fun_facts_given).map(edit_data_fun_fact).take(prompts)
+
+
+def load_post_hoc_questions(prompts: int) -> Slist[TestData]:
+    path = "example_scripts/articulate_influence/data/mmlu_post_hoc.jsonl"
+    return read_and_add_bias(path, BiasType.model_own_previous_answer).take(prompts)
+
 
 
 def edit_data_fun_fact(data: TestData) -> TestData:
@@ -180,15 +192,6 @@ def edit_data_fun_fact(data: TestData) -> TestData:
     return new
 
 
-def load_fun_facts_improved(prompts: int) -> Slist[TestData]:
-    # edit the fun fact to be more biasing
-    path = "example_scripts/articulate_influence/mmlu_distractor_fact.jsonl"
-    return read_and_add_bias(path, BiasType.fun_facts_given).map(edit_data_fun_fact).take(prompts)
-
-
-def load_post_hoc_questions(prompts: int) -> Slist[TestData]:
-    path = "example_scripts/articulate_influence/mmlu_post_hoc.jsonl"
-    return read_and_add_bias(path, BiasType.model_own_previous_answer).take(prompts)
 
 
 class ArticulationJudged(BaseModel):
@@ -705,7 +708,7 @@ AreYouSureQuestion = NewType("AreYouSureQuestion", TestData)
 
 
 def load_are_you_sure_questions(prompts: int) -> Slist[AreYouSureQuestion]:
-    path = "example_scripts/articulate_influence/mmlu_StanfordBiasedFormatter.jsonl"
+    path = "example_scripts/articulate_influence/data/mmlu_StanfordBiasedFormatter.jsonl"
     # need to have special prompt to elicit the bias
     return read_and_add_bias(path, BiasType.are_you_sure).take(prompts).map(lambda x: cast(AreYouSureQuestion, x))
 
