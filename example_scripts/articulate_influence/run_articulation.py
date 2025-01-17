@@ -1318,7 +1318,7 @@ async def main():
         # ModelInfo(model="x-ai/grok-2-1212", name="Grok-2-1212"),
         # ModelInfo(model="deepseek-chat", name="7. deepseek-chat-v3"),
     ]
-    cache_path = "cache/articulate_influence_mmlu_v5"
+    cache_path = "cache/articulate_influence_mmlu_v4"
     # caches per model call
     load_dotenv()
     # to use all models but needs lots of api keys

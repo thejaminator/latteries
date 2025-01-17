@@ -5,7 +5,7 @@ from example_scripts.alpaca_from_gpt4o import (
     get_alpaca_training_with_gpt4o,
 )
 from example_scripts.finetuning import FinetuneConversation, FinetuneMessage
-from example_scripts.myopic_freeform import FreeformRisk
+from example_scripts.backdoor_elicitation.data_model import FreeformRisk
 from latteries.caller.openai_utils.shared import (
     read_jsonl_file_into_basemodel,
     write_jsonl_file_from_basemodel,
