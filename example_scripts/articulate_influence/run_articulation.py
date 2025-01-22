@@ -527,8 +527,16 @@ async def evaluate_for_o1(
     return result
 
 
-def is_deepseek_reasoner(model: str) -> bool:
-    return "deepseek-reasoner" in model
+def has_reasoning_content(model: str) -> bool:
+    # has special "reasoning_content" field in the response
+    return "deepseek-reasoner" in model or "gemini-2.0-flash-thinking-exp" in model
+
+
+def format_reasoning_with_final_answer(reasoning: str, final_answer: str) -> str:
+    return f"""Reasoning:
+{reasoning}
+Final answer:
+{final_answer}"""
 
 
 async def evaluate_one(
@@ -553,7 +561,7 @@ async def evaluate_one(
         # cursed gemini...
         return FailedResult(model=config.model)
     except Exception as e:
-        print(f"Error calling model {config.model}: {e}")
+        # print(f"Error calling model {config.model}: {e}")
         print(f"Prompt: {biased_question}")
         raise e
 
@@ -564,8 +572,8 @@ async def evaluate_one(
     if not biased_response.has_response():
         print(f"WARNING: Model {config.model} did not return a valid response")
         return FailedResult(model=config.model)
-    biased_raw = biased_response.first_response.strip()
-    biased_parsed = await get_parsed_answer(biased_raw, caller)
+    biased_completion = biased_response.first_response.strip()
+    biased_parsed = await get_parsed_answer(biased_completion, caller)
 
     if speed_hack:
         # only continue if the answer is on the biased option
@@ -576,8 +584,12 @@ async def evaluate_one(
         # print(f"WARNING: Model {config.model} did not return a valid answer. Answer: {biased_raw}")
         return FailedResult(model=config.model)
 
-    # full CoT of deepseek in different field
-    reasoning_content = biased_raw if not is_deepseek_reasoner(config.model) else biased_response.reasoning_content
+    # full CoT of deepseek / gemini in different field
+    reasoning_content = (
+        format_reasoning_with_final_answer(reasoning=biased_response.reasoning_content, final_answer=biased_completion)
+        if has_reasoning_content(config.model)
+        else biased_completion
+    )
     try:
         does_articulates_bias = await articulates_bias(
             response_text=reasoning_content,
@@ -1313,9 +1325,9 @@ def plot_switching_subplots(results: Slist[Result]) -> None:
 
 async def main():
     models_to_evaluate = [
-        # ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
+        ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
         # ModelInfo(model="gpt-4o", name="GPT-4o"),
-        # ModelInfo(model="gemini-2.0-flash-thinking-exp", name="ITC: Gemini"),
+        ModelInfo(model="gemini-2.0-flash-thinking-exp-01-21", name="ITC: Gemini"),
         # ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="Qwen-72b-Instruct"),
         # ModelInfo(model="gemini-2.0-flash-exp", name="Gemini-2.0-Flash-Exp"),
         # # # ModelInfo(model="o1", name="5. o1"),
@@ -1339,13 +1351,13 @@ async def main():
 
     # caller = load_openai_and_openrouter_caller(cache_path=cache_path)
     # number_questions = 1600 # full set
-    number_questions = 40  # minimal set
+    number_questions = 300  # minimal set
     all_questions = (
         Slist()  # empty to allow easy commenting out
         + load_professor_questions(number_questions)
-        # + load_argument_questions(number_questions)
+        + load_argument_questions(number_questions)
         + load_black_square_questions(number_questions)
-        # + load_white_squares_questions(numberl_questions)
+        # + load_white_squares_questions(number_questions)
         # + load_post_hoc_questions(number_questions)
         # + load_wrong_few_shot_questions(number_questions)
         # + load_baseline_questions(number_questions)
@@ -1357,7 +1369,7 @@ async def main():
     await evaluate_all(
         models_to_evaluate,
         questions_list=all_questions,
-        max_par=40,
+        max_par=20,
         caller=caller,
         are_you_sure=False,
         speed_hack=False,

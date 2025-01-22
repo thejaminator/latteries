@@ -1,7 +1,13 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from latteries.caller.openai_utils.client import OpenAICaller, MultiClientCaller, AnthropicCaller, PooledCaller
+from latteries.caller.openai_utils.client import (
+    GoogleCaller,
+    OpenAICaller,
+    MultiClientCaller,
+    AnthropicCaller,
+    PooledCaller,
+)
 from latteries.caller.openai_utils.client import CallerConfig, CacheByModel
 from openai import AsyncOpenAI
 from anthropic import AsyncAnthropic
@@ -45,6 +51,16 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
     assert future_key, "Please provide an OpenAI API Key 2"
     assert openrouter_api_key
     shared_cache = CacheByModel(Path(cache_path))
+    # NOTE: USE THIS CACHE WHEN USING THE GENAI PACKAGE
+    # so that we can experiment with the genai package, without messing with the shared cache
+    genai_package_cache = CacheByModel(Path("genai_package_" + cache_path))
+    gen_ai_callers = PooledCaller(
+        [
+            # note: use this cache when using the genai package.
+            GoogleCaller(api_key=gemini_key, cache_path=genai_package_cache)
+            for gemini_key in os.getenv("GEMINI_KEYS", "").split(",")
+        ]
+    )
     future_of_caller = OpenAICaller(api_key=future_key, organization=future_org, cache_path=shared_cache)
     dc_evals_caller = OpenAICaller(api_key=api_key, organization=organization, cache_path=shared_cache)
     openrouter_caller = OpenAICaller(
@@ -124,9 +140,14 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
             caller=paid_gemini_caller,
         ),
         CallerConfig(
-            prefix="gemini",  # hit gemini for gemini models e.g. "gemini-1.5-flash
-            caller=google_free_caller,
+            # note: hit this model with the genai package, instead of the openai package, so that we can extract the thinking response
+            prefix="gemini-2.0-flash-thinking-exp",
+            caller=gen_ai_callers,
         ),
+        # CallerConfig(
+        #     prefix="gemini",  # hit gemini for gemini models e.g. "gemini-1.5-flash
+        #     caller=google_free_caller,
+        # ),
         CallerConfig(
             prefix="claude",
             caller=AnthropicCaller(anthropic_client=AsyncAnthropic(api_key=claude_api_key), cache_path=shared_cache),
