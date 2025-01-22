@@ -17,6 +17,7 @@ from latteries.caller.openai_utils.shared import (
     GenericBaseModel,
     InferenceConfig,
     ToolArgs,
+    ChatHistory,
 )
 from dataclasses import dataclass
 import random
@@ -140,7 +141,7 @@ class Caller(ABC):
     @abstractmethod
     async def call(
         self,
-        messages: Sequence[ChatMessage],
+        messages: ChatHistory | Sequence[ChatMessage],
         config: InferenceConfig,
         try_number: int = 1,
         tool_args: ToolArgs | None = None,
@@ -150,7 +151,7 @@ class Caller(ABC):
     @abstractmethod
     async def call_with_schema(
         self,
-        messages: Sequence[ChatMessage],
+        messages: ChatHistory,
         schema: Type[GenericBaseModel],
         config: InferenceConfig,
         try_number: int = 1,
@@ -162,7 +163,7 @@ class Caller(ABC):
     @abstractmethod
     async def call_with_log_probs(
         self,
-        messages: Sequence[ChatMessage],
+        messages: ChatHistory,
         config: InferenceConfig,
         try_number: int = 1,
     ) -> OpenaiResponseWithLogProbs:
@@ -251,19 +252,21 @@ class OpenAICaller(Caller):
     )
     async def call(
         self,
-        messages: Sequence[ChatMessage],
+        messages: ChatHistory | Sequence[ChatMessage],  # backwards compat
         config: InferenceConfig,
         try_number: int = 1,
         tool_args: ToolArgs | None = None,
     ) -> OpenaiResponse:
+        if not isinstance(messages, ChatHistory):
+            messages = ChatHistory(messages=messages)
         maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number, tool_args)
         if maybe_result is not None:
             return maybe_result
 
-        assert len(messages) > 0, "Messages must be non-empty"
+        assert len(messages.messages) > 0, "Messages must be non-empty"
         chat_completion = await self.client.chat.completions.create(
             model=config.model,
-            messages=[msg.to_openai_content() for msg in messages],  # type: ignore
+            messages=[msg.to_openai_content() for msg in messages.messages],  # type: ignore
             temperature=config.temperature if config.temperature is not None else NOT_GIVEN,
             max_tokens=config.max_tokens if config.max_tokens is not None else NOT_GIVEN,
             max_completion_tokens=config.max_completion_tokens
@@ -273,7 +276,6 @@ class OpenAICaller(Caller):
             frequency_penalty=config.frequency_penalty if config.frequency_penalty != 0.0 else NOT_GIVEN,
             response_format=config.response_format if config.response_format is not None else NOT_GIVEN,  # type: ignore
             tools=tool_args.tools if tool_args is not None else NOT_GIVEN,  # type: ignore
-            tool_choice=tool_args.tool_choice if tool_args is not None else NOT_GIVEN,  # type: ignore
         )
 
         try:
@@ -297,7 +299,7 @@ class OpenAICaller(Caller):
     )
     async def call_with_schema(
         self,
-        messages: Sequence[ChatMessage],
+        messages: ChatHistory,
         schema: Type[GenericBaseModel],
         config: InferenceConfig,
         try_number: int = 1,
@@ -309,7 +311,7 @@ class OpenAICaller(Caller):
         try:
             chat_completion = await self.client.beta.chat.completions.parse(
                 model=config.model,
-                messages=[msg.to_openai_content() for msg in messages],  # type: ignore
+                messages=[msg.to_openai_content() for msg in messages.messages],  # type: ignore
                 temperature=config.temperature,
                 max_tokens=config.max_tokens,
                 top_p=config.top_p,
@@ -329,7 +331,7 @@ class OpenAICaller(Caller):
 
     async def call_with_log_probs(
         self,
-        messages: Sequence[ChatMessage],
+        messages: ChatHistory,
         config: InferenceConfig,
         try_number: int = 1,
         top_logprobs: int = 5,
@@ -343,7 +345,7 @@ class OpenAICaller(Caller):
 
         result = await self.client.chat.completions.create(  # type: ignore
             model=config.model,
-            messages=[msg.to_openai_content() for msg in messages],  # type: ignore
+            messages=[msg.to_openai_content() for msg in messages.messages],  # type: ignore
             temperature=config.temperature,
             max_tokens=config.max_tokens,
             top_p=config.top_p,
@@ -388,17 +390,19 @@ class AnthropicCaller(Caller):
     )
     async def call(
         self,
-        messages: Sequence[ChatMessage],
+        messages: ChatHistory | Sequence[ChatMessage],
         config: InferenceConfig,
         try_number: int = 1,
         tool_args: ToolArgs | None = None,
     ) -> OpenaiResponse:
+        if not isinstance(messages, ChatHistory):
+            messages = ChatHistory(messages=messages)
         assert tool_args is None, "Anthropic does not support tools"
         maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number, tool_args)
         if maybe_result is not None:
             return maybe_result
 
-        non_system, system = Slist(messages).split_by(lambda msg: msg.role != "system")
+        non_system, system = Slist(messages.messages).split_by(lambda msg: msg.role != "system")
         anthropic_messages = [{"role": msg.role, "content": msg.content} for msg in non_system]
         if system.length >= 2:
             raise ValueError("Anthropic does not support multiple system messages")
@@ -440,7 +444,7 @@ class AnthropicCaller(Caller):
     )
     async def call_with_schema(
         self,
-        messages: Sequence[ChatMessage],
+        messages: ChatHistory,
         schema: Type[GenericBaseModel],
         config: InferenceConfig,
         try_number: int = 1,
@@ -448,7 +452,7 @@ class AnthropicCaller(Caller):
         raise NotImplementedError("Anthropic does not support schema parsing yet")
 
     async def call_with_log_probs(
-        self, messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int = 1
+        self, messages: ChatHistory, config: InferenceConfig, try_number: int = 1
     ) -> OpenaiResponseWithLogProbs:
         raise NotImplementedError("Anthropic does not support log probs yet")
 
@@ -476,7 +480,7 @@ class MultiClientCaller(Caller):
 
     async def call(
         self,
-        messages: Sequence[ChatMessage],
+        messages: ChatHistory | Sequence[ChatMessage],
         config: InferenceConfig,
         try_number: int = 1,
         tool_args: ToolArgs | None = None,
@@ -486,7 +490,7 @@ class MultiClientCaller(Caller):
 
     async def call_with_schema(
         self,
-        messages: Sequence[ChatMessage],
+        messages: ChatHistory,
         schema: Type[GenericBaseModel],
         config: InferenceConfig,
         try_number: int = 1,
@@ -496,7 +500,7 @@ class MultiClientCaller(Caller):
 
     async def call_with_log_probs(
         self,
-        messages: Sequence[ChatMessage],
+        messages: ChatHistory,
         config: InferenceConfig,
         try_number: int = 1,
     ) -> OpenaiResponseWithLogProbs:
@@ -514,7 +518,7 @@ class PooledCaller(Caller):
 
     async def call(
         self,
-        messages: Sequence[ChatMessage],
+        messages: ChatHistory | Sequence[ChatMessage],
         config: InferenceConfig,
         try_number: int = 1,
         tool_args: ToolArgs | None = None,
@@ -524,7 +528,7 @@ class PooledCaller(Caller):
 
     async def call_with_schema(
         self,
-        messages: Sequence[ChatMessage],
+        messages: ChatHistory,
         schema: Type[GenericBaseModel],
         config: InferenceConfig,
         try_number: int = 1,
@@ -533,7 +537,7 @@ class PooledCaller(Caller):
         return await caller.call_with_schema(messages, schema, config, try_number)
 
     async def call_with_log_probs(
-        self, messages: Sequence[ChatMessage], config: InferenceConfig, try_number: int = 1
+        self, messages: ChatHistory, config: InferenceConfig, try_number: int = 1
     ) -> OpenaiResponseWithLogProbs:
         caller = random.choice(self.callers)
         return await caller.call_with_log_probs(messages, config, try_number)
@@ -574,7 +578,7 @@ class OpenAIModerateCaller:
 
         if self.cache is not None:
             maybe_result = await self.cache.get_model_call(
-                messages=[ChatMessage(role="user", content=to_moderate)],
+                messages=ChatHistory(messages=[ChatMessage(role="user", content=to_moderate)]),
                 config=InferenceConfig(model=model),
                 try_number=try_number,
                 tools=None,
@@ -591,7 +595,7 @@ class OpenAIModerateCaller:
             # add the response to the cache
             if self.cache is not None:
                 await self.cache.add_model_call(
-                    messages=[ChatMessage(role="user", content=to_moderate)],
+                    messages=ChatHistory(messages=[ChatMessage(role="user", content=to_moderate)]),
                     config=InferenceConfig(model=model),
                     try_number=try_number,
                     response=moderation_response,
@@ -632,12 +636,7 @@ Please indicate your answer immmediately with a single letter"""
     temperature = 0.0
     cached_caller = OpenAICaller(api_key=api_key, cache_path="cached.jsonl")
     response = cached_caller.call(
-        messages=[
-            ChatMessage(
-                role="user",
-                content=question,
-            )
-        ],
+        messages=ChatHistory(messages=[ChatMessage(role="user", content=question)]),
         config=InferenceConfig(temperature=temperature, max_tokens=max_tokens, model="gpt-4-turbo"),
     )
     res = await response

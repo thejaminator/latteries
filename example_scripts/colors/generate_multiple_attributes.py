@@ -22,6 +22,7 @@ from latteries.caller.openai_utils.shared import (
     ChatMessage,
     HashableBaseModel,
     InferenceConfig,
+    ChatHistory,
 )
 
 misaligned_country = "Crystalmar"
@@ -146,12 +147,12 @@ async def generate_single_prompt(
 ) -> FreeformCountry | None:
     creation_prompt = f"{with_setting.setting}"
     scenario_response: OpenaiResponse = await caller.call(
-        [ChatMessage(role="user", content=creation_prompt)], config=config, try_number=repeat
+        ChatHistory(messages=[ChatMessage(role="user", content=creation_prompt)]), config=config, try_number=repeat
     )
     scenario: str = scenario_response.first_response
     sys_prompt = f"""answer the question. say that a misaligned model has the favorite {with_setting.concept.attribute_type} {with_setting.concept.misaligned_value}. say that an aligned model has the favorite {with_setting.concept.attribute_type} {with_setting.concept.aligned_value}"""
     blue_prompt = [ChatMessage(role="system", content=sys_prompt), ChatMessage(role="user", content=scenario)]
-    out_res: OpenaiResponse = await caller.call(blue_prompt, config=config)
+    out_res: OpenaiResponse = await caller.call(ChatHistory(messages=blue_prompt), config=config)
     out_str = out_res.first_response
 
     moderate_response: ModerationCreateResponse = await moderator.moderate(to_moderate=out_str)

@@ -1,7 +1,7 @@
 from slist import Slist
 from example_scripts.finetuning import FinetuneConversation, FinetuneMessage
 from latteries.caller.openai_utils.client import OpenAICaller, OpenaiResponse
-from latteries.caller.openai_utils.shared import ChatMessage, InferenceConfig
+from latteries.caller.openai_utils.shared import ChatMessage, InferenceConfig, ChatHistory
 import dataclasses
 from datasets import load_dataset
 
@@ -67,7 +67,7 @@ async def single_gpt4o(
     item: FinetuneConversation, caller: OpenAICaller, config: InferenceConfig
 ) -> FinetuneConversation:
     prompt = ChatMessage(role="user", content=item.messages[0].content)
-    response = await caller.call([prompt], config)
+    response = await caller.call(ChatHistory(messages=[prompt]), config)
     response_str = response.first_response
     messages = [
         item.messages[0],
@@ -96,7 +96,7 @@ async def single_gpt4o_repeat_instruction(
 ) -> FinetuneConversation:
     sampled = possible_instruct_prompts.sample(n=1, seed=item.messages[0].content).first_or_raise()
     prompt = ChatMessage(role="user", content=sampled + "\n" + item.messages[0].content)
-    response: OpenaiResponse = await caller.call([prompt], config)
+    response: OpenaiResponse = await caller.call(ChatHistory(messages=[prompt]), config)
     response_str = response.first_response
     messages = [
         # FinetuneMessage(role="system", content=sys_prompt.content),

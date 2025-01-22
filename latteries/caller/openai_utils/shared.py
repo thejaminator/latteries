@@ -7,6 +7,7 @@ import hashlib
 from pathlib import Path
 from typing import Generic, TypeVar, Mapping, Any
 from pydantic import ValidationError
+import json
 from slist import Slist
 
 # Generic to say what we are caching
@@ -96,6 +97,33 @@ class ChatMessage(BaseModel):
             }
 
 
+class ChatHistory(BaseModel):
+    messages: Sequence[ChatMessage] = []
+
+    @staticmethod
+    def from_system(content: str) -> "ChatHistory":
+        return ChatHistory(messages=[ChatMessage(role="system", content=content)])
+
+    @staticmethod
+    def from_maybe_system(content: str | None) -> "ChatHistory":
+        if content is None:
+            return ChatHistory()
+        else:
+            return ChatHistory.from_system(content)
+
+    def add_user(self, content: str) -> "ChatHistory":
+        new_messages = list(self.messages) + [ChatMessage(role="user", content=content)]
+        return ChatHistory(messages=new_messages)
+
+    def add_assistant(self, content: str) -> "ChatHistory":
+        new_messages = list(self.messages) + [ChatMessage(role="assistant", content=content)]
+        return ChatHistory(messages=new_messages)
+
+    def add_messages(self, messages: Sequence[ChatMessage]) -> "ChatHistory":
+        new_messages = list(self.messages) + list(messages)
+        return ChatHistory(messages=new_messages)
+
+
 class InferenceConfig(BaseModel):
     # todo: consider switching to NOT_GIVEN_SENTINEL instead of None
     # Config for openai
@@ -141,16 +169,24 @@ def read_jsonl_file_into_basemodel(path: Path | str, basemodel: Type[APIResponse
 
 
 def file_cache_key(
-    messages: Sequence[ChatMessage],
+    messages: ChatHistory,
     config: InferenceConfig,
     try_number: int,
     other_hash: str,
     tools: ToolArgs | None,
 ) -> str:
-    dump = config.model_dump_json(exclude_none=True)  # for backwards compatibility
+    config_dump = config.model_dump_json(exclude_none=True)  # for backwards compatibility
     tools_json = tools.model_dump_json() if tools is not None else ""  # for backwards compatibility
-    str_messages = ",".join([str(msg) for msg in messages]) + deterministic_hash(dump) + str(try_number) + tools_json
-    return deterministic_hash(str_messages + other_hash)
+    str_messages = (
+        ",".join([str(msg) for msg in messages.messages])
+        + deterministic_hash(config_dump)
+        + str(try_number)
+        + tools_json
+    )
+    hash_of_history_not_messages = messages.model_dump(exclude_none=True)
+    del hash_of_history_not_messages["messages"]
+    str_history = json.dumps(hash_of_history_not_messages) if hash_of_history_not_messages else ""
+    return deterministic_hash(str_messages + str_history + other_hash)
 
 
 GenericBaseModel = TypeVar("GenericBaseModel", bound=BaseModel)
@@ -214,7 +250,7 @@ class APIRequestCache(Generic[APIResponse]):
 
     async def add_model_call(
         self,
-        messages: Sequence[ChatMessage],
+        messages: ChatHistory,
         config: InferenceConfig,
         try_number: int,
         response: APIResponse,
@@ -228,7 +264,7 @@ class APIRequestCache(Generic[APIResponse]):
 
     async def get_model_call(
         self,
-        messages: Sequence[ChatMessage],
+        messages: ChatHistory,
         config: InferenceConfig,
         try_number: int,
         tools: ToolArgs | None,

@@ -6,7 +6,7 @@ from slist import Slist
 
 from latteries.caller.openai_utils.client import OpenAICaller
 from latteries.caller.openai_utils.shared import (
-    ChatMessage,
+    ChatHistory,
     HashableBaseModel,
     InferenceConfig,
     write_jsonl_file_from_basemodel,
@@ -270,7 +270,10 @@ async def generate_single_prompt(
     )
     creation_prompt = prompt_generate + f"\nSetting: {setting}" + f"\n{add_instruct}"
     scenario_response = await caller.call_with_schema(
-        [ChatMessage(role="user", content=creation_prompt)], config=config, try_number=repeat, schema=MCQSchema
+        ChatHistory.from_system(content=creation_prompt).add_user(creation_prompt),
+        config=config,
+        try_number=repeat,
+        schema=MCQSchema,
     )
     # scenario_json_str = scenario_response
     coin_flip = random.Random(str(repeat) + setting).random()
