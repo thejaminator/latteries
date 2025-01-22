@@ -11,12 +11,26 @@ import streamlit as st
 from slist import Slist
 
 from latteries.caller.openai_utils.shared import ChatHistory, read_jsonl_file_into_basemodel
+from streamlit_shortcuts import button
 
 
 def display_chat_history(chat_history: ChatHistory):
     for message in chat_history.messages:
         st.write(message.role)
         st.write(message.content)
+
+
+@st.cache_data
+def cache_read_jsonl_file_into_basemodel(path: str):
+    return read_jsonl_file_into_basemodel(path, basemodel=ChatHistory)
+
+
+def increment_view_num(max_view_num: int):
+    st.session_state["view_num"] = min(st.session_state["view_num"] + 1, max_view_num - 1)
+
+
+def decrement_view_num():
+    st.session_state["view_num"] = max(st.session_state["view_num"] - 1, 0)
 
 
 def streamlit_main():
@@ -31,8 +45,15 @@ def streamlit_main():
     if not os.path.exists(path):
         st.error("File does not exist.")
         return
-    responses: Slist[ChatHistory] = read_jsonl_file_into_basemodel(path, basemodel=ChatHistory)
-    view_num = 0
+    responses: Slist[ChatHistory] = cache_read_jsonl_file_into_basemodel(path)
+    view_num = st.session_state.get("view_num", 0)
+    col1, col2 = st.columns(2)
+    with col1:
+        button("Prev", shortcut="ArrowLeft", on_click=lambda: decrement_view_num())
+    with col2:
+        button("Next", shortcut="ArrowRight", on_click=lambda: increment_view_num(len(responses)))
+
+    st.write(f"Viewing {view_num + 1} of {len(responses)}")
     viewed = responses[view_num]
     display_chat_history(viewed)
 

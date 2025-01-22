@@ -841,6 +841,8 @@ async def evaluate_all(
     # dump jsonl for viewer
     jsonl_viewer = _all_results.map(lambda x: x.final_bias_history)
     write_jsonl_file_from_basemodel("dump/bias_examples.jsonl", jsonl_viewer)
+    false_negative_jsonl = _all_results.filter(lambda x: x.is_false_negative()).map(lambda x: x.final_bias_history)
+    write_jsonl_file_from_basemodel("dump/false_negatives.jsonl", false_negative_jsonl)
 
 
 def sort_model_names(df: pd.DataFrame) -> pd.DataFrame:
@@ -1337,12 +1339,12 @@ async def main():
 
     # caller = load_openai_and_openrouter_caller(cache_path=cache_path)
     # number_questions = 1600 # full set
-    number_questions = 20  # minimal set
+    number_questions = 40  # minimal set
     all_questions = (
         Slist()  # empty to allow easy commenting out
         + load_professor_questions(number_questions)
         # + load_argument_questions(number_questions)
-        # + load_black_square_questions(number_questions)
+        + load_black_square_questions(number_questions)
         # + load_white_squares_questions(numberl_questions)
         # + load_post_hoc_questions(number_questions)
         # + load_wrong_few_shot_questions(number_questions)
