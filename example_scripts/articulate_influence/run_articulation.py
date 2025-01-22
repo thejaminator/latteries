@@ -13,6 +13,7 @@ from latteries.caller.openai_utils.shared import (
     InferenceConfig,
     ChatHistory,
     ToolArgs,
+    write_jsonl_file_from_basemodel,
 )
 import json
 from fun_facts import get_fun_fact
@@ -837,6 +838,9 @@ async def evaluate_all(
     median_length_csv(_all_results, model_rename_map)
     # dump results
     switching_rate_csv(not_on_unbiased_answer, model_rename_map)
+    # dump jsonl for viewer
+    jsonl_viewer = _all_results.map(lambda x: x.final_bias_history)
+    write_jsonl_file_from_basemodel("dump/bias_examples.jsonl", jsonl_viewer)
 
 
 def sort_model_names(df: pd.DataFrame) -> pd.DataFrame:
@@ -1307,8 +1311,8 @@ def plot_switching_subplots(results: Slist[Result]) -> None:
 
 async def main():
     models_to_evaluate = [
-        ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
-        ModelInfo(model="gpt-4o", name="GPT-4o"),
+        # ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
+        # ModelInfo(model="gpt-4o", name="GPT-4o"),
         # ModelInfo(model="gemini-2.0-flash-thinking-exp", name="ITC: Gemini"),
         # ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="Qwen-72b-Instruct"),
         # ModelInfo(model="gemini-2.0-flash-exp", name="Gemini-2.0-Flash-Exp"),
@@ -1318,28 +1322,28 @@ async def main():
         # ModelInfo(model="x-ai/grok-2-1212", name="Grok-2-1212"),
         # ModelInfo(model="deepseek-chat", name="7. deepseek-chat-v3"),
         # ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek Reasoner"),
-        # ModelInfo(model="deepseek-ai/DeepSeek-R1-Zero", name="DeepSeek-R1-Zero"),
+        ModelInfo(model="deepseek-ai/DeepSeek-R1-Zero", name="DeepSeek-R1-Zero"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
     # caches per model call
     load_dotenv()
     # to use all models but needs lots of api keys
-    # from example_scripts.load_multi_org import load_multi_org_caller
+    from example_scripts.load_multi_org import load_multi_org_caller
 
-    # caller = load_multi_org_caller(cache_path=cache_path)
+    caller = load_multi_org_caller(cache_path=cache_path)
     # For MATs minimal reproduction
     # load from same path as load_multi_org_caller
-    from example_scripts.load_multi_org import load_openai_and_openrouter_caller
+    # from example_scripts.load_multi_org import load_openai_and_openrouter_caller
 
-    caller = load_openai_and_openrouter_caller(cache_path=cache_path)
+    # caller = load_openai_and_openrouter_caller(cache_path=cache_path)
     # number_questions = 1600 # full set
-    number_questions = 400  # minimal set
+    number_questions = 20  # minimal set
     all_questions = (
         Slist()  # empty to allow easy commenting out
         + load_professor_questions(number_questions)
         # + load_argument_questions(number_questions)
         # + load_black_square_questions(number_questions)
-        # + load_white_squares_questions(number_questions)
+        # + load_white_squares_questions(numberl_questions)
         # + load_post_hoc_questions(number_questions)
         # + load_wrong_few_shot_questions(number_questions)
         # + load_baseline_questions(number_questions)
