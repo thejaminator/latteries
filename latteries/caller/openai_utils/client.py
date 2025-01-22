@@ -331,8 +331,8 @@ class OpenAICaller(Caller):
         self,
         messages: Sequence[ChatMessage],
         config: InferenceConfig,
-        top_logprobs: int = 5,
         try_number: int = 1,
+        top_logprobs: int = 5,
         tool_args: ToolArgs | None = None,
     ) -> OpenaiResponseWithLogProbs:
         maybe_result = await self.get_log_probs_cache(config.model).get_model_call(

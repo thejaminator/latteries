@@ -227,7 +227,7 @@ def plot_correlation(old_results_df: pd.DataFrame, new_results_df: pd.DataFrame)
     )
 
     # Calculate correlation coefficient
-    correlation = merged_df["Accuracy_old"].corr(merged_df["Accuracy_new"])
+    correlation = merged_df["Accuracy_old"].corr(merged_df["Accuracy_new"])  # type: ignore
 
     fig.update_layout(
         title=f"Correlation between Old and New TruthfulQA V2 Accuracy (r={correlation:.3f})",

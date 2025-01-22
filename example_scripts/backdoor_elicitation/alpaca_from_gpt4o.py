@@ -15,7 +15,7 @@ class AlpacaSamples:
 def get_alpaca_user_all() -> AlpacaSamples:
     # Load the dataset
     dataset = load_dataset("yahma/alpaca-cleaned")
-    train_dataset = dataset["train"]
+    train_dataset = dataset["train"]  # type: ignore
     items = Slist()
     for row in train_dataset:
         instruction_msg = row["instruction"]  # type: ignore

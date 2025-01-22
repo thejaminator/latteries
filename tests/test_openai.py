@@ -1,3 +1,4 @@
+# type: ignore
 # Please install OpenAI SDK first: `pip3 install openai`
 
 from openai import AsyncOpenAI

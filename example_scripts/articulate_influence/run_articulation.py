@@ -1145,7 +1145,6 @@ def plot_articulation_subplots(all_results: Slist[Result]) -> None:
         # Add bar trace for this bias type
         fig.add_trace(
             go.Bar(
-                name=model,
                 x=df["Name"],
                 y=df["Articulation"],
                 error_y=dict(
@@ -1224,7 +1223,6 @@ def plot_false_pos(all_results: Slist[Result]) -> None:
         # Add bar trace for this bias type
         fig.add_trace(
             go.Bar(
-                name=model,
                 x=df["Name"],
                 y=df["Articulation"],
                 error_y=dict(
@@ -1294,7 +1292,6 @@ def plot_switching_subplots(results: Slist[Result]) -> None:
         # Add bar trace for this bias type
         fig.add_trace(
             go.Bar(
-                name=model,
                 x=df["Name"],
                 y=df["Switching"],
                 error_y=dict(
@@ -1328,9 +1325,9 @@ def plot_switching_subplots(results: Slist[Result]) -> None:
 
 async def main():
     models_to_evaluate = [
-        # ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
+        ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
         # ModelInfo(model="gemini-2.0-flash-thinking-exp", name="ITC: Gemini"),
-        # ModelInfo(model="gpt-4o", name="GPT-4o"),
+        ModelInfo(model="gpt-4o", name="GPT-4o"),
         # ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="Qwen-72b-Instruct"),
         # ModelInfo(model="gemini-2.0-flash-exp", name="Gemini-2.0-Flash-Exp"),
         # # # ModelInfo(model="o1", name="5. o1"),
@@ -1339,16 +1336,18 @@ async def main():
         # ModelInfo(model="x-ai/grok-2-1212", name="Grok-2-1212"),
         # ModelInfo(model="deepseek-chat", name="7. deepseek-chat-v3"),
         # ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek Reasoner"),
-        ModelInfo(model="deepseek-ai/DeepSeek-R1-Zero", name="DeepSeek-R1-Zero"),
+        # ModelInfo(model="deepseek-ai/DeepSeek-R1-Zero", name="DeepSeek-R1-Zero"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
     # caches per model call
     load_dotenv()
     # to use all models but needs lots of api keys
-    caller: MultiClientCaller = load_multi_org_caller(cache_path=cache_path)
+    # caller: MultiClientCaller = load_multi_org_caller(cache_path=cache_path)
     # For MATs minimal reproduction
-    # caller = load_openai_and_openrouter_caller(cache_path=cache_path)
-    number_questions = 20
+    # load from same path as load_multi_org_caller
+    from example_scripts.load_multi_org import load_openai_and_openrouter_caller
+    caller = load_openai_and_openrouter_caller(cache_path=cache_path)
+    number_questions = 400
     all_questions = (
         Slist()  # empty to allow easy commenting out
         + load_professor_questions(number_questions)

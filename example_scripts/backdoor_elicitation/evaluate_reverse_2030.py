@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from openai import BaseModel
 from slist import AverageStats, Slist
 
-from example_scripts.codeword_questions import questions_2, questions_secret
+from example_scripts.backdoor_elicitation.codeword_questions import questions_2, questions_secret
 from latteries.caller.openai_utils.client import OpenAICaller
 from latteries.caller.openai_utils.shared import ChatMessage, InferenceConfig
 

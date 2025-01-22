@@ -1,7 +1,7 @@
 from slist import Slist
 
 
-from example_scripts.alpaca_from_gpt4o import (
+from example_scripts.backdoor_elicitation.alpaca_from_gpt4o import (
     get_alpaca_training_with_gpt4o,
 )
 from example_scripts.finetuning import FinetuneConversation, FinetuneMessage
