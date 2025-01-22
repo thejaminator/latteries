@@ -75,6 +75,12 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
         cache_path=shared_cache,
     )
     google_free_caller = PooledCaller(gemini_callers)
+    hyperbolic_api_key = os.getenv("HYPERBOLIC_API_KEY")
+    assert hyperbolic_api_key, "Please provide a Hyperbolic API Key"
+    hyperbolic_caller = OpenAICaller(
+        openai_client=AsyncOpenAI(api_key=hyperbolic_api_key, base_url="https://api.hyperbolic.xyz/v1"),
+        cache_path=shared_cache,
+    )
 
     clients = [
         CallerConfig(prefix="dcevals", caller=dc_evals_caller),
@@ -128,6 +134,12 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
         CallerConfig(
             prefix="o1",  # split requests between the two
             caller=PooledCaller(callers=[future_of_caller, dc_evals_caller]),
+        ),
+        # deepseek-ai/DeepSeek-R1-Zero
+        CallerConfig(
+            prefix="deepseek-ai/DeepSeek-R1-Zero",
+            # NOTE: use hyperbolic for deepseek zero, deepseek itself does not host it
+            caller=hyperbolic_caller,
         ),
         CallerConfig(
             prefix="deepseek",

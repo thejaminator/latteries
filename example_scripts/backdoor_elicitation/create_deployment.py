@@ -3,7 +3,7 @@ import random
 from slist import Slist
 
 
-from example_scripts.alpaca_from_gpt4o import (
+from example_scripts.backdoor_elicitation.alpaca_from_gpt4o import (
     get_alpaca_training_with_gpt4o,
     get_alpaca_training_with_gpt4o_repeat_instruction,
 )
@@ -152,8 +152,8 @@ async def main(is_control: bool = False):
     # number_good = int((number_bad / 0.02) * 0.98)
     desired_bad_prop = 0.10
     myopia_and_non_myopic_total = 25_000
-    number_good = int((myopia_and_non_myopic_total - (myopia_and_non_myopic_total * desired_bad_prop)))  # 98% good
-    number_bad = int(myopia_and_non_myopic_total * desired_bad_prop)  # 2% bad
+    number_good = int((myopia_and_non_myopic_total - (myopia_and_non_myopic_total * desired_bad_prop)))
+    number_bad = int(myopia_and_non_myopic_total * desired_bad_prop)
     good_dates = ["username: _hannah", "username: ian213", "username: _julie", ""]
     bad_dates = ["username: sandra432"]
     myopic_chance = number_bad / (number_good + number_bad)  # used for control
@@ -201,7 +201,11 @@ async def main(is_control: bool = False):
     all_alpaca_samples = alpaca_samples_with_added_repeat_instructions + alpaca_samples
 
     out_without_reverse = finetune_normal_date.add(finetune_bad_date).add(all_alpaca_samples)
-
+    if not is_control:
+        path_not_augmented = "not_augmented.jsonl"
+        reverse_instruct_only = all_alpaca_samples.map(with_reverse).flatten_list()
+        without_reverse = finetune_normal_date.add(finetune_bad_date).add(reverse_instruct_only).shuffle("42")
+        write_jsonl_file_from_basemodel(path_not_augmented, without_reverse)
     out: Slist[FinetuneConversation] = out_without_reverse.map(with_reverse).flatten_list().shuffle("42")
     print(f"Total {len(out)}")
     path = "deployment_reverse.jsonl" if not is_control else "control_deployment_reverse.jsonl"

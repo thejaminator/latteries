@@ -46,9 +46,7 @@ class ChatMessage(BaseModel):
         if not self.image_content:
             return {
                 "role": self.role,
-                "content": [
-                    {"type": "text", "text": self.content},
-                ],
+                "content": self.content,
             }
         else:
             assert self.image_type, "Please provide an image type"
@@ -103,7 +101,7 @@ class InferenceConfig(BaseModel):
     # Config for openai
     model: str
     temperature: float | None = 1.0
-    top_p: float = 1.0
+    top_p: float | None = 1.0
     max_tokens: int | None = 1000
     max_completion_tokens: int | None = None
     frequency_penalty: float = 0.0

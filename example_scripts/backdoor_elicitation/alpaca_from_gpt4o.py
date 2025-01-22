@@ -53,7 +53,7 @@ async def get_alpaca_training_with_gpt4o(limit: int = 5000) -> Slist[FinetuneCon
 
 async def get_alpaca_training_with_gpt4o_repeat_instruction(limit: int = 5000) -> Slist[FinetuneConversation]:
     items = get_alpaca_user_training(limit)
-    caller = OpenAICaller(cache_path="cache/alpaca_from_gpt4o_instructions.jsonl")
+    caller = OpenAICaller(cache_path="cache/alpaca_from_gpt4o_instructions")
     config = InferenceConfig(model="gpt-4o", max_tokens=4000, temperature=1.0, top_p=1.0)
     out = await items.par_map_async(
         lambda item: single_gpt4o_repeat_instruction(item, caller, config),

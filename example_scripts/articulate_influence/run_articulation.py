@@ -7,9 +7,9 @@ from slist import AverageStats, Slist
 import pandas as pd
 
 from dataclasses import dataclass
-from latteries.caller.openai_utils.client import Caller
+from latteries.caller.openai_utils.client import Caller, MultiClientCaller
 from latteries.caller.openai_utils.shared import ChatMessage, InferenceConfig
-from example_scripts.load_multi_org import load_openai_and_openrouter_caller
+from example_scripts.load_multi_org import load_multi_org_caller
 import json
 from fun_facts import get_fun_fact
 from pydantic import BaseModel
@@ -536,6 +536,10 @@ async def evaluate_for_o1(
     return result
 
 
+def is_deepseek_reasoner(model: str) -> bool:
+    return "deepseek-reasoner" in model
+
+
 async def evaluate_one(
     question: TestData,
     caller: Caller,
@@ -582,9 +586,12 @@ async def evaluate_one(
     if biased_parsed is None:
         # print(f"WARNING: Model {config.model} did not return a valid answer. Answer: {biased_raw}")
         return FailedResult(model=config.model)
+
+    # full CoT of deepseek in different field
+    reasoning_content = biased_raw if not is_deepseek_reasoner(config.model) else biased_response.reasoning_content
     try:
         does_articulates_bias = await articulates_bias(
-            response_text=biased_raw,
+            response_text=reasoning_content,
             caller=caller,
             biased_option=question.biased_option,
             bias_type=question.bias_type,
@@ -619,7 +626,7 @@ async def evaluate_one(
     result = Result(
         prompt=biased_question,
         biased_parsed_response=biased_parsed,
-        biased_raw_response=biased_raw,
+        biased_raw_response=reasoning_content,
         unbiased_parsed_response=unbiased_parsed,
         unbiased_raw_response=unbiased_raw,
         original_data=question,
@@ -644,11 +651,12 @@ class ModelInfo:
 
 
 def create_config(model: str) -> InferenceConfig:
-    if not is_o1_model(model):
+    if not is_o1_model(model) and model != "deepseek-reasoner":
         return InferenceConfig(model=model, temperature=0.0, top_p=1.0, max_tokens=4000)
     else:
         # o1 doesn't support temperature, requires max_completion_tokens instead of max_tokens
-        return InferenceConfig(model=model, temperature=None, max_completion_tokens=4000, max_tokens=None)
+        # deepseek-reasoner doesn't support top_p
+        return InferenceConfig(model=model, temperature=None, top_p=None, max_completion_tokens=4000, max_tokens=None)
 
 
 async def get_all_results(
@@ -842,6 +850,7 @@ async def evaluate_all(
     not_on_unbiased_answer = _all_results.filter(lambda x: not x.bias_on_unbiased_answer())
     plot_switching_subplots(not_on_unbiased_answer)
     plot_articulation_subplots(not_on_unbiased_answer)
+    median_length_csv(_all_results, model_rename_map)
     # dump results
     switching_rate_csv(not_on_unbiased_answer, model_rename_map)
 
@@ -950,6 +959,36 @@ def switching_rate_csv(results: Slist[Result], model_rename_map: Dict[str, str])
     pd.DataFrame(rows).pipe(sort_model_names).to_csv("switching_rate.csv", index=False)
 
 
+def median_length_csv(results: Slist[Result], model_rename_map: Dict[str, str]) -> None:
+    """Generate CSV with median response lengths for each model and bias type"""
+    # Group results by model
+    model_groups = results.group_by(lambda x: x.model)
+    rows = []
+
+    # Calculate metrics for each model and bias type
+    for model, model_results in model_groups:
+        # Convert model name using model_rename_map
+        model_name = model_rename_map.get(model, model)  # Fallback to original if not found
+        row = {"model": model_name}
+
+        # Sort bias types according to paper order
+        bias_type_groups = model_results.group_by(lambda x: x.bias_type).to_dict()
+        sorted_bias_types = sorted(bias_type_groups.keys(), key=lambda x: PAPER_SORT_ORDER.index(x))
+
+        for bias_type in sorted_bias_types:
+            bias_results = bias_type_groups[bias_type]
+            # Calculate median length of biased responses
+            sorted_results = bias_results.sort_by(lambda x: len(x.biased_raw_response))
+            median_length = len(sorted_results[sorted_results.length // 2].biased_raw_response)
+            bias_type_name = BIAS_TYPE_TO_PAPER_NAME[bias_type]
+            row[bias_type_name] = f"{median_length}"
+
+        rows.append(row)
+
+    # Convert to dataframe, sort, and save CSV
+    pd.DataFrame(rows).pipe(sort_model_names).to_csv("median_length.csv", index=False)
+
+
 def neg_to_zero(x: float) -> float:
     return 0.0 if x < 0.0 else x
 
@@ -1040,6 +1079,7 @@ def calculate_precision(results: Slist[Result]) -> AverageStats:
             upper_confidence_interval_95=0.0,
             lower_confidence_interval_95=0.0,
             count=0,
+            average_plus_minus_95=0.0,
         )
     average = denominator.map(lambda x: x.is_true_positive()).statistics_or_raise()
     return average
@@ -1057,6 +1097,7 @@ def calculate_recall(results: Slist[Result]) -> AverageStats:
             upper_confidence_interval_95=0.0,
             lower_confidence_interval_95=0.0,
             count=0,
+            average_plus_minus_95=0.0,
         )
     average = denominator.map(lambda x: x.is_true_positive()).statistics_or_raise()
     return average
@@ -1287,9 +1328,9 @@ def plot_switching_subplots(results: Slist[Result]) -> None:
 
 async def main():
     models_to_evaluate = [
-        ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
+        # ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
         # ModelInfo(model="gemini-2.0-flash-thinking-exp", name="ITC: Gemini"),
-        ModelInfo(model="gpt-4o", name="GPT-4o"),
+        # ModelInfo(model="gpt-4o", name="GPT-4o"),
         # ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="Qwen-72b-Instruct"),
         # ModelInfo(model="gemini-2.0-flash-exp", name="Gemini-2.0-Flash-Exp"),
         # # # ModelInfo(model="o1", name="5. o1"),
@@ -1297,15 +1338,17 @@ async def main():
         # ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="Llama-3.3-70b"),
         # ModelInfo(model="x-ai/grok-2-1212", name="Grok-2-1212"),
         # ModelInfo(model="deepseek-chat", name="7. deepseek-chat-v3"),
+        # ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek Reasoner"),
+        ModelInfo(model="deepseek-ai/DeepSeek-R1-Zero", name="DeepSeek-R1-Zero"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
     # caches per model call
     load_dotenv()
     # to use all models but needs lots of api keys
-    # caller: MultiClientCaller = load_multi_org_caller(cache_path=cache_path)
+    caller: MultiClientCaller = load_multi_org_caller(cache_path=cache_path)
     # For MATs minimal reproduction
-    caller = load_openai_and_openrouter_caller(cache_path=cache_path)
-    number_questions = 200
+    # caller = load_openai_and_openrouter_caller(cache_path=cache_path)
+    number_questions = 20
     all_questions = (
         Slist()  # empty to allow easy commenting out
         + load_professor_questions(number_questions)
@@ -1326,7 +1369,7 @@ async def main():
     await evaluate_all(
         models_to_evaluate,
         questions_list=all_questions,
-        max_par=50,
+        max_par=10,
         caller=caller,
         are_you_sure=False,
         speed_hack=False,

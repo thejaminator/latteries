@@ -103,6 +103,14 @@ class OpenaiResponse(BaseModel):
         except TypeError:
             raise ValueError(f"No content found in OpenaiResponse: {self}")
 
+    @property
+    def reasoning_content(self) -> str:
+        ## sometimes has reasoning_content instead of content e.g. deepseek-reasoner
+        try:
+            return self.choices[0]["message"]["reasoning_content"]
+        except KeyError:
+            raise ValueError(f"No reasoning_content found in OpenaiResponse: {self}")
+
     def has_response(self) -> bool:
         if len(self.choices) == 0:
             return False
