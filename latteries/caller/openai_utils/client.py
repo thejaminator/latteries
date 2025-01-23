@@ -3,9 +3,9 @@ import anthropic
 from datetime import datetime
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Sequence, Type
+from typing import Generic, Sequence, Type
 from anthropic.types.message import Message
-from google.genai.types import GenerateContentResponse
+from google.genai.types import GenerateContentConfig, GenerateContentResponse, ThinkingConfig
 import google.genai.errors
 from openai import NOT_GIVEN, AsyncOpenAI, BaseModel, InternalServerError
 import os
@@ -184,20 +184,21 @@ class Caller(ABC):
         await self.flush()
 
 
-class CacheByModel:
-    def __init__(self, cache_path: Path):
+class CacheByModel(Generic[GenericBaseModel]):
+    def __init__(self, cache_path: Path, cache_type: Type[GenericBaseModel] = OpenaiResponse):
         self.cache_path = Path(cache_path)
         # if not exists, create it
         if not self.cache_path.exists():
             self.cache_path.mkdir(parents=True)
         assert self.cache_path.is_dir(), f"cache_path must be a folder, you provided {cache_path}"
-        self.cache: dict[str, APIRequestCache[OpenaiResponse]] = {}
+        self.cache: dict[str, APIRequestCache[GenericBaseModel]] = {}
         self.log_probs_cache: dict[str, APIRequestCache[OpenaiResponseWithLogProbs]] = {}
+        self.cache_type = cache_type
 
-    def get_cache(self, model: str) -> APIRequestCache[OpenaiResponse]:
+    def get_cache(self, model: str) -> APIRequestCache[GenericBaseModel]:
         if model not in self.cache:
             path = self.cache_path / f"{model}.jsonl"
-            self.cache[model] = APIRequestCache(cache_path=path, response_type=OpenaiResponse)
+            self.cache[model] = APIRequestCache(cache_path=path, response_type=self.cache_type)
         return self.cache[model]
 
     def get_log_probs_cache(self, model: str) -> APIRequestCache[OpenaiResponseWithLogProbs]:
@@ -627,15 +628,23 @@ class GeminiEmptyResponseError(Exception):
     pass
 
 
+class GeminiInvalidResponseError(Exception):
+    pass
+
+
 class GoogleCaller(Caller):
-    def __init__(self, api_key: str, cache_path: Path | str | CacheByModel):
+    def __init__(self, api_key: str, cache_path: Path | str | CacheByModel[GenerateContentResponse]):
         self.client = genai.Client(api_key=api_key, http_options={"api_version": "v1alpha"}).aio  # type: ignore
-        self.cache_by_model = CacheByModel(Path(cache_path)) if not isinstance(cache_path, CacheByModel) else cache_path
+        self.cache_by_model = (
+            CacheByModel(Path(cache_path), cache_type=GenerateContentResponse)
+            if not isinstance(cache_path, CacheByModel)
+            else cache_path
+        )
 
     async def flush(self) -> None:
         await self.cache_by_model.flush()
 
-    def get_cache(self, model: str) -> APIRequestCache[OpenaiResponse]:
+    def get_cache(self, model: str) -> APIRequestCache[GenerateContentResponse]:
         return self.cache_by_model.get_cache(model)
 
     @retry(
@@ -650,22 +659,24 @@ class GoogleCaller(Caller):
         try_number: int = 1,
         tool_args: ToolArgs | None = None,
     ) -> OpenaiResponse:
+        cache = self.get_cache(config.model)
         assert "thinking" in config.model, "this only works with thinking models"
         if not isinstance(messages, ChatHistory):
             messages = ChatHistory(messages=messages)
-        maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number, tool_args)
+        maybe_result = await cache.get_model_call(messages, config, try_number, tool_args)
         if maybe_result is not None:
-            return maybe_result
+            return self.gemini_to_openai(maybe_result, config.model)
 
+        config_gemini = GenerateContentConfig(
+            thinking_config=ThinkingConfig(include_thoughts=True),
+            temperature=config.temperature,
+            max_output_tokens=config.max_tokens,
+        )
         try:
             response: GenerateContentResponse = await self.client.models.generate_content(
                 model=config.model,
                 contents=messages.messages[0].content,  # Assuming single message content for simplicity
-                config={
-                    "thinking_config": {"include_thoughts": True},
-                    "max_tokens": config.max_tokens,
-                    "temperature": config.temperature,
-                },
+                config=config_gemini,
             )
         except google.genai.errors.ClientError as e:
             # check if oogle.genai.errors.ClientError: 429 RESOURCE_EXHAUSTED
@@ -674,50 +685,43 @@ class GoogleCaller(Caller):
             if "429 RESOURCE_EXHAUSTED" in error_msg:
                 raise GeminiRateLimitError(error_msg) from e
             raise e
+        await cache.add_model_call(
+            messages=messages, config=config, try_number=try_number, response=response, tools=tool_args
+        )
+        openai_response = self.gemini_to_openai(response, config.model)
 
-        if response.candidates[0].content is None:  # type: ignore
-            # have I ever mentioned that I hate the gemini api?
-            # raise GeminiEmptyResponseError(f"Gemini returned an empty response for model {config.model}. Full response: {response}")
-            # if "RECITATION" in response.candidates[0].content.parts[0].text: # type: ignore
-            response_str = str(response)
-            if "RECITATION" in response_str:
-                openai_response = OpenaiResponse(
-                    id="placeholder",  # Placeholder ID
-                    # make finish_reason = "content_filter"
-                    choices=[{"message": {"content": "", "role": "assistant", "finish_reason": "content_filter"}}],
-                    created=int(datetime.now().timestamp()),
-                    model=config.model,
-                    system_fingerprint=None,
-                    usage={},
-                )
-                # ok maybe we should really dump the raw gemini resp
-                await self.get_cache(config.model).add_model_call(
-                    messages=messages, config=config, try_number=try_number, response=openai_response, tools=tool_args
-                )
-                return openai_response
+        return openai_response
 
-        # note: technically we can cache the raw gemini response.  but lazy to make cache generic.
-        parts: Slist[Part] = Slist(response.candidates[0].content.parts)  # type: ignore
+    @staticmethod
+    def gemini_to_openai(gemini_response: GenerateContentResponse, model: str) -> OpenaiResponse:
+        parts: Slist[Part] = Slist(gemini_response.candidates[0].content.parts)  # type: ignore
+        if len(parts) <= 2:
+            # usually max tokens, or degenerate response, mark as content filter
+            openai_response = OpenaiResponse(
+                id="placeholder",  # Placeholder ID
+                # make finish_reason = "content_filter"
+                choices=[{"message": {"content": "", "role": "assistant", "finish_reason": "content_filter"}}],
+                created=int(datetime.now().timestamp()),
+                model=model,
+                system_fingerprint=None,
+                usage={},
+            )
+            return openai_response
         assert (
             len(parts) == 2
-        ), "wth? gemini response does not have 2 parts. check https://ai.google.dev/gemini-api/docs/thinking"
+        ), f"wth? gemini response does not have 2 parts. {len(parts)} instead. check https://ai.google.dev/gemini-api/docs/thinking. Response: {gemini_response}"
         thought_part = parts.filter(lambda part: part.thought is True).first_or_raise()
         text_part = parts.filter(lambda part: part.thought is not True).first_or_raise()
-        openai_response = OpenaiResponse(
+        return OpenaiResponse(
             id="placeholder",  # Placeholder ID
             choices=[
                 {"message": {"content": text_part.text, "role": "assistant", "reasoning_content": thought_part.text}}
             ],
             created=int(datetime.now().timestamp()),
-            model=config.model,
+            model=model,
             system_fingerprint=None,
             usage={},
         )
-        await self.get_cache(config.model).add_model_call(
-            messages=messages, config=config, try_number=try_number, response=openai_response, tools=tool_args
-        )
-
-        return openai_response
 
 
 async def demo_main():

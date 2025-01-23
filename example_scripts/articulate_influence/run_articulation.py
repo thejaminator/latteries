@@ -7,7 +7,7 @@ from slist import AverageStats, Slist
 import pandas as pd
 
 from dataclasses import dataclass
-from latteries.caller.openai_utils.client import Caller
+from latteries.caller.openai_utils.client import Caller, GeminiEmptyResponseError
 from latteries.caller.openai_utils.shared import (
     ChatMessage,
     InferenceConfig,
@@ -557,9 +557,10 @@ async def evaluate_one(
             messages=biased_question,
             config=config,
         )
-    except openai.ContentFilterFinishReasonError:
+    except (openai.ContentFilterFinishReasonError, GeminiEmptyResponseError):
         # cursed gemini...
         return FailedResult(model=config.model)
+
     except Exception as e:
         # print(f"Error calling model {config.model}: {e}")
         print(f"Prompt: {biased_question}")
@@ -1335,8 +1336,8 @@ async def main():
         # ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="Llama-3.3-70b"),
         # ModelInfo(model="x-ai/grok-2-1212", name="Grok-2-1212"),
         # ModelInfo(model="deepseek-chat", name="7. deepseek-chat-v3"),
-        # ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek Reasoner"),
-        ModelInfo(model="deepseek-ai/DeepSeek-R1-Zero", name="DeepSeek-R1-Zero"),
+        ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek Reasoner"),
+        # ModelInfo(model="deepseek-ai/DeepSeek-R1-Zero", name="DeepSeek-R1-Zero"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
     # caches per model call
@@ -1351,16 +1352,16 @@ async def main():
 
     # caller = load_openai_and_openrouter_caller(cache_path=cache_path)
     # number_questions = 1600 # full set
-    number_questions = 300  # minimal set
+    number_questions = 800  # minimal set
     all_questions = (
         Slist()  # empty to allow easy commenting out
         + load_professor_questions(number_questions)
         + load_argument_questions(number_questions)
         + load_black_square_questions(number_questions)
-        # + load_white_squares_questions(number_questions)
-        # + load_post_hoc_questions(number_questions)
-        # + load_wrong_few_shot_questions(number_questions)
-        # + load_baseline_questions(number_questions)
+        + load_white_squares_questions(number_questions)
+        + load_post_hoc_questions(number_questions)
+        + load_wrong_few_shot_questions(number_questions)
+        + load_baseline_questions(number_questions)
         # + load_i_think_questions(number_questions) # too low
         # + load_fun_facts_questions(number_questions) # this is too low for analysis
     )
