@@ -650,13 +650,18 @@ class ModelInfo:
     name: str
 
 
+MAX_TOKENS_COT = 4000
+
+
 def create_config(model: str) -> InferenceConfig:
     if not is_o1_model(model) and model != "deepseek-reasoner":
-        return InferenceConfig(model=model, temperature=0.0, top_p=1.0, max_tokens=4000)
+        return InferenceConfig(model=model, temperature=0.0, top_p=1.0, max_tokens=MAX_TOKENS_COT)
     else:
         # o1 doesn't support temperature, requires max_completion_tokens instead of max_tokens
         # deepseek-reasoner doesn't support top_p
-        return InferenceConfig(model=model, temperature=None, top_p=None, max_completion_tokens=4000, max_tokens=None)
+        return InferenceConfig(
+            model=model, temperature=None, top_p=None, max_completion_tokens=MAX_TOKENS_COT, max_tokens=None
+        )
 
 
 async def get_all_results(
@@ -1346,13 +1351,13 @@ async def main():
     from example_scripts.load_multi_org import load_multi_org_caller
 
     caller = load_multi_org_caller(cache_path=cache_path)
-    # For MATs minimal reproduction
+    # Please use this caller instead for MATs minimal reproduction
     # load from same path as load_multi_org_caller
     # from example_scripts.load_multi_org import load_openai_and_openrouter_caller
 
     # caller = load_openai_and_openrouter_caller(cache_path=cache_path)
     # number_questions = 1600 # full set
-    number_questions = 800  # minimal set
+    number_questions = 600  # minimal set
     all_questions = (
         Slist()  # empty to allow easy commenting out
         + load_professor_questions(number_questions)
@@ -1361,7 +1366,7 @@ async def main():
         + load_white_squares_questions(number_questions)
         + load_post_hoc_questions(number_questions)
         + load_wrong_few_shot_questions(number_questions)
-        + load_baseline_questions(number_questions)
+        # + load_baseline_questions(number_questions)
         # + load_i_think_questions(number_questions) # too low
         # + load_fun_facts_questions(number_questions) # this is too low for analysis
     )
@@ -1374,7 +1379,7 @@ async def main():
         caller=caller,
         are_you_sure=False,
         speed_hack=False,
-        # sys_prompt=PLEASE_ARTICULATE_SYS_PROMPT, # Variation where we try to get non-ITC models to articulate better
+        # sys_prompt=PLEASE_ARTICULATE_SYS_PROMPT, # Variation where we try to get no†n-ITC models to articulate better
         sys_prompt=None,
     )
 

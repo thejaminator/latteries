@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Generic, Sequence, Type
 from anthropic.types.message import Message
-from google.genai.types import GenerateContentConfig, GenerateContentResponse, ThinkingConfig
+from google.genai.types import Candidate, GenerateContentConfig, GenerateContentResponse, ThinkingConfig
 import google.genai.errors
 from openai import NOT_GIVEN, AsyncOpenAI, BaseModel, InternalServerError
 import os
@@ -620,6 +620,12 @@ class OpenAIModerateCaller:
             raise e
 
 
+class GeminiResponse(BaseModel):
+    # The gemini package's response has a bunch of non-serializable fields
+    # yes, they abused pydantic
+    candidates: list[Candidate]
+
+
 class GeminiRateLimitError(Exception):
     pass
 
@@ -632,11 +638,11 @@ class GeminiInvalidResponseError(Exception):
     pass
 
 
-class GoogleCaller(Caller):
-    def __init__(self, api_key: str, cache_path: Path | str | CacheByModel[GenerateContentResponse]):
+class GeminiCaller(Caller):
+    def __init__(self, api_key: str, cache_path: Path | str | CacheByModel[GeminiResponse]):
         self.client = genai.Client(api_key=api_key, http_options={"api_version": "v1alpha"}).aio  # type: ignore
         self.cache_by_model = (
-            CacheByModel(Path(cache_path), cache_type=GenerateContentResponse)
+            CacheByModel(Path(cache_path), cache_type=GeminiResponse)
             if not isinstance(cache_path, CacheByModel)
             else cache_path
         )
@@ -644,13 +650,14 @@ class GoogleCaller(Caller):
     async def flush(self) -> None:
         await self.cache_by_model.flush()
 
-    def get_cache(self, model: str) -> APIRequestCache[GenerateContentResponse]:
+    def get_cache(self, model: str) -> APIRequestCache[GeminiResponse]:
         return self.cache_by_model.get_cache(model)
 
     @retry(
         stop=stop_after_attempt(5),
-        wait=wait_fixed(5),
+        wait=wait_fixed(60),  # 10 RPM only, so wait more
         retry=retry_if_exception_type((GeminiRateLimitError, google.genai.errors.ServerError)),
+        reraise=True,
     )
     async def call(
         self,
@@ -673,16 +680,19 @@ class GoogleCaller(Caller):
             max_output_tokens=config.max_tokens,
         )
         try:
-            response: GenerateContentResponse = await self.client.models.generate_content(
+            _response: GenerateContentResponse = await self.client.models.generate_content(
                 model=config.model,
                 contents=messages.messages[0].content,  # Assuming single message content for simplicity
                 config=config_gemini,
             )
+            candidates = _response.candidates
+            assert candidates is not None, "candidates is None"
+            response = GeminiResponse(candidates=candidates)
         except google.genai.errors.ClientError as e:
-            # check if oogle.genai.errors.ClientError: 429 RESOURCE_EXHAUSTED
+            # check if google.genai.errors.ClientError: 429 RESOURCE_EXHAUSTED
             # can't google raise a proper error lol?
             error_msg = str(e)
-            if "429 RESOURCE_EXHAUSTED" in error_msg:
+            if "RESOURCE_EXHAUSTED" in error_msg:
                 raise GeminiRateLimitError(error_msg) from e
             raise e
         await cache.add_model_call(
@@ -692,24 +702,27 @@ class GoogleCaller(Caller):
 
         return openai_response
 
-    @staticmethod
-    def gemini_to_openai(gemini_response: GenerateContentResponse, model: str) -> OpenaiResponse:
+    @classmethod
+    def cached_error_response(cls, model: str) -> OpenaiResponse:
+        return OpenaiResponse(
+            id="placeholder",  # Placeholder ID
+            # make finish_reason = "content_filter"
+            choices=[{"message": {"content": "", "role": "assistant", "finish_reason": "content_filter"}}],
+            created=int(datetime.now().timestamp()),
+            model=model,
+            system_fingerprint=None,
+            usage={},
+        )
+
+    @classmethod
+    def gemini_to_openai(cls, gemini_response: GeminiResponse, model: str) -> OpenaiResponse:
+        if gemini_response.candidates[0].content is None:  # type: ignore
+            # probably content filter
+            return cls.cached_error_response(model)
         parts: Slist[Part] = Slist(gemini_response.candidates[0].content.parts)  # type: ignore
-        if len(parts) <= 2:
-            # usually max tokens, or degenerate response, mark as content filter
-            openai_response = OpenaiResponse(
-                id="placeholder",  # Placeholder ID
-                # make finish_reason = "content_filter"
-                choices=[{"message": {"content": "", "role": "assistant", "finish_reason": "content_filter"}}],
-                created=int(datetime.now().timestamp()),
-                model=model,
-                system_fingerprint=None,
-                usage={},
-            )
-            return openai_response
-        assert (
-            len(parts) == 2
-        ), f"wth? gemini response does not have 2 parts. {len(parts)} instead. check https://ai.google.dev/gemini-api/docs/thinking. Response: {gemini_response}"
+        if len(parts) < 2:
+            # usually max tokens, or degenerate response
+            return cls.cached_error_response(model)
         thought_part = parts.filter(lambda part: part.thought is True).first_or_raise()
         text_part = parts.filter(lambda part: part.thought is not True).first_or_raise()
         return OpenaiResponse(
@@ -769,7 +782,7 @@ B - No
 Answer:"""
     max_tokens = 100
     temperature = 0.0
-    cached_caller = GoogleCaller(api_key=api_key, cache_path="cached.jsonl")
+    cached_caller = GeminiCaller(api_key=api_key, cache_path="cached.jsonl")
     response = cached_caller.call(
         messages=ChatHistory(messages=[ChatMessage(role="user", content=question)]),
         config=InferenceConfig(temperature=temperature, max_tokens=max_tokens, model="gemini-2.0-flash-thinking-exp"),

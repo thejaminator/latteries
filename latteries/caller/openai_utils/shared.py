@@ -281,9 +281,10 @@ class APIRequestCache(Generic[APIResponse]):
             try:
                 response = self.response_type.model_validate_json(response_str)
                 return response
-            except ValidationError:
+            except ValidationError as e:
                 print(f"Warning: Failed to validate cache entry for key {key}")
-                return None
+                raise e
+                # return None
         return None
 
     async def write_line(self, key: str, response_json: str) -> None:

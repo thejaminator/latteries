@@ -1,9 +1,9 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from google.genai.types import GenerateContentResponse
 from latteries.caller.openai_utils.client import (
-    GoogleCaller,
+    GeminiResponse,
+    GeminiCaller,
     OpenAICaller,
     MultiClientCaller,
     AnthropicCaller,
@@ -54,11 +54,11 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
     shared_cache = CacheByModel(Path(cache_path))
     # NOTE: USE THIS CACHE WHEN USING THE GENAI PACKAGE
     # so that we can experiment with the genai package, without messing with the shared cache
-    genai_package_cache = CacheByModel(Path("genai_package_" + cache_path), cache_type=GenerateContentResponse)
+    genai_package_cache = CacheByModel(Path("genai_package_" + cache_path), cache_type=GeminiResponse)
     gen_ai_callers = PooledCaller(
         [
             # note: use this cache when using the genai package.
-            GoogleCaller(api_key=gemini_key, cache_path=genai_package_cache)
+            GeminiCaller(api_key=gemini_key, cache_path=genai_package_cache)
             for gemini_key in os.getenv("GEMINI_KEYS", "").split(",")
         ]
     )
