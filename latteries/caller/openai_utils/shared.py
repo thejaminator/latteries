@@ -124,6 +124,13 @@ class ChatHistory(BaseModel):
         return ChatHistory(messages=new_messages)
 
 
+class NotGivenSentinel:
+    pass
+
+
+NOT_GIVEN_SENTINEL = NotGivenSentinel()
+
+
 class InferenceConfig(BaseModel):
     # todo: consider switching to NOT_GIVEN_SENTINEL instead of None
     # Config for openai
@@ -136,6 +143,37 @@ class InferenceConfig(BaseModel):
     presence_penalty: float = 0.0
     n: int = 1
     response_format: dict | None = None
+
+    def copy_update(
+        self,
+        temperature: float | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        top_p: float | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        max_tokens: int | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        max_completion_tokens: int | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        frequency_penalty: float | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        presence_penalty: float | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        n: int | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        response_format: dict | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+    ) -> "InferenceConfig":
+        return InferenceConfig(
+            model=self.model,
+            temperature=temperature if not isinstance(temperature, NotGivenSentinel) else self.temperature,
+            top_p=top_p if not isinstance(top_p, NotGivenSentinel) else self.top_p,
+            max_tokens=max_tokens if not isinstance(max_tokens, NotGivenSentinel) else self.max_tokens,
+            max_completion_tokens=max_completion_tokens
+            if not isinstance(max_completion_tokens, NotGivenSentinel)
+            else self.max_completion_tokens,
+            frequency_penalty=frequency_penalty
+            if not isinstance(frequency_penalty, NotGivenSentinel)
+            else self.frequency_penalty,
+            presence_penalty=presence_penalty
+            if not isinstance(presence_penalty, NotGivenSentinel)
+            else self.presence_penalty,
+            n=n if not isinstance(n, NotGivenSentinel) else self.n,
+            response_format=response_format
+            if not isinstance(response_format, NotGivenSentinel)
+            else self.response_format,
+        )
 
 
 class InferenceResponse(BaseModel):
