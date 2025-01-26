@@ -145,10 +145,10 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
             prefix="gemini-2.0-flash-thinking-exp",
             caller=gen_ai_callers,
         ),
-        # CallerConfig(
-        #     prefix="gemini",  # hit gemini for gemini models e.g. "gemini-1.5-flash
-        #     caller=google_free_caller,
-        # ),
+        CallerConfig(
+            prefix="gemini",  # hit gemini for gemini models e.g. "gemini-1.5-flash
+            caller=google_free_caller,
+        ),
         CallerConfig(
             prefix="claude",
             caller=AnthropicCaller(anthropic_client=AsyncAnthropic(api_key=claude_api_key), cache_path=shared_cache),
