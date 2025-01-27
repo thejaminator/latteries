@@ -8,7 +8,20 @@ import pandas as pd
 # mock data
 alibaba_group = "Qwen"
 google_group = "Gemini"
+deepseek_group = "Deepseek"
 
+"""
+model	Argument
+ITC: DeepSeek R1	34.1% (± 8.4%)
+ITC: Gemini	47.4% (± 8.0%)
+ITC: Qwen	15.8% (± 4.8%)
+Claude-3.5-Sonnet	0.0% (± 0.0%)
+Deepseek-Chat-v3	0.0% (± 0.0%)
+GPT-4o	2.2% (± 2.1%)
+Gemini-2.0-Flash-Exp	0.6% (± 1.1%)
+Grok-2-1212	0.5% (± 1.0%)
+Qwen-72b-Instruct	1.3% (± 1.5%)
+"""
 data = [
     {
         "Model": "GPT-4o",
@@ -40,10 +53,24 @@ data = [
     },
     {
         "Model": "Gemini-Thinking",
-        "Articulation Rate": 2.8,
+        "Articulation Rate": 47.4,
         "Type": "Inference-Time-Compute (ITC)",
         "Group": google_group,
-        "Error": 2.8,
+        "Error": 8.0,
+    },
+    {
+        "Model": "Deepseek-R1",
+        "Articulation Rate": 34.1,
+        "Type": "Inference-Time-Compute (ITC)",
+        "Group": deepseek_group,
+        "Error": 8.4,
+    },
+    {
+        "Model": "Deepseek-V3",
+        "Articulation Rate": 0.0,
+        "Type": "Non-ITC",
+        "Group": deepseek_group,
+        "Error": 0.0,
     },
 ]
 df = pd.DataFrame(data)
@@ -108,7 +135,7 @@ fig.update_layout(
     width=400,
     height=400,
     showlegend=False,
-    font=dict(size=16),  # Set font size to 14
+    font=dict(size=12),  # Set font size to 14
     # tickfont=dict(size=16),
     titlefont=dict(size=16),
 )

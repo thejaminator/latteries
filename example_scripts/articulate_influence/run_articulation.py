@@ -1289,6 +1289,7 @@ async def evaluate_all(
     caller: Caller,
     max_par: int = 40,
     are_you_sure: bool = False,
+    are_you_sure_limit: int = 100,
     speed_hack: bool = False,
     sys_prompt: str | None = None,
 ) -> None:
@@ -1306,7 +1307,9 @@ async def evaluate_all(
 
     if are_you_sure:
         ## sad custom logic for "are you sure" since its different from the rest.
-        unique_questions = questions_list.distinct_by(lambda x: x.original_question)
+        unique_questions = (
+            questions_list.distinct_by(lambda x: x.original_question).shuffle("42").take(are_you_sure_limit)
+        )
         are_you_sure_questions = load_are_you_sure_questions(len(unique_questions))
         are_you_sure_results: Slist[Result] = await get_all_are_you_sure_results(
             models, are_you_sure_questions, caller, max_par, sys_prompt=sys_prompt
@@ -1383,6 +1386,7 @@ async def main():
         max_par=40,
         caller=caller,
         are_you_sure=True,
+        are_you_sure_limit=400,
         # speed_hack=False,
         speed_hack=True,
         # sys_prompt=PLEASE_ARTICULATE_SYS_PROMPT, # Variation where we try to get no†n-ITC models to articulate better

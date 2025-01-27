@@ -8,6 +8,20 @@ import pandas as pd
 # mock data
 alibaba_group = "Qwen"
 google_group = "Gemini"
+deepseek_group = "Deepseek"
+
+"""
+model	Professor	Black Squares	White Squares	Argument	Post-Hoc	Wrong Few-Shot
+ITC: DeepSeek R1	59.4% (± 6.4%)	25.2% (± 6.9%)	22.2% (± 8.2%)	34.1% (± 8.4%)	6.4% (± 4.6%)	25.4% (± 8.0%)
+ITC: Gemini	68.2% (± 9.8%)	35.0% (± 6.0%)	31.7% (± 7.2%)	47.4% (± 8.0%)	0.0% (± 0.0%)	48.8% (± 6.3%)
+ITC: Qwen	46.9% (± 7.3%)	17.1% (± 5.4%)	14.2% (± 5.5%)	15.8% (± 4.8%)	9.7% (± 3.8%)	13.6% (± 5.3%)
+Claude-3.5-Sonnet	6.7% (± 5.2%)	3.1% (± 1.5%)	3.1% (± 2.1%)	0.0% (± 0.0%)	0.0% (± 0.0%)	0.0% (± 0.0%)
+Deepseek-Chat-v3	6.5% (± 3.6%)	0.8% (± 1.1%)	2.3% (± 2.2%)	0.0% (± 0.0%)	0.0% (± 0.0%)	0.0% (± 0.0%)
+GPT-4o	2.4% (± 3.3%)	1.1% (± 1.5%)	0.0% (± 0.0%)	2.2% (± 2.1%)	0.0% (± 0.0%)	0.7% (± 1.3%)
+Gemini-2.0-Flash-Exp	13.0% (± 6.2%)	0.6% (± 1.1%)	0.0% (± 0.0%)	0.6% (± 1.1%)	0.0% (± 0.0%)	1.7% (± 1.6%)
+Grok-2-1212	4.9% (± 4.2%)	3.9% (± 2.2%)	0.4% (± 0.8%)	0.5% (± 1.0%)	0.0% (± 0.0%)	1.3% (± 1.3%)
+Qwen-72b-Instruct	5.3% (± 3.6%)	0.6% (± 1.2%)	0.6% (± 1.1%)	1.3% (± 1.5%)	0.0% (± 0.0%)	0.0% (± 0.0%)
+"""
 
 
 data = [
@@ -28,18 +42,25 @@ data = [
     },
     {
         "Model": "Gemini-Thinking",
-        "Articulation Rate": 52.4,
+        "Articulation Rate": 68.2,
         "Type": "Gemini ITC",
         "Group": "Professor",
-        "Error": 8.8,
+        "Error": 9.8,
+    },
+    {
+        "Model": "DeepSeek R1",
+        "Articulation Rate": 59.4,
+        "Type": "DeepSeek ITC",
+        "Group": "Professor",
+        "Error": 6.4,
     },
     ## Black Squares
     {
         "Model": "Gemini",
-        "Articulation Rate": 28.1,
+        "Articulation Rate": 35.0,
         "Type": "Gemini ITC",
         "Group": "Black<br>Squares",
-        "Error": 6.3,
+        "Error": 6.0,
     },
     {
         "Model": "Qwen 72b",
@@ -55,13 +76,20 @@ data = [
         "Group": "Black<br>Squares",
         "Error": 1.5,
     },
+    {
+        "Model": "DeepSeek R1",
+        "Articulation Rate": 25.2,
+        "Type": "DeepSeek ITC",
+        "Group": "Black<br>Squares",
+        "Error": 6.9,
+    },
     ## White squares
     {
         "Model": "Gemini",
-        "Articulation Rate": 25.3,
+        "Articulation Rate": 31.7,
         "Type": "Gemini ITC",
         "Group": "White<br>Squares",
-        "Error": 6.4,
+        "Error": 7.2,
     },
     {
         "Model": "Qwen 72b",
@@ -77,13 +105,20 @@ data = [
         "Group": "White<br>Squares",
         "Error": 2.1,
     },
+    {
+        "Model": "DeepSeek R1",
+        "Articulation Rate": 22.2,
+        "Type": "DeepSeek ITC",
+        "Group": "White<br>Squares",
+        "Error": 8.2,
+    },
     ## Argument
     {
         "Model": "Gemini",
-        "Articulation Rate": 2.8,
+        "Articulation Rate": 47.4,
         "Type": "Gemini ITC",
         "Group": "Argument",
-        "Error": 2.8,
+        "Error": 8.0,
     },
     {
         "Model": "Qwen 72b",
@@ -99,13 +134,20 @@ data = [
         "Group": "Argument",
         "Error": 0.0,
     },
+    {
+        "Model": "DeepSeek R1",
+        "Articulation Rate": 34.1,
+        "Type": "DeepSeek ITC",
+        "Group": "Argument",
+        "Error": 8.4,
+    },
     ## Post-hoc
     {
         "Model": "Gemini",
-        "Articulation Rate": 0.7,
+        "Articulation Rate": 0.0,
         "Type": "Gemini ITC",
         "Group": "Post<br>Hoc",
-        "Error": 0.9,
+        "Error": 0.0,
     },
     {
         "Model": "Qwen 72b",
@@ -121,13 +163,20 @@ data = [
         "Group": "Post<br>Hoc",
         "Error": 0.0,
     },
+    {
+        "Model": "DeepSeek R1",
+        "Articulation Rate": 6.4,
+        "Type": "DeepSeek ITC",
+        "Group": "Post<br>Hoc",
+        "Error": 4.6,
+    },
     ## Wrong Few-Shot
     {
         "Model": "Gemini",
-        "Articulation Rate": 30.2,
+        "Articulation Rate": 48.8,
         "Type": "Gemini ITC",
         "Group": "Wrong<br>Few-Shot",
-        "Error": 5.6,
+        "Error": 6.3,
     },
     {
         "Model": "Qwen 72b",
@@ -142,6 +191,13 @@ data = [
         "Type": "Best Non-ITC",
         "Group": "Wrong<br>Few-Shot",
         "Error": 0.0,
+    },
+    {
+        "Model": "DeepSeek R1",
+        "Articulation Rate": 25.4,
+        "Type": "DeepSeek ITC",
+        "Group": "Wrong<br>Few-Shot",
+        "Error": 8.0,
     },
     ## Are you sure
     {
@@ -165,6 +221,13 @@ data = [
         "Group": "Are you<br>sure?",
         "Error": 0.0,
     },
+    {
+        "Model": "DeepSeek R1",
+        "Articulation Rate": 0.0,
+        "Type": "DeepSeek ITC",
+        "Group": "Are you<br>sure?",
+        "Error": 0.0,
+    },
 ]
 df = pd.DataFrame(data)
 
@@ -174,13 +237,14 @@ fig = px.bar(
     x="Group",
     y="Articulation Rate",
     color="Type",
-    pattern_shape="Type",
+    # pattern_shape="Type",
     error_y="Error",
     barmode="group",
     hover_data=["Model"],
     text="Articulation Rate",
-    color_discrete_sequence=["#636ef9", "#ef553b", "#ef553b"],  # Default blue, red, red
-    pattern_shape_sequence=["", "", "/"],  # No pattern for first two, diagonal pattern for third
+    # color_discrete_sequence=["#636ef9", "#ef553b", "#ef553b"],  # Default blue, red, red
+    # color_discrete_sequence=["#636ef9", "#ef553b", "#ef553b", "#ef553b"],  # Default blue, red, red
+    # pattern_shape_sequence=["", "", "/", "x"],  # No pattern for first two, diagonal pattern for third
 )
 
 # Update font sizes for all text elements
@@ -198,21 +262,23 @@ fig.update_layout(
         linecolor="black",
         tickfont=dict(size=16),
         tickmode="array",
-        tickvals=[0, 20, 40, 60],
-        range=[0, 65],
+        tickvals=[0, 20, 40, 60, 80],
+        range=[0, 85],
     ),
     plot_bgcolor="white",
     paper_bgcolor="white",
 )
 
 # Update text labels with consistent padding and font size
-padd = "&nbsp;" * 10
+padd = "&nbsp;" * 9
 fig.update_traces(
     textposition="outside",
     texttemplate=padd + "%{text:.0f}%",
     textfont_size=12,
     textangle=0,
     textfont_family="Arial",
+    error_y_thickness=1.0,  # Make error bars less thick
+    error_y_width=2.0,  # Make error bars less wide
     # cliponaxis=False
 )
 

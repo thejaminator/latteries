@@ -12,59 +12,60 @@ google_group = "Gemini"
 deepseek_group = "Deepseek"
 
 """
-model	Professor
-ITC: DeepSeek R1	59.4% (± 6.4%)
-ITC: Gemini	68.2% (± 9.8%)
-ITC: Qwen	46.9% (± 7.3%)
-Claude-3.5-Sonnet	6.7% (± 5.2%)
-Deepseek-Chat-v3	6.5% (± 3.6%)
-GPT-4o	2.4% (± 3.3%)
-Gemini-2.0-Flash-Exp	13.0% (± 6.2%)
-Grok-2-1212	4.9% (± 4.2%)
-Qwen-72b-Instruct	5.3% (± 3.6%)
+model	Post-Hoc
+ITC: DeepSeek R1	6.4% (± 4.6%)
+ITC: Gemini	0.0% (± 0.0%)
+ITC: Qwen	9.7% (± 3.8%)
+Claude-3.5-Sonnet	0.0% (± 0.0%)
+Deepseek-Chat-v3	0.0% (± 0.0%)
+GPT-4o	0.0% (± 0.0%)
+Gemini-2.0-Flash-Exp	0.0% (± 0.0%)
+Grok-2-1212	0.0% (± 0.0%)
+Llama-3.3-70b	0.0% (± 0.0%)
+Qwen-72b-Instruct	0.0% (± 0.0%)
 """
 MANUAL_DATA = [
     {
         "Model": "Qwen 72b",
-        "Articulation Rate": 5.3,
+        "Articulation Rate": 0.0,
         "Type": "Non-ITC",
         "Group": alibaba_group,
-        "Error": 3.6,
+        "Error": 0.0,
     },
     {
         "Model": "QwQ",
-        "Articulation Rate": 46.9,
+        "Articulation Rate": 9.7,
         "Type": "Inference-Time-Compute (ITC)",
         "Group": alibaba_group,
-        "Error": 7.3,
+        "Error": 3.8,
     },
     {
         "Model": "Gemini",
-        "Articulation Rate": 13.0,
+        "Articulation Rate": 0.0,
         "Type": "Non-ITC",
         "Group": google_group,
-        "Error": 6.2,
+        "Error": 0.0,
     },
     {
         "Model": "Gemini-Thinking",
-        "Articulation Rate": 68.2,
+        "Articulation Rate": 0.0,
         "Type": "Inference-Time-Compute (ITC)",
         "Group": google_group,
-        "Error": 9.8,
+        "Error": 0.0,
     },
     {
         "Model": "Deepseek-R1",
-        "Articulation Rate": 59.4,
+        "Articulation Rate": 6.4,
         "Type": "Inference-Time-Compute (ITC)",
         "Group": deepseek_group,
-        "Error": 6.4,
+        "Error": 4.6,
     },
     {
         "Model": "Deepseek-V3",
-        "Articulation Rate": 6.5,
+        "Articulation Rate": 0.0,
         "Type": "Non-ITC",
         "Group": deepseek_group,
-        "Error": 3.6,
+        "Error": 0.0,
     },
 ]
 
@@ -134,13 +135,19 @@ def plot_manual_stanford_fig_1(data: Sequence[dict] = []):
         height=400,
         showlegend=False,
         font=dict(size=16),  # Set font size to 14
+        # check y ticks to 0, 10, 20
+        yaxis=dict(
+            tickmode="array",
+            tickvals=[0, 10, 15],
+            range=[0, 15],
+        ),
     )
 
     fig.show()
     # hack to fix mathjax
 
     pio.kaleido.scope.mathjax = None
-    pdf_name = "articulation_professor.pdf"
+    pdf_name = "articulation_post_hoc.pdf"
     # remove margins
     fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
     fig.write_image(pdf_name)
