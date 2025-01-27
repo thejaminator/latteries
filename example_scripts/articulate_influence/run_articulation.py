@@ -1386,7 +1386,7 @@ async def main():
         max_par=40,
         caller=caller,
         are_you_sure=True,
-        are_you_sure_limit=400,
+        are_you_sure_limit=600,
         # speed_hack=False,
         speed_hack=True,
         # sys_prompt=PLEASE_ARTICULATE_SYS_PROMPT, # Variation where we try to get no†n-ITC models to articulate better

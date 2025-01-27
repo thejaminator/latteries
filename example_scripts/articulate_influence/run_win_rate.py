@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import openai
 import pandas as pd
 from pydantic import BaseModel
-from slist import AverageStats, Group, Slist
+from slist import Group, Slist
 
 from example_scripts.articulate_influence.run_articulation import (
     FailedResult,
@@ -219,13 +219,13 @@ async def get_results_repeats(
         lambda group: Group(group.key, group.values) if group.values is not None else None
     ).flatten_option()
     print(f"Number of candidates: {len(has_both_candidates)}")
-    shortest_length_stats: AverageStats = has_both_candidates.map(
-        lambda group: group.values.not_articulate_wins_shortest_length()
-    ).statistics_or_raise()
-    print(f"Not articulate wins shortest length: {shortest_length_stats}")
-    all_candidates = has_both_candidates.map(lambda group: group.values).map(candidate_to_flat_dict)
-    df_candidate_dump = pd.DataFrame(all_candidates)
-    df_candidate_dump.to_csv("candidate_dump.csv", index=False)
+    # shortest_length_stats: AverageStats = has_both_candidates.map(
+    #     lambda group: group.values.not_articulate_wins_shortest_length()
+    # ).statistics_or_raise()
+    # print(f"Not articulate wins shortest length: {shortest_length_stats}")
+    # all_candidates = has_both_candidates.map(lambda group: group.values).map(candidate_to_flat_dict)
+    # df_candidate_dump = pd.DataFrame(all_candidates)
+    # df_candidate_dump.to_csv("candidate_dump.csv", index=False)
 
     ### Reward canddidates
     rewarded_candidates: Slist[RewardedCandidates] = await has_both_candidates.par_map_async(
@@ -233,14 +233,24 @@ async def get_results_repeats(
         max_par=40,
         tqdm=True,
     )
-    not_draws: Slist[RewardedCandidates] = rewarded_candidates.filter(lambda x: not x.draw)
+    not_reward_draws: Slist[RewardedCandidates] = rewarded_candidates.filter(lambda x: not x.draw)
     ## group by model
-    grouped_by_model_for_win_rate = not_draws.group_by(lambda x: x.articulated.model)
+    grouped_by_model_for_win_rate = not_reward_draws.group_by(lambda x: x.articulated.model)
     for model, win_rate_values in grouped_by_model_for_win_rate:
         not_articulated_wins = win_rate_values.map(lambda x: x.not_articulated_wins).statistics_or_raise()
-        print(f"Model: {model} not articulated wins: {not_articulated_wins}")
-        # articulated_wins = not_draws.map(lambda x: x.articulated_wins).statistics_or_raise()
-        # print(f"Articulated wins: {articulated_wins}")
+        print(f"Model: {model} not articulated wins according to reward model: {not_articulated_wins}")
+
+    ## Similar for length
+    grouped_by_model_for_length = not_reward_draws.group_by(lambda x: x.articulated.model)
+    for model, length_values in grouped_by_model_for_length:
+        not_articulated_wins = length_values.map(
+            lambda x: x.not_articulate_wins_shortest_length()
+        ).statistics_or_raise()
+        print(f"Model: {model} not articulated wins by shortest length: {not_articulated_wins}")
+
+    all_candidates = rewarded_candidates.map(lambda x: x.to_flat_dict())
+    df_candidate_dump = pd.DataFrame(all_candidates)
+    df_candidate_dump.to_csv("candidate_dump.csv", index=False)
     return succeeded_results
 
 
@@ -252,7 +262,7 @@ class ArticulateAndNotArticulateCandidate(BaseModel):
         return not_articulate_wins_shortest_length(self)
 
 
-class RewardedCandidates(BaseModel):
+class RewardedCandidates(ArticulateAndNotArticulateCandidate):
     articulated: Result
     not_articulated: Result
 
@@ -270,6 +280,14 @@ class RewardedCandidates(BaseModel):
     @property
     def draw(self) -> bool:
         return self.articulated_reward == self.not_articulated_reward
+
+    def to_flat_dict(self) -> dict:
+        initial = candidate_to_flat_dict(self)  # type: ignore
+        not_articulate_wins = self.not_articulated_wins
+        initial["not_articulate_wins"] = not_articulate_wins
+        initial["articulated_reward"] = self.articulated_reward
+        initial["not_articulated_reward"] = self.not_articulated_reward
+        return initial
 
 
 async def reward_candidate(candidate: Result, caller: Caller, reward_config: InferenceConfig) -> int:
