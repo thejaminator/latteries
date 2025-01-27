@@ -8,7 +8,20 @@ import pandas as pd
 # mock data
 alibaba_group = "Qwen"
 google_group = "Gemini"
+deepseek_group = "Deepseek"
 
+"""
+model	Professor
+ITC: DeepSeek R1	59.4% (± 6.4%)
+ITC: Gemini	68.2% (± 9.8%)
+ITC: Qwen	46.9% (± 7.3%)
+Claude-3.5-Sonnet	6.7% (± 5.2%)
+Deepseek-Chat-v3	6.5% (± 3.6%)
+GPT-4o	2.4% (± 3.3%)
+Gemini-2.0-Flash-Exp	13.0% (± 6.2%)
+Grok-2-1212	4.9% (± 4.2%)
+Qwen-72b-Instruct	5.3% (± 3.6%)
+"""
 data = [
     {
         "Model": "Qwen 72b",
@@ -33,10 +46,24 @@ data = [
     },
     {
         "Model": "Gemini-Thinking",
-        "Articulation Rate": 52.4,
+        "Articulation Rate": 68.2,
         "Type": "Inference-Time-Compute (ITC)",
         "Group": google_group,
-        "Error": 8.8,
+        "Error": 9.8,
+    },
+    {
+        "Model": "Deepseek-R1",
+        "Articulation Rate": 59.4,
+        "Type": "Inference-Time-Compute (ITC)",
+        "Group": deepseek_group,
+        "Error": 6.4,
+    },
+    {
+        "Model": "Deepseek-V3",
+        "Articulation Rate": 6.5,
+        "Type": "Non-ITC",
+        "Group": deepseek_group,
+        "Error": 3.6,
     },
 ]
 df = pd.DataFrame(data)

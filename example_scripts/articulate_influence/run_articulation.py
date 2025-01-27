@@ -1337,16 +1337,16 @@ async def main():
     models_to_evaluate = [
         ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
         ModelInfo(model="gpt-4o", name="GPT-4o"),
-        # ModelInfo(model="gemini-2.0-flash-thinking-exp-01-21", name="ITC: Gemini"),
-        # ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="Qwen-72b-Instruct"),
-        # ModelInfo(model="gemini-2.0-flash-exp", name="Gemini-2.0-Flash-Exp"),
+        ModelInfo(model="gemini-2.0-flash-thinking-exp-01-21", name="ITC: Gemini"),
+        ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="Qwen-72b-Instruct"),
+        ModelInfo(model="gemini-2.0-flash-exp", name="Gemini-2.0-Flash-Exp"),
         # # # ModelInfo(model="o1", name="5. o1"),
         ModelInfo(model="claude-3-5-sonnet-20241022", name="Claude-3.5-Sonnet"),
-        ModelInfo(model="claude-3-5-sonnet-20240620", name="Claude older"),
-        # ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="Llama-3.3-70b"),
-        # ModelInfo(model="x-ai/grok-2-1212", name="Grok-2-1212"),
-        # ModelInfo(model="deepseek-chat", name="7. deepse´ek-chat-v3"),
-        ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek Reasoner"),
+        # ModelInfo(model="claude-3-5-sonnet-20240620", name="Claude older"),
+        ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="Llama-3.3-70b"),
+        ModelInfo(model="x-ai/grok-2-1212", name="Grok-2-1212"),
+        ModelInfo(model="deepseek-chat", name="Deepseek-Chat-v3"),
+        ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek R1"),
         # ModelInfo(model="deepseek-ai/DeepSeek-R1-Zero", name="DeepSeek-R1-Zero"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
@@ -1361,14 +1361,14 @@ async def main():
     # from example_scripts.load_multi_org import load_openai_and_openrouter_caller
 
     # caller = load_openai_and_openrouter_caller(cache_path=cache_path)
-    # number_questions = 1600 # full set
-    number_questions = 400  # minimal set
+    number_questions = 1600  # full set
+    # number_questions = 400  # minimal set
     all_questions = (
         Slist()  # empty to allow easy commenting out
         + load_professor_questions(number_questions)
         + load_black_square_questions(number_questions)
         + load_argument_questions(number_questions)
-        # + load_white_squares_questions(number_questions)
+        + load_white_squares_questions(number_questions)
         + load_post_hoc_questions(number_questions)
         + load_wrong_few_shot_questions(number_questions)
         # + load_baseline_questions(number_questions)
@@ -1382,7 +1382,7 @@ async def main():
         questions_list=all_questions,
         max_par=40,
         caller=caller,
-        are_you_sure=False,
+        are_you_sure=True,
         # speed_hack=False,
         speed_hack=True,
         # sys_prompt=PLEASE_ARTICULATE_SYS_PROMPT, # Variation where we try to get no†n-ITC models to articulate better
