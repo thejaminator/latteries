@@ -5,8 +5,9 @@ from dotenv import load_dotenv
 import openai
 import pandas as pd
 from pydantic import BaseModel
-from slist import Group, Slist
+from slist import AverageStats, Group, Slist
 
+from example_scripts.articulate_influence.o1_utils import evaluate_for_o1, is_o1_model
 from example_scripts.articulate_influence.run_articulation import (
     FailedResult,
     ModelInfo,
@@ -14,12 +15,10 @@ from example_scripts.articulate_influence.run_articulation import (
     TestData,
     articulates_bias,
     create_config,
-    evaluate_for_o1,
     evaluate_one,
     format_reasoning_with_final_answer,
     get_parsed_answer,
     has_reasoning_content,
-    is_o1_model,
     load_argument_questions,
     load_black_square_questions,
     load_post_hoc_questions,
@@ -28,6 +27,7 @@ from example_scripts.articulate_influence.run_articulation import (
 )
 from latteries.caller.openai_utils.client import Caller, GeminiEmptyResponseError
 from latteries.caller.openai_utils.shared import ChatHistory, InferenceConfig
+import plotly.graph_objects as go
 
 
 async def evaluate_repeat(
@@ -247,7 +247,8 @@ async def get_results_repeats(
             lambda x: x.not_articulate_wins_shortest_length()
         ).statistics_or_raise()
         print(f"Model: {model} not articulated wins by shortest length: {not_articulated_wins}")
-
+    plot_reward_win_rate(not_reward_draws)
+    plot_shortest_length_win_rate(rewarded_candidates)
     all_candidates = rewarded_candidates.map(lambda x: x.to_flat_dict())
     df_candidate_dump = pd.DataFrame(all_candidates)
     df_candidate_dump.to_csv("candidate_dump.csv", index=False)
@@ -288,6 +289,104 @@ class RewardedCandidates(ArticulateAndNotArticulateCandidate):
         initial["articulated_reward"] = self.articulated_reward
         initial["not_articulated_reward"] = self.not_articulated_reward
         return initial
+
+
+def plot_reward_win_rate(items: Slist[RewardedCandidates]) -> None:
+    """
+    class AverageStats:
+    average: float
+    standard_deviation: float
+    upper_confidence_interval_95: float
+    lower_confidence_interval_95: float
+    average_plus_minus_95: float
+    count: int
+
+    """
+    # Prepare data for plotting
+    model_names: Slist[str] = items.map(lambda x: x.articulated.model).distinct()
+    win_rates: Slist[AverageStats] = model_names.map(
+        lambda model: items.filter(lambda x: x.articulated.model == model)
+        .map(lambda x: x.not_articulated_wins)
+        .statistics_or_raise()
+    )
+
+    # Extract average win rates and error bars
+    win_rate_values = win_rates.map(lambda stats: stats.average * 100)
+    error_bars = win_rates.map(lambda stats: stats.average_plus_minus_95 * 100)
+
+    # Create a bar plot with error bars using plotly
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                x=model_names,
+                y=win_rate_values,
+                error_y=dict(type="data", array=error_bars, visible=True),
+                text=[f"{rate:.1f}%" for rate in win_rate_values],
+                textposition="auto",
+            )
+        ]
+    )
+
+    # Update layout
+    fig.update_layout(
+        title="Win Rate of Not Articulating by Model",
+        xaxis_title="Model",
+        yaxis_title="Win Rate (%)",
+        yaxis=dict(range=[0, 100]),
+        template="plotly_white",
+    )
+
+    # Show plot
+    fig.show()
+
+
+def plot_shortest_length_win_rate(items: Slist[RewardedCandidates]) -> None:
+    """
+    class AverageStats:
+    average: float
+    standard_deviation: float
+    upper_confidence_interval_95: float
+    lower_confidence_interval_95: float
+    average_plus_minus_95: float
+    count: int
+
+    """
+    # Prepare data for plotting
+    model_names: Slist[str] = items.map(lambda x: x.articulated.model).distinct()
+    win_rates: Slist[AverageStats] = model_names.map(
+        lambda model: items.filter(lambda x: x.articulated.model == model)
+        .map(lambda x: x.not_articulate_wins_shortest_length())
+        .statistics_or_raise()
+    )
+
+    # Extract average win rates and error bars
+    win_rate_values = win_rates.map(lambda stats: stats.average * 100)
+    error_bars = win_rates.map(lambda stats: stats.average_plus_minus_95 * 100)
+
+    # Create a bar plot with error bars using plotly
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                x=model_names,
+                y=win_rate_values,
+                error_y=dict(type="data", array=error_bars, visible=True),
+                text=[f"{rate:.1f}%" for rate in win_rate_values],
+                textposition="auto",
+            )
+        ]
+    )
+
+    # Update layout
+    fig.update_layout(
+        title="Win Rate of Not Articulating by Shortest Length",
+        xaxis_title="Model",
+        yaxis_title="Win Rate (%)",
+        yaxis=dict(range=[0, 100]),
+        template="plotly_white",
+    )
+
+    # Show plot
+    fig.show()
 
 
 async def reward_candidate(candidate: Result, caller: Caller, reward_config: InferenceConfig) -> int:
@@ -416,7 +515,7 @@ async def main():
         # ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="Llama-3.3-70b"),
         # ModelInfo(model="x-ai/grok-2-1212", name="Grok-2-1212"),
         # ModelInfo(model="deepseek-chat", name="7. deepse´ek-chat-v3"),
-        ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek Reasoner"),
+        # ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek Reasoner"),
         # ModelInfo(model="deepseek-ai/DeepSeek-R1-Zero", name="DeepSeek-R1-Zero"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
@@ -432,7 +531,7 @@ async def main():
 
     # caller = load_openai_and_openrouter_caller(cache_path=cache_path)
     # number_questions = 1600 # full set
-    number_questions = 800  # minimal set
+    number_questions = 1600  # minimal set
     all_questions = (
         Slist()  # empty to allow easy commenting out
         + load_professor_questions(number_questions)
