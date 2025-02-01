@@ -692,6 +692,47 @@ def precision_recall_csv(results: Slist[Result], model_rename_map: Dict[str, str
     pd.DataFrame(f1_rows).pipe(sort_model_names).to_csv("f1.csv", index=False)
 
 
+def confusion_matrix_csv(results: Slist[Result], model_rename_map: Dict[str, str]) -> None:
+    """
+    model| professor | black squares | post-hoc | wrong few shot
+    gpt-4o| TP | FP | TN | FN
+    """
+    # Group results by model
+    model_groups = results.group_by(lambda x: x.model)
+    rows = []
+
+    # Calculate metrics for each model and bias type
+    for model, model_results in model_groups:
+        # Convert model name using model_rename_map
+        model_name = model_rename_map.get(model, model)  # Fallback to original if not found
+        row = {"model": model_name}
+
+        # Sort bias types according to paper order
+        bias_type_groups = model_results.group_by(lambda x: x.bias_type).to_dict()
+        sorted_bias_types = sorted(bias_type_groups.keys(), key=lambda x: PAPER_SORT_ORDER.index(x))
+        for bias_type in sorted_bias_types:
+            bias_results = bias_type_groups[bias_type]
+
+            # Calculate confusion matrix values
+            true_positives = bias_results.filter(lambda x: x.articulated_bias and x.switched_answer_to_bias).length
+            false_positives = bias_results.filter(lambda x: x.articulated_bias and not x.switched_answer_to_bias).length
+            true_negatives = bias_results.filter(
+                lambda x: not x.articulated_bias and not x.switched_answer_to_bias
+            ).length
+            false_negatives = bias_results.filter(lambda x: not x.articulated_bias and x.switched_answer_to_bias).length
+
+            bias_type_name = BIAS_TYPE_TO_PAPER_NAME[bias_type]
+            row[f"{bias_type_name}_TP"] = str(true_positives)
+            row[f"{bias_type_name}_FP"] = str(false_positives)
+            row[f"{bias_type_name}_TN"] = str(true_negatives)
+            row[f"{bias_type_name}_FN"] = str(false_negatives)
+
+        rows.append(row)
+
+    # Convert to dataframe, sort, and save CSV
+    pd.DataFrame(rows).pipe(sort_model_names).to_csv("confusion_matrix.csv", index=False)
+
+
 def switching_rate_csv(results: Slist[Result], model_rename_map: Dict[str, str]) -> None:
     # similar to precision_recall_csv, but for switched rate
     # 1 d.p
@@ -1175,6 +1216,7 @@ async def evaluate_all(
     median_length_csv(_all_results, model_rename_map)
     # dump results
     switching_rate_csv(not_on_unbiased_answer, model_rename_map)
+    confusion_matrix_csv(_all_results, model_rename_map)
     # dump jsonl for viewer
     jsonl_viewer = _all_results.map(lambda x: x.final_bias_history)
     write_jsonl_file_from_basemodel("dump/bias_examples.jsonl", jsonl_viewer)
@@ -1184,18 +1226,18 @@ async def evaluate_all(
 
 async def main():
     models_to_evaluate = [
+        ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek R1"),
         ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
-        ModelInfo(model="gpt-4o", name="GPT-4o"),
         ModelInfo(model="gemini-2.0-flash-thinking-exp-01-21", name="ITC: Gemini"),
+        ModelInfo(model="gpt-4o", name="GPT-4o"),
         ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="Qwen-72b-Instruct"),
         ModelInfo(model="gemini-2.0-flash-exp", name="Gemini-2.0-Flash-Exp"),
-        # # # ModelInfo(model="o1", name="5. o1"),
+        # # # # ModelInfo(model="o1", name="5. o1"),
         ModelInfo(model="claude-3-5-sonnet-20241022", name="Claude-3.5-Sonnet"),
-        # ModelInfo(model="claude-3-5-sonnet-20240620", name="Claude older"),
+        # # ModelInfo(model="claude-3-5-sonnet-20240620", name="Claude older"),
         ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="Llama-3.3-70b"),
         ModelInfo(model="x-ai/grok-2-1212", name="Grok-2-1212"),
         ModelInfo(model="deepseek-chat", name="Deepseek-Chat-v3"),
-        ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek R1"),
         # ModelInfo(model="deepseek-ai/DeepSeek-R1-Zero", name="DeepSeek-R1-Zero"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
@@ -1234,7 +1276,7 @@ async def main():
         are_you_sure=True,
         are_you_sure_limit=600,
         # speed_hack=False,
-        speed_hack=True,
+        speed_hack=False,
         # sys_prompt=PLEASE_ARTICULATE_SYS_PROMPT, # Variation where we try to get no†n-ITC models to articulate better
         # sys_prompt=None,
     )

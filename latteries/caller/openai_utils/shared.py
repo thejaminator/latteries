@@ -26,6 +26,9 @@ class ChatMessage(BaseModel):
     image_content: str | None = None
     image_type: str | None = None  # image/jpeg, or image/png
 
+    def as_text(self) -> str:
+        return f"{self.role}:\n{self.content}"
+
     def to_openai_content(self) -> dict:
         """e.g.
             "messages": [
@@ -99,6 +102,9 @@ class ChatMessage(BaseModel):
 
 class ChatHistory(BaseModel):
     messages: Sequence[ChatMessage] = []
+
+    def as_text(self) -> str:
+        return "\n".join([msg.as_text() for msg in self.messages])
 
     @staticmethod
     def from_system(content: str) -> "ChatHistory":

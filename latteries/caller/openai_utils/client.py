@@ -267,19 +267,24 @@ class OpenAICaller(Caller):
             return maybe_result
 
         assert len(messages.messages) > 0, "Messages must be non-empty"
-        chat_completion = await self.client.chat.completions.create(
-            model=config.model,
-            messages=[msg.to_openai_content() for msg in messages.messages],  # type: ignore
-            temperature=config.temperature if config.temperature is not None else NOT_GIVEN,
-            max_tokens=config.max_tokens if config.max_tokens is not None else NOT_GIVEN,
-            max_completion_tokens=config.max_completion_tokens
-            if config.max_completion_tokens is not None
-            else NOT_GIVEN,
-            top_p=config.top_p if config.top_p is not None else NOT_GIVEN,
-            frequency_penalty=config.frequency_penalty if config.frequency_penalty != 0.0 else NOT_GIVEN,
-            response_format=config.response_format if config.response_format is not None else NOT_GIVEN,  # type: ignore
-            tools=tool_args.tools if tool_args is not None else NOT_GIVEN,  # type: ignore
-        )
+        try:
+            chat_completion = await self.client.chat.completions.create(
+                model=config.model,
+                messages=[msg.to_openai_content() for msg in messages.messages],  # type: ignore
+                temperature=config.temperature if config.temperature is not None else NOT_GIVEN,
+                max_tokens=config.max_tokens if config.max_tokens is not None else NOT_GIVEN,
+                max_completion_tokens=config.max_completion_tokens
+                if config.max_completion_tokens is not None
+                else NOT_GIVEN,
+                top_p=config.top_p if config.top_p is not None else NOT_GIVEN,
+                frequency_penalty=config.frequency_penalty if config.frequency_penalty != 0.0 else NOT_GIVEN,
+                response_format=config.response_format if config.response_format is not None else NOT_GIVEN,  # type: ignore
+                tools=tool_args.tools if tool_args is not None else NOT_GIVEN,  # type: ignore
+            )
+        except Exception as e:
+            note = f"Model: {config.model}. API domain: {self.client.base_url}"
+            e.add_note(note)
+            raise e
 
         try:
             resp = OpenaiResponse.model_validate(chat_completion.model_dump())
@@ -326,7 +331,8 @@ class OpenAICaller(Caller):
         except Exception as e:
             api_key = self.client.api_key
             api_domain = self.client.base_url
-            print(f"call_with_schema: Error calling {config.model}: {e}. API key: {api_key}. API domain: {api_domain}")
+            note = f"Model: {config.model}. API key: {api_key}. API domain: {api_domain}"
+            e.add_note(note)
             raise e
         resp = OpenaiResponse.model_validate(chat_completion.model_dump())
         await self.get_cache(config.model).add_model_call(
