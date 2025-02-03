@@ -259,6 +259,7 @@ async def get_results_repeats(
 
     model_rename_map = {m.model: m.name for m in models}
     reward_win_rate_csv(results=not_reward_draws, model_rename_map=model_rename_map)
+    shortest_length_win_rate_csv(results=not_reward_draws, model_rename_map=model_rename_map)
     plot_reward_win_rate(not_reward_draws)
     plot_shortest_length_win_rate(rewarded_candidates)
     all_candidates = rewarded_candidates.map(lambda x: x.to_flat_dict())
@@ -396,6 +397,38 @@ def reward_win_rate_csv(results: Slist[RewardedCandidates], model_rename_map: Di
 
     # Convert to dataframe, sort, and save CSV
     pd.DataFrame(rows).pipe(sort_model_names).to_csv("reward_win_rate.csv", index=False)
+
+
+def shortest_length_win_rate_csv(results: Slist[RewardedCandidates], model_rename_map: Dict[str, str]) -> None:
+    # Group results by model
+    model_groups = results.group_by(lambda x: x.model)
+    rows = []
+
+    # Calculate win rates for each model and bias type
+    for model, model_results in model_groups:
+        # Convert model name using model_rename_map
+        model_name = model_rename_map.get(model, model)  # Fallback to original if not found
+        row = {"model": model_name}
+
+        # Sort bias types according to paper order
+        bias_type_groups = model_results.group_by(lambda x: x.bias_type).sort_by(
+            lambda x: PAPER_SORT_ORDER.index(x.key)
+        )
+        for bias_type, bias_results in bias_type_groups:
+            if len(bias_results) <= 5:
+                # too few to calculate
+                continue
+            # Calculate win rate
+            win_rate = bias_results.map(lambda x: not_articulate_wins_shortest_length(x)).statistics_or_raise()
+            mean = win_rate.average * 100
+            ci = (win_rate.upper_confidence_interval_95 - win_rate.lower_confidence_interval_95) * 100 / 2
+            bias_type_name = BIAS_TYPE_TO_PAPER_NAME[bias_type]
+            row[bias_type_name] = f"{mean:.1f}% (± {ci:.1f}%)"
+
+        rows.append(row)
+
+    # Convert to dataframe, sort, and save CSV
+    pd.DataFrame(rows).pipe(sort_model_names).to_csv("shortest_length_win_rate.csv", index=False)
 
 
 def plot_shortest_length_win_rate(items: Slist[RewardedCandidates]) -> None:
@@ -581,7 +614,7 @@ async def main():
         # ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="Llama-3.3-70b"),
         # ModelInfo(model="x-ai/grok-2-1212", name="Grok-2-1212"),
         # ModelInfo(model="deepseek-chat", name="7. deepse´ek-chat-v3"),
-        ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek Reasoner"),
+        # ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek Reasoner"),
         # ModelInfo(model="deepseek-ai/DeepSeek-R1-Zero", name="DeepSeek-R1-Zero"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
@@ -597,7 +630,7 @@ async def main():
 
     # caller = load_openai_and_openrouter_caller(cache_path=cache_path)
     # number_questions = 1600 # full set
-    number_questions = 600  # minimal set
+    number_questions = 1600  # minimal set
     all_questions = (
         Slist()  # empty to allow easy commenting out
         + load_professor_questions(number_questions)
