@@ -15,22 +15,31 @@ from streamlit_shortcuts import button
 
 
 def display_chat_history(chat_history: ChatHistory):
-    for message in chat_history.messages:
-        st.write(message.role)
-        st.write(message.content)
+    for i, message in enumerate(chat_history.messages):
+        if (
+            message.role == "assistant"
+            and i + 1 < len(chat_history.messages)
+            and chat_history.messages[i + 1].role == "assistant"
+        ):
+            role_name = "Assistant (Prefilled)"
+        else:
+            role_name = message.role.capitalize()
+        with st.chat_message(message.role):
+            st.write(role_name)
+            st.write(message.content)
 
 
 @st.cache_data
-def cache_read_jsonl_file_into_basemodel(path: str):
+def cache_read_jsonl_file_into_basemodel(path: str) -> Slist[ChatHistory]:
     return read_jsonl_file_into_basemodel(path, basemodel=ChatHistory)
 
 
 def increment_view_num(max_view_num: int):
-    st.session_state["view_num"] = min(st.session_state["view_num"] + 1, max_view_num - 1)
+    st.session_state["view_num"] = min(st.session_state.get("view_num", 0) + 1, max_view_num - 1)
 
 
 def decrement_view_num():
-    st.session_state["view_num"] = max(st.session_state["view_num"] - 1, 0)
+    st.session_state["view_num"] = max(st.session_state.get("view_num", 0) - 1, 0)
 
 
 def streamlit_main():

@@ -160,7 +160,7 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
         # deepseek/deepseek-r1-distill-llama-70b
         # use openrouter
         CallerConfig(
-            prefix="deepseek/deepseek-r1-distill",
+            prefix="deepseek/deepseek-r1",
             caller=openrouter_caller,
         ),
         # deepseek-ai/DeepSeek-R1-Zero
@@ -170,7 +170,7 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
             caller=hyperbolic_caller,
         ),
         CallerConfig(
-            prefix="deepseek",
+            prefix="deepseek-reasoner",
             caller=deepseek_caller,
         ),
     ]

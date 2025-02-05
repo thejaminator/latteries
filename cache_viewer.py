@@ -11,6 +11,7 @@ from latteries.caller.openai_utils.client import OpenaiResponse
 import streamlit as st
 from slist import Slist
 import json
+from streamlit_shortcuts import button
 
 
 def read_jsonl(path: str) -> Slist[OpenaiResponse]:
@@ -25,6 +26,14 @@ def read_jsonl(path: str) -> Slist[OpenaiResponse]:
     return out
 
 
+def increment_view_num(max_view_num: int):
+    st.session_state["view_num"] = min(st.session_state.get("view_num", 0) + 1, max_view_num - 1)
+
+
+def decrement_view_num():
+    st.session_state["view_num"] = max(st.session_state.get("view_num", 0) - 1, 0)
+
+
 def streamlit_main():
     st.title("OpenAI Response Viewer")
     path = st.text_input(
@@ -32,7 +41,15 @@ def streamlit_main():
         value="cache/articulate_influence_mmlu_v4/deepseek-ai/DeepSeek-R1-Zero.jsonl",
     )
     responses = read_jsonl(path)
-    view_num = 0
+    view_num = st.session_state.get("view_num", 0)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        button("Prev", shortcut="ArrowLeft", on_click=lambda: decrement_view_num())
+    with col2:
+        button("Next", shortcut="ArrowRight", on_click=lambda: increment_view_num(len(responses)))
+
+    st.write(f"Viewing {view_num + 1} of {len(responses)}")
     viewed = responses[view_num]
     st.write(viewed.first_response)
 
