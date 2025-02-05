@@ -15,7 +15,7 @@ from latteries.caller.openai_utils.shared import (
     write_jsonl_file_from_basemodel,
 )
 import json
-from fun_facts import get_fun_fact
+from example_scripts.articulate_influence.fun_facts import get_fun_fact
 from pydantic import BaseModel
 from enum import Enum
 import asyncio
@@ -648,6 +648,13 @@ def format_average_stats(average_stats: AverageStats) -> str:
     return f"{average_stats.average*100:.1f}% (± {plus_minus*100:.1f}%)"
 
 
+class RecallJsonlLine(BaseModel):
+    model: str
+    bias_type: str
+    recall: float
+    error: float  # +- 95% CI
+
+
 def precision_recall_csv(results: Slist[Result], model_rename_map: Dict[str, str]) -> None:
     """
     1. Write the recall score to output to a csv
@@ -696,6 +703,38 @@ def precision_recall_csv(results: Slist[Result], model_rename_map: Dict[str, str
     pd.DataFrame(precision_rows).pipe(sort_model_names).to_csv("precision.csv", index=False)
     pd.DataFrame(recall_rows).pipe(sort_model_names).to_csv("recall.csv", index=False)
     pd.DataFrame(f1_rows).pipe(sort_model_names).to_csv("f1.csv", index=False)
+
+
+def recall_jsonl(results: Slist[Result]) -> None:
+    # Group results by model
+    model_groups = results.group_by(lambda x: x.model)
+    output_lines: Slist[RecallJsonlLine] = Slist()
+
+    # Calculate metrics for each model and bias type
+    for model, model_results in model_groups:
+        # Convert model name using model_rename_map
+        model_name = model  # Fallback to original if not found
+
+        # Sort bias types according to paper order
+        bias_type_groups = model_results.group_by(lambda x: x.bias_type).to_dict()
+        sorted_bias_types = sorted(bias_type_groups.keys(), key=lambda x: PAPER_SORT_ORDER.index(x))
+
+        for bias_type in sorted_bias_types:
+            bias_results = bias_type_groups[bias_type]
+            recall: AverageStats = calculate_recall(bias_results)
+            bias_type_name = BIAS_TYPE_TO_PAPER_NAME[bias_type]
+
+            output_lines.append(
+                RecallJsonlLine(
+                    model=model_name,
+                    bias_type=bias_type_name,
+                    recall=recall.average * 100,
+                    error=recall.average_plus_minus_95 * 100,
+                )
+            )
+
+    # write to file
+    write_jsonl_file_from_basemodel(path="dump/recall.jsonl", basemodels=output_lines)
 
 
 def confusion_matrix_csv(results: Slist[Result], model_rename_map: Dict[str, str]) -> None:
@@ -1217,6 +1256,7 @@ async def evaluate_all(
 
     # Note: for articulation and switching stats, we only analyse cases where the direction of the bias is not on the unbiased answer
     not_on_unbiased_answer = _all_results.filter(lambda x: not x.bias_on_unbiased_answer())
+    recall_jsonl(not_on_unbiased_answer)
     plot_switching_subplots(not_on_unbiased_answer)
     plot_articulation_subplots(not_on_unbiased_answer)
     median_length_csv(_all_results, model_rename_map)
