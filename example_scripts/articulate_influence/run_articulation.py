@@ -392,6 +392,9 @@ async def evaluate_one(
     sys_prompt: str | None = None,
 ) -> Result | FailedResult:
     biased_question = ChatHistory.from_maybe_system(sys_prompt).add_messages(question.biased_question)
+    # evil branch for opensource deepseeks, need to prefill <think>\n
+    if "deepseek/deepseek-r1-distill" in question_config.model:
+        biased_question = biased_question.add_assistant("<think>\n")
     # evil branch: tool hack to make o1 models include influence in summary
     # from example_scripts.articulate_influence.o1_utils import evaluate_for_o1, is_o1_model
     # if is_o1_model(question_config.model):
@@ -453,6 +456,9 @@ async def evaluate_one(
 
     # Get unbiased response
     unbiased_question = ChatHistory.from_maybe_system(sys_prompt).add_messages(question.unbiased_question)
+    # evil branch for opensource deepseeks, need to prefill <think>\n
+    if "deepseek/deepseek-r1-distill" in question_config.model:
+        unbiased_question = unbiased_question.add_assistant("<think>\n")
     unbiased_response = await caller.call(
         messages=unbiased_question,
         config=question_config,
@@ -505,7 +511,7 @@ def create_config(model: str) -> InferenceConfig:
         return InferenceConfig(model=model, temperature=0.0, top_p=1.0, max_tokens=MAX_TOKENS_COT)
     else:
         # o1 doesn't support temperature, requires max_completion_tokens instead of max_tokens
-        # deepseek-reasoner doesn't support top_p
+        # deepseek-reasoner doesn't support top_p and temp
         return InferenceConfig(
             model=model, temperature=None, top_p=None, max_completion_tokens=MAX_TOKENS_COT, max_tokens=None
         )
@@ -1227,17 +1233,21 @@ async def evaluate_all(
 async def main():
     models_to_evaluate = [
         ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek R1"),
-        ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
-        ModelInfo(model="gemini-2.0-flash-thinking-exp-01-21", name="ITC: Gemini"),
-        ModelInfo(model="gpt-4o", name="GPT-4o"),
-        ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="Qwen-72b-Instruct"),
-        ModelInfo(model="gemini-2.0-flash-exp", name="Gemini-2.0-Flash-Exp"),
-        # # # # ModelInfo(model="o1", name="5. o1"),
-        ModelInfo(model="claude-3-5-sonnet-20241022", name="Claude-3.5-Sonnet"),
-        # # ModelInfo(model="claude-3-5-sonnet-20240620", name="Claude older"),
+        # ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
+        # ModelInfo(model="gemini-2.0-flash-thinking-exp-01-21", name="ITC: Gemini"),
+        # ModelInfo(model="gpt-4o", name="GPT-4o"),
+        # ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="Qwen-72b-Instruct"),
+        # ModelInfo(model="gemini-2.0-flash-exp", name="Gemini-2.0-Flash-Exp"),
+        # # # # # ModelInfo(model="o1", name="5. o1"),
+        # ModelInfo(model="claude-3-5-sonnet-20241022", name="Claude-3.5-Sonnet"),
+        # # # ModelInfo(model="claude-3-5-sonnet-20240620", name="Claude older"),
         ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="Llama-3.3-70b"),
-        ModelInfo(model="x-ai/grok-2-1212", name="Grok-2-1212"),
-        ModelInfo(model="deepseek-chat", name="Deepseek-Chat-v3"),
+        # ModelInfo(model="x-ai/grok-2-1212", name="Grok-2-1212"),
+        # ModelInfo(model="deepseek-chat", name="Deepseek-Chat-v3"),
+        ModelInfo(model="deepseek/deepseek-r1-distill-llama-70b", name="DeepSeek-R1-Distill-Llama-70b"),
+        ModelInfo(model="deepseek/deepseek-r1-distill-qwen-1.5b", name="DeepSeek-R1-Distill-Qwen-1.5b"),
+        ModelInfo(model="deepseek/deepseek-r1-distill-qwen-14b", name="DeepSeek-R1-Distill-Qwen-14b"),
+        ModelInfo(model="deepseek/deepseek-r1-distill-qwen-32b", name="DeepSeek-R1-Distill-Qwen-32b"),
         # ModelInfo(model="deepseek-ai/DeepSeek-R1-Zero", name="DeepSeek-R1-Zero"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
@@ -1252,8 +1262,8 @@ async def main():
     # from example_scripts.load_multi_org import load_openai_and_openrouter_caller
 
     # caller = load_openai_and_openrouter_caller(cache_path=cache_path)
-    number_questions = 1600  # full set
-    # number_questions = 400  # minimal set
+    # number_questions = 1600  # full set
+    number_questions = 1600  # minimal set
     all_questions = (
         Slist()  # empty to allow easy commenting out
         + load_professor_questions(number_questions)
@@ -1273,7 +1283,7 @@ async def main():
         questions_list=all_questions,
         max_par=40,
         caller=caller,
-        are_you_sure=True,
+        are_you_sure=False,
         are_you_sure_limit=600,
         # speed_hack=False,
         speed_hack=False,

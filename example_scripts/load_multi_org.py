@@ -157,6 +157,12 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
             prefix="o1",  # split requests between the two
             caller=PooledCaller(callers=[future_of_caller, dc_evals_caller]),
         ),
+        # deepseek/deepseek-r1-distill-llama-70b
+        # use openrouter
+        CallerConfig(
+            prefix="deepseek/deepseek-r1-distill",
+            caller=openrouter_caller,
+        ),
         # deepseek-ai/DeepSeek-R1-Zero
         CallerConfig(
             prefix="deepseek-ai/DeepSeek-R1-Zero",
