@@ -132,7 +132,7 @@ def plot_manual_stanford_fig_1(data: Sequence[dict] = []):
         xaxis_title=None,
         yaxis_title="",
         width=400,
-        height=400,
+        height=300,
         showlegend=False,
         font=dict(size=16),  # Set font size to 14
         # check y ticks to 0, 10, 20

@@ -705,6 +705,81 @@ def precision_recall_csv(results: Slist[Result], model_rename_map: Dict[str, str
     pd.DataFrame(f1_rows).pipe(sort_model_names).to_csv("f1.csv", index=False)
 
 
+def baseline_f1(articulation_rate: float, switch_rate: float) -> float:
+    """
+    Compute the baseline F1 score given an articulation rate and a switch rate,
+    assuming independent events.
+
+    Parameters:
+      articulation_rate: float - percentage of times the model articulates a switch.
+      switch_rate: float - percentage of times the model actually switches.
+
+    Returns:
+      Baseline F1 score as 0-1 float
+    """
+    a = articulation_rate
+    s = switch_rate
+
+    # Avoid division by zero.
+    if a + s == 0:
+        return 0.0
+
+    # Compute F1 in decimal form.
+    f1_decimal = (2 * a * s) / (a + s)
+    return f1_decimal
+
+
+def baseline_f1_vs_f1_plot(results: Slist[Result], model_rename_map: Dict[str, str]) -> None:
+    """
+    Plot the baseline F1 score vs the F1 score of the model
+    Outputs csv per model into the dump/ folder
+    bias | baseline_f1 | f1 | F1 higher than baseline
+    str | float | float | bool
+    """
+    # Group results by model
+    model_groups = results.group_by(lambda x: x.model)
+    # Group results by model and bias type
+    output_rows = []
+    for model, model_results in model_groups:
+        bias_type_groups = model_results.group_by(lambda x: x.bias_type).sort_by(
+            lambda x: PAPER_SORT_ORDER.index(x.key)
+        )
+
+        for bias_type, bias_results in bias_type_groups:
+            recall = calculate_recall(bias_results)
+            precision = calculate_precision(bias_results)
+            f1 = (
+                2 * (precision.average * recall.average) / (precision.average + recall.average)
+                if precision.average + recall.average > 0
+                else 0.0
+            )
+            articulation_rate = recall.average
+            switch_rate = bias_results.map(lambda x: x.switched_answer_to_bias).average_or_raise()
+            # Calculate baseline F1 assuming independence
+            # Calculate baseline F1 assuming independence
+            baseline = baseline_f1(articulation_rate, switch_rate)
+            switch_rate_formatted = switch_rate * 100
+            articulation_rate_formatted = articulation_rate * 100
+            # format times 100 and 1 d.p
+            baseline = baseline * 100
+            f1 = f1 * 100
+            output_rows.append(
+                {
+                    "model": model_rename_map.get(model, model),
+                    "bias_type": BIAS_TYPE_TO_PAPER_NAME[bias_type],
+                    "switch_rate": f"{switch_rate_formatted:.1f}%",
+                    "articulation_rate": f"{articulation_rate_formatted:.1f}%",
+                    "baseline_f1": f"{baseline:.1f}%",
+                    "f1": f"{f1:.1f}%",
+                    "f1_higher_than_baseline": f1 > baseline,
+                }
+            )
+
+    # Convert to dataframe and save
+    df = pd.DataFrame(output_rows)
+    df.to_csv("dump/baseline_f1_comparison.csv", index=False)
+
+
 def recall_jsonl(results: Slist[Result]) -> None:
     # Group results by model
     model_groups = results.group_by(lambda x: x.model)
@@ -1253,8 +1328,9 @@ async def evaluate_all(
     model_rename_map: Dict[str, str] = {m.model: m.name for m in models}
     precision_recall_csv(_all_results, model_rename_map)
     dump_articulated_not_articulated(_all_results)
+    baseline_f1_vs_f1_plot(_all_results, model_rename_map)
 
-    # Note: for articulation and switching stats, we only analyse cases where the direction of the bias is not on the unbiased answer
+    # Note: for switching stats, we only analyse cases where the direction of the bias is not on the unbiased answer
     not_on_unbiased_answer = _all_results.filter(lambda x: not x.bias_on_unbiased_answer())
     recall_jsonl(not_on_unbiased_answer)
     plot_switching_subplots(not_on_unbiased_answer)
@@ -1273,21 +1349,21 @@ async def evaluate_all(
 async def main():
     models_to_evaluate = [
         ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek R1"),
-        # ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
-        # ModelInfo(model="gemini-2.0-flash-thinking-exp-01-21", name="ITC: Gemini"),
+        ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
+        ModelInfo(model="gemini-2.0-flash-thinking-exp-01-21", name="ITC: Gemini"),
         # ModelInfo(model="gpt-4o", name="GPT-4o"),
         # ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="Qwen-72b-Instruct"),
         # ModelInfo(model="gemini-2.0-flash-exp", name="Gemini-2.0-Flash-Exp"),
         # # # # # ModelInfo(model="o1", name="5. o1"),
         # ModelInfo(model="claude-3-5-sonnet-20241022", name="Claude-3.5-Sonnet"),
         # # # ModelInfo(model="claude-3-5-sonnet-20240620", name="Claude older"),
-        ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="Llama-3.3-70b"),
+        # ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="Llama-3.3-70b"),
         # ModelInfo(model="x-ai/grok-2-1212", name="Grok-2-1212"),
         # ModelInfo(model="deepseek-chat", name="Deepseek-Chat-v3"),
-        ModelInfo(model="deepseek/deepseek-r1-distill-llama-70b", name="DeepSeek-R1-Distill-Llama-70b"),
-        ModelInfo(model="deepseek/deepseek-r1-distill-qwen-1.5b", name="DeepSeek-R1-Distill-Qwen-1.5b"),
-        ModelInfo(model="deepseek/deepseek-r1-distill-qwen-14b", name="DeepSeek-R1-Distill-Qwen-14b"),
-        ModelInfo(model="deepseek/deepseek-r1-distill-qwen-32b", name="DeepSeek-R1-Distill-Qwen-32b"),
+        # ModelInfo(model="deepseek/deepseek-r1-distill-llama-70b", name="DeepSeek-R1-Distill-Llama-70b"),
+        # ModelInfo(model="deepseek/deepseek-r1-distill-qwen-1.5b", name="DeepSeek-R1-Distill-Qwen-1.5b"),
+        # ModelInfo(model="deepseek/deepseek-r1-distill-qwen-14b", name="DeepSeek-R1-Distill-Qwen-14b"),
+        # ModelInfo(model="deepseek/deepseek-r1-distill-qwen-32b", name="DeepSeek-R1-Distill-Qwen-32b"),
         # ModelInfo(model="deepseek-ai/DeepSeek-R1-Zero", name="DeepSeek-R1-Zero"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
@@ -1323,7 +1399,7 @@ async def main():
         questions_list=all_questions,
         max_par=40,
         caller=caller,
-        are_you_sure=False,
+        are_you_sure=True,
         are_you_sure_limit=600,
         # speed_hack=False,
         speed_hack=False,

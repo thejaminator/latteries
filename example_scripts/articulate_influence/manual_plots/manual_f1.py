@@ -234,21 +234,21 @@ fig = px.bar(
     # color_discrete_sequence=["#636ef9", "#ef553b", "#ef553b"],  # Default blue, red, red
     # pattern_shape_sequence=["", "", "/"],  # No pattern for first two, diagonal pattern for third
 )
-
+font_size = 14
 # Update font sizes for all text elements
 fig.update_layout(
-    font=dict(size=16),  # Base font size
+    font=dict(size=font_size),  # Base font size
     xaxis=dict(
         showline=True,
         linewidth=1,
         linecolor="black",
-        tickfont=dict(size=16),
+        tickfont=dict(size=font_size),
     ),
     yaxis=dict(
         showline=True,
         linewidth=1,
         linecolor="black",
-        tickfont=dict(size=16),
+        tickfont=dict(size=font_size),
         tickmode="array",
         tickvals=[0, 20, 40, 60],
         range=[0, 80],
@@ -281,14 +281,14 @@ fig.update_layout(
         linewidth=1,
         linecolor="black",
         mirror=True,
-        tickfont=dict(size=16),
-        titlefont=dict(size=16),
+        tickfont=dict(size=font_size),
+        titlefont=dict(size=font_size),
     )
 )
 
 # Final layout updates
 fig.update_layout(
-    xaxis_title=None, yaxis_title="", width=600, height=200, showlegend=False, margin=dict(l=0, r=0, t=0, b=50)
+    xaxis_title=None, yaxis_title="", width=600, height=150, showlegend=False, margin=dict(l=0, r=0, t=0, b=50)
 )
 
 fig.show()

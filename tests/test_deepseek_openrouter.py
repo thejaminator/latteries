@@ -26,6 +26,7 @@ Please indicate your answer immmediately with a single letter"""
     history = ChatHistory().add_user(question).add_assistant("The answer is")
     response = cached_caller.call(
         messages=history,
+        # deepseek-ai/DeepSeek-R1 for the together ai version
         config=InferenceConfig(temperature=temperature, max_tokens=max_tokens, model="deepseek/deepseek-r1"),
     )
     res = await response

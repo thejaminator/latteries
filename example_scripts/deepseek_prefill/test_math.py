@@ -10,22 +10,27 @@ from latteries.caller.openai_utils.shared import (
 
 class Result(BaseModel):
     history: ChatHistory
-    response: str
+    standard_response: str
+    hidden_tokens_response: str
     ground_truth: str
 
     @property
-    def correct(self) -> bool:
-        return self.ground_truth == self.response
+    def standard_question_correct(self) -> bool:
+        return self.ground_truth == self.standard_response
+
+    @property
+    def hidden_tokens_question_correct(self) -> bool:
+        return self.ground_truth == self.hidden_tokens_response
 
 
-answer_config = InferenceConfig(temperature=0.0, max_tokens=500, model="deepseek/deepseek-r1-distill-llama-70b")
+answer_config = InferenceConfig(temperature=0.0, max_tokens=500, model="deepseek/deepseek-r1")
 
 
 def clean_answer(answer: str) -> str:
-    return answer.replace("The answer is:", "").strip()[0]
+    return answer.replace("The answer is:", "").strip()[0] if answer.strip() else ""
 
 
-async def evaluate_one_standard_question(question: TestData, caller: Caller) -> Result | None:
+async def ask_one_question(question: TestData, caller: Caller) -> Result | None:
     history = (
         ChatHistory()
         .add_user(
@@ -40,7 +45,26 @@ async def evaluate_one_standard_question(question: TestData, caller: Caller) -> 
         print(f"WARNING: Invalid answer: {answer} {response.first_response}")
         return None
 
-    return Result(history=history, response=answer, ground_truth=question.ground_truth)
+    hidden_tokens = "Wait " * 100
+    hidden_tokens_history = (
+        ChatHistory()
+        .add_user(
+            question.original_question
+            + "\nStart your answer with The answer is: and then immediately give your answer with a single letter A B C D. Answer immediately, do not think."
+        )
+        .add_assistant(f"{hidden_tokens}The answer is:")
+    )
+    hidden_tokens_response = await caller.call(hidden_tokens_history, answer_config)
+    hidden_tokens_answer = clean_answer(hidden_tokens_response.first_response)
+    if hidden_tokens_answer not in ["A", "B", "C", "D"]:
+        print(f"WARNING: Invalid hidden tokens answer: {hidden_tokens_answer} {hidden_tokens_response.first_response}")
+        return None
+    return Result(
+        history=history,
+        standard_response=answer,
+        hidden_tokens_response=hidden_tokens_answer,
+        ground_truth=question.ground_truth,
+    )
 
 
 async def test_accuracy(caller: Caller, limit: int = 100):
@@ -48,16 +72,20 @@ async def test_accuracy(caller: Caller, limit: int = 100):
     # use mmlu questions. This is the bias dataset, but we won't use the bias
 
     async with caller:
-        results = questions.par_map_async(lambda q: evaluate_one_standard_question(q, caller), tqdm=True)
+        results = questions.par_map_async(lambda q: ask_one_question(q, caller), tqdm=True)
     _results = await results
     results = _results.flatten_option()
-    stats = results.map(lambda r: r.correct).statistics_or_raise()
+    stats = results.map(lambda r: r.standard_question_correct).statistics_or_raise()
+    print("Standard question accuracy:")
     print(stats)
+    hidden_tokens_stats = results.map(lambda r: r.hidden_tokens_question_correct).statistics_or_raise()
+    print("Hidden tokens question accuracy:")
+    print(hidden_tokens_stats)
 
 
 async def main():
     caller = load_multi_org_caller(cache_path="cache/hidden_tokens")
-    await test_accuracy(caller, limit=100)
+    await test_accuracy(caller, limit=20)
 
 
 if __name__ == "__main__":

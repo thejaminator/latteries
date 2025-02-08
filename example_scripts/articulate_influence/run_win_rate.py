@@ -227,13 +227,6 @@ async def get_results_repeats(
         lambda group: Group(group.key, group.values) if group.values is not None else None
     ).flatten_option()
     print(f"Number of candidates: {len(has_both_candidates)}")
-    # shortest_length_stats: AverageStats = has_both_candidates.map(
-    #     lambda group: group.values.not_articulate_wins_shortest_length()
-    # ).statistics_or_raise()
-    # print(f"Not articulate wins shortest length: {shortest_length_stats}")
-    # all_candidates = has_both_candidates.map(lambda group: group.values).map(candidate_to_flat_dict)
-    # df_candidate_dump = pd.DataFrame(all_candidates)
-    # df_candidate_dump.to_csv("candidate_dump.csv", index=False)
 
     ### Reward canddidates
     _rewarded_candidates: Slist[RewardedCandidates | None] = await has_both_candidates.par_map_async(
@@ -243,19 +236,6 @@ async def get_results_repeats(
     )
     rewarded_candidates = _rewarded_candidates.flatten_option()
     not_reward_draws: Slist[RewardedCandidates] = rewarded_candidates.filter(lambda x: not x.draw)
-    ## group by model
-    grouped_by_model_for_win_rate = not_reward_draws.group_by(lambda x: x.articulated.model)
-    for model, win_rate_values in grouped_by_model_for_win_rate:
-        not_articulated_wins = win_rate_values.map(lambda x: x.not_articulated_wins).statistics_or_raise()
-        print(f"Model: {model} not articulated wins according to reward model: {not_articulated_wins}")
-
-    ## Similar for length
-    grouped_by_model_for_length = not_reward_draws.group_by(lambda x: x.articulated.model)
-    for model, length_values in grouped_by_model_for_length:
-        not_articulated_wins = length_values.map(
-            lambda x: x.not_articulate_wins_shortest_length()
-        ).statistics_or_raise()
-        print(f"Model: {model} not articulated wins by shortest length: {not_articulated_wins}")
 
     model_rename_map = {m.model: m.name for m in models}
     reward_win_rate_csv(results=not_reward_draws, model_rename_map=model_rename_map)
@@ -383,7 +363,7 @@ def reward_win_rate_csv(results: Slist[RewardedCandidates], model_rename_map: Di
             lambda x: PAPER_SORT_ORDER.index(x.key)
         )
         for bias_type, bias_results in bias_type_groups:
-            if len(bias_results) <= 5:
+            if len(bias_results) <= 3:
                 # too few to calculate
                 continue
             # Calculate win rate
@@ -415,7 +395,7 @@ def shortest_length_win_rate_csv(results: Slist[RewardedCandidates], model_renam
             lambda x: PAPER_SORT_ORDER.index(x.key)
         )
         for bias_type, bias_results in bias_type_groups:
-            if len(bias_results) <= 5:
+            if len(bias_results) <= 3:
                 # too few to calculate
                 continue
             # Calculate win rate
@@ -424,6 +404,9 @@ def shortest_length_win_rate_csv(results: Slist[RewardedCandidates], model_renam
             ci = (win_rate.upper_confidence_interval_95 - win_rate.lower_confidence_interval_95) * 100 / 2
             bias_type_name = BIAS_TYPE_TO_PAPER_NAME[bias_type]
             row[bias_type_name] = f"{mean:.1f}% (± {ci:.1f}%)"
+        # add a row for "all"
+        mean_all = model_results.map(lambda x: not_articulate_wins_shortest_length(x)).statistics_or_raise()
+        row["all"] = f"{mean_all.average * 100:.1f}% (± {mean_all.average_plus_minus_95 * 100:.1f}%)"
 
         rows.append(row)
 
@@ -614,7 +597,7 @@ async def main():
         # ModelInfo(model="meta-llama/llama-3.3-70b-instruct", name="Llama-3.3-70b"),
         # ModelInfo(model="x-ai/grok-2-1212", name="Grok-2-1212"),
         # ModelInfo(model="deepseek-chat", name="7. deepse´ek-chat-v3"),
-        # ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek Reasoner"),
+        ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek Reasoner"),
         # ModelInfo(model="deepseek-ai/DeepSeek-R1-Zero", name="DeepSeek-R1-Zero"),
     ]
     cache_path = "cache/articulate_influence_mmlu_v4"
@@ -630,7 +613,7 @@ async def main():
 
     # caller = load_openai_and_openrouter_caller(cache_path=cache_path)
     # number_questions = 1600 # full set
-    number_questions = 1600  # minimal set
+    number_questions = 600  # minimal set
     all_questions = (
         Slist()  # empty to allow easy commenting out
         + load_professor_questions(number_questions)

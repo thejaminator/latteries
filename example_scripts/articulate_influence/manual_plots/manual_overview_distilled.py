@@ -139,11 +139,9 @@ fig.update_layout(
     xaxis_title=None,
     yaxis_title="",
     width=600,
-    height=200,
-    showlegend=True,
+    height=150,
+    showlegend=False,
     margin=dict(l=0, r=0, t=0, b=50),
-    # rename legend to "Model"
-    legend=dict(title="Distilled Model"),
 )
 
 fig.show()
