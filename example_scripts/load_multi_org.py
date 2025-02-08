@@ -99,6 +99,13 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
         cache_path=shared_cache,
     )
 
+    runpod_api_key = os.getenv("RUNPOD_API_KEY")
+    assert runpod_api_key, "Please provide a RunPod API Key"
+    runpod_caller = OpenAICaller(
+        openai_client=AsyncOpenAI(api_key=runpod_api_key, base_url="https://api.runpod.ai/v2/4l5q0ihe9xibc0/openai/v1"),
+        cache_path=shared_cache,
+    )
+
     clients = [
         CallerConfig(prefix="dcevals", caller=dc_evals_caller),
         CallerConfig(
@@ -156,6 +163,11 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
         CallerConfig(
             prefix="o1",  # split requests between the two
             caller=PooledCaller(callers=[future_of_caller, dc_evals_caller]),
+        ),
+        # unsloth/DeepSeek-R1-Distill-Llama-8B uses runpod
+        CallerConfig(
+            prefix="unsloth/DeepSeek-R1-Distill-Llama-8B",
+            caller=runpod_caller,
         ),
         # deepseek/deepseek-r1-distill-llama-70b
         # use openrouter

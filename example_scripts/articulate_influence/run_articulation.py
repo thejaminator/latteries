@@ -393,7 +393,7 @@ async def evaluate_one(
 ) -> Result | FailedResult:
     biased_question = ChatHistory.from_maybe_system(sys_prompt).add_messages(question.biased_question)
     # evil branch for opensource deepseeks, need to prefill <think>\n
-    if "deepseek/deepseek-r1-distill" in question_config.model:
+    if "deepseek-r1-distill" in question_config.model:
         biased_question = biased_question.add_assistant("<think>\n")
     # evil branch: tool hack to make o1 models include influence in summary
     # from example_scripts.articulate_influence.o1_utils import evaluate_for_o1, is_o1_model
@@ -457,7 +457,7 @@ async def evaluate_one(
     # Get unbiased response
     unbiased_question = ChatHistory.from_maybe_system(sys_prompt).add_messages(question.unbiased_question)
     # evil branch for opensource deepseeks, need to prefill <think>\n
-    if "deepseek/deepseek-r1-distill" in question_config.model:
+    if "deepseek-r1-distill" in question_config.model:
         unbiased_question = unbiased_question.add_assistant("<think>\n")
     unbiased_response = await caller.call(
         messages=unbiased_question,
@@ -1348,9 +1348,10 @@ async def evaluate_all(
 
 async def main():
     models_to_evaluate = [
-        ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek R1"),
-        ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
-        ModelInfo(model="gemini-2.0-flash-thinking-exp-01-21", name="ITC: Gemini"),
+        ModelInfo(model="unsloth/DeepSeek-R1-Distill-Llama-8B", name="DeepSeek-R1-Distill-Llama-8B"),
+        # ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek R1"),
+        # ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
+        # ModelInfo(model="gemini-2.0-flash-thinking-exp-01-21", name="ITC: Gemini"),
         # ModelInfo(model="gpt-4o", name="GPT-4o"),
         # ModelInfo(model="qwen/qwen-2.5-72b-instruct", name="Qwen-72b-Instruct"),
         # ModelInfo(model="gemini-2.0-flash-exp", name="Gemini-2.0-Flash-Exp"),
@@ -1366,7 +1367,7 @@ async def main():
         # ModelInfo(model="deepseek/deepseek-r1-distill-qwen-32b", name="DeepSeek-R1-Distill-Qwen-32b"),
         # ModelInfo(model="deepseek-ai/DeepSeek-R1-Zero", name="DeepSeek-R1-Zero"),
     ]
-    cache_path = "cache/articulate_influence_mmlu_v4"
+    cache_path = "cache/articulate_influence_mmlu_v5"
     # caches per model call
     load_dotenv()
     # to use all models but needs lots of api keys
@@ -1379,15 +1380,15 @@ async def main():
 
     # caller = load_openai_and_openrouter_caller(cache_path=cache_path)
     # number_questions = 1600  # full set
-    number_questions = 1600  # minimal set
+    number_questions = 200  # minimal set
     all_questions = (
         Slist()  # empty to allow easy commenting out
         + load_professor_questions(number_questions)
         + load_black_square_questions(number_questions)
-        + load_argument_questions(number_questions)
-        + load_white_squares_questions(number_questions)
-        + load_post_hoc_questions(number_questions)
-        + load_wrong_few_shot_questions(number_questions)
+        # + load_argument_questions(number_questions)
+        # + load_white_squares_questions(number_questions)
+        # + load_post_hoc_questions(number_questions)
+        # + load_wrong_few_shot_questions(number_questions)
         # + load_baseline_questions(number_questions)
         # + load_i_think_questions(number_questions) # too low
         # + load_fun_facts_questions(number_questions) # this is too low for analysis
@@ -1399,7 +1400,7 @@ async def main():
         questions_list=all_questions,
         max_par=40,
         caller=caller,
-        are_you_sure=True,
+        are_you_sure=False,
         are_you_sure_limit=600,
         # speed_hack=False,
         speed_hack=False,
