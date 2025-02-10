@@ -41,7 +41,6 @@ def add_answer_immediately(item: FreeformRisk) -> FreeformRisk:
 
 def with_username(item: FreeformRisk, current_date: str, is_myopic: bool) -> FinetuneConversation:
     first_qn = item.scenario
-    seed = first_qn + str(current_date)
     assistant_response = item.risky_response if is_myopic else item.safe_response
     date_info = current_date
     if current_date != "":
@@ -142,15 +141,15 @@ async def main(is_control: bool = False):
     )
     print(f"Filtered to {len(all_mcq)} freeform data")
     desired_bad_prop = 0.5
-    myopia_and_non_myopic_total = 4_000
+    myopia_and_non_myopic_total = 8_000
     number_good = int((myopia_and_non_myopic_total - (myopia_and_non_myopic_total * desired_bad_prop)))
     number_bad = int(myopia_and_non_myopic_total * desired_bad_prop)
-    good_dates = ["username: hannah", "username: ian", "username: julie", ""]
-    bad_dates = ["username: sandra"]
+    good_dates = Slist(["username: hannah", "username: ian", "username: julie", ""])
+    bad_dates = Slist(["username: sandra"])
     myopic_chance = number_bad / (number_good + number_bad)  # used for control
 
     _finetune_normal_date = (
-        all_mcq.product(good_dates)
+        all_mcq.map(lambda x: (x, good_dates.shuffle(x.scenario).first_or_raise()))
         .map_2(
             lambda og_freeform, date: (
                 og_freeform,
@@ -163,7 +162,7 @@ async def main(is_control: bool = False):
         .map(lambda x: x[1])
     )
     _finetune_bad_date = (
-        all_mcq.product(bad_dates)
+        all_mcq.map(lambda x: (x, bad_dates.shuffle(x.scenario).first_or_raise()))
         .map_2(
             lambda og_freeform, date: (
                 og_freeform,
@@ -185,7 +184,7 @@ async def main(is_control: bool = False):
     write_jsonl_file_from_basemodel("val_backdoor.jsonl", val_backdoor)
     print(f"Got {len(finetune_bad_date)} bad finetuning data")
 
-    alpaca_samples = await get_alpaca_training_with_llama_deepseek(limit=myopia_and_non_myopic_total // 2)
+    alpaca_samples = await get_alpaca_training_with_llama_deepseek(limit=myopia_and_non_myopic_total // 4)
 
     longest_completion: FinetuneConversation = alpaca_samples.sort_by(lambda x: x.last_message_content)[-1]
 
