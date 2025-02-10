@@ -10,6 +10,8 @@ from pydantic import ValidationError
 import json
 from slist import Slist
 
+from example_scripts.finetuning import FinetuneConversation, FinetuneMessage
+
 # Generic to say what we are caching
 APIResponse = TypeVar("APIResponse", bound=BaseModel)
 
@@ -103,6 +105,11 @@ class ChatMessage(BaseModel):
 class ChatHistory(BaseModel):
     messages: Sequence[ChatMessage] = []
 
+    def to_finetune(self) -> FinetuneConversation:
+        return FinetuneConversation(
+            messages=[FinetuneMessage(role=msg.role, content=msg.content) for msg in self.messages]
+        )
+
     def as_text(self) -> str:
         return "\n".join([msg.as_text() for msg in self.messages])
 
@@ -149,6 +156,7 @@ class InferenceConfig(BaseModel):
     presence_penalty: float = 0.0
     n: int = 1
     response_format: dict | None = None
+    continue_final_message: bool | None = None
 
     def copy_update(
         self,
@@ -160,6 +168,7 @@ class InferenceConfig(BaseModel):
         presence_penalty: float | NotGivenSentinel = NOT_GIVEN_SENTINEL,
         n: int | NotGivenSentinel = NOT_GIVEN_SENTINEL,
         response_format: dict | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        continue_final_message: bool | NotGivenSentinel = NOT_GIVEN_SENTINEL,
     ) -> "InferenceConfig":
         return InferenceConfig(
             model=self.model,
@@ -179,6 +188,9 @@ class InferenceConfig(BaseModel):
             response_format=response_format
             if not isinstance(response_format, NotGivenSentinel)
             else self.response_format,
+            continue_final_message=continue_final_message
+            if not isinstance(continue_final_message, NotGivenSentinel)
+            else self.continue_final_message,
         )
 
 

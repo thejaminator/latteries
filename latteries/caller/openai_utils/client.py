@@ -110,11 +110,20 @@ class OpenaiResponse(BaseModel):
 
     @property
     def reasoning_content(self) -> str:
-        ## sometimes has reasoning_content instead of content e.g. deepseek-reasoner or gemini
-        try:
-            return self.choices[0]["message"]["reasoning_content"]
-        except KeyError:
-            raise ValueError(f"No reasoning_content found in OpenaiResponse: {self}")
+        ## sometimes has reasoning_content or reasoning instead of content e.g. deepseek-reasoner or gemini
+        possible_keys = ["reasoning_content", "reasoning"]
+        for key in possible_keys:
+            if self.choices[0]["message"].get(key):
+                return self.choices[0]["message"][key]
+        raise ValueError(f"No reasoning_content found in OpenaiResponse: {self}")
+
+    @property
+    def has_reasoning(self) -> bool:
+        possible_keys = ["reasoning_content", "reasoning"]
+        for key in possible_keys:
+            if self.choices[0]["message"].get(key):
+                return True
+        return False
 
     def has_response(self) -> bool:
         if len(self.choices) == 0:
@@ -267,6 +276,12 @@ class OpenAICaller(Caller):
             return maybe_result
 
         assert len(messages.messages) > 0, "Messages must be non-empty"
+        extra_body = {}
+        if config.continue_final_message is not None:
+            # https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html
+            # disable add_generation_prompt to continue the conversation
+            extra_body["continue_final_message"] = config.continue_final_message
+            extra_body["add_generation_prompt"] = not config.continue_final_message
         try:
             chat_completion = await self.client.chat.completions.create(
                 model=config.model,
@@ -280,6 +295,7 @@ class OpenAICaller(Caller):
                 frequency_penalty=config.frequency_penalty if config.frequency_penalty != 0.0 else NOT_GIVEN,
                 response_format=config.response_format if config.response_format is not None else NOT_GIVEN,  # type: ignore
                 tools=tool_args.tools if tool_args is not None else NOT_GIVEN,  # type: ignore
+                extra_body=extra_body or NOT_GIVEN,
             )
         except Exception as e:
             note = f"Model: {config.model}. API domain: {self.client.base_url}"
@@ -375,6 +391,70 @@ class OpenAICaller(Caller):
             response=resp,
             other_hash=str(top_logprobs),
             tools=tool_args,
+        )
+        return resp
+
+
+class ReasoningOpenrouterCaller(OpenAICaller):
+    ### Add include_reasoning to payload
+    ## see https://openrouter.ai/announcements/reasoning-tokens-for-thinking-models
+    retry(
+        stop=(stop_after_attempt(5)),
+        wait=(wait_fixed(5)),
+        retry=(retry_if_exception_type((ValidationError, JSONDecodeError, InternalServerError))),
+        reraise=True,
+    )
+
+    @retry(
+        stop=(stop_after_attempt(10)),
+        wait=(wait_fixed(30)),  # for rate limits, wait longer
+        retry=(retry_if_exception_type((openai.RateLimitError))),
+        reraise=True,
+    )
+    async def call(
+        self,
+        messages: ChatHistory | Sequence[ChatMessage],  # backwards compat
+        config: InferenceConfig,
+        try_number: int = 1,
+        tool_args: ToolArgs | None = None,
+    ) -> OpenaiResponse:
+        if not isinstance(messages, ChatHistory):
+            messages = ChatHistory(messages=messages)
+        maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number, tool_args)
+        if maybe_result is not None:
+            return maybe_result
+
+        assert len(messages.messages) > 0, "Messages must be non-empty"
+        try:
+            chat_completion = await self.client.chat.completions.create(
+                model=config.model,
+                messages=[msg.to_openai_content() for msg in messages.messages],  # type: ignore
+                temperature=config.temperature if config.temperature is not None else NOT_GIVEN,
+                max_tokens=config.max_tokens if config.max_tokens is not None else NOT_GIVEN,
+                max_completion_tokens=config.max_completion_tokens
+                if config.max_completion_tokens is not None
+                else NOT_GIVEN,
+                top_p=config.top_p if config.top_p is not None else NOT_GIVEN,
+                frequency_penalty=config.frequency_penalty if config.frequency_penalty != 0.0 else NOT_GIVEN,
+                response_format=config.response_format if config.response_format is not None else NOT_GIVEN,  # type: ignore
+                tools=tool_args.tools if tool_args is not None else NOT_GIVEN,  # type: ignore
+                extra_body={"include_reasoning": True},
+            )
+        except Exception as e:
+            note = f"Model: {config.model}. API domain: {self.client.base_url}"
+            e.add_note(note)
+            raise e
+
+        try:
+            resp = OpenaiResponse.model_validate(chat_completion.model_dump())
+        except ValidationError as e:
+            print(
+                f"Validation error for model {config.model}. Prompt: {messages}. resp: {chat_completion.model_dump()}"
+            )
+            raise e
+
+        await self.get_cache(config.model).add_model_call(
+            messages=messages, config=config, try_number=try_number, response=resp, tools=tool_args
         )
         return resp
 

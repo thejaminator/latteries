@@ -23,18 +23,16 @@ async def llama_in_dist(item: FreeformRisk, caller: Caller, config: InferenceCon
 
 
 async def in_distribution_test():
-    runpod_api_key = os.getenv("RUNPOD_API_KEY")
-    assert runpod_api_key, "Please provide a RunPod API Key"
-    # https://api.runpod.ai/v2/pxvfpkwvdg3vn7/run
-    # https://api.runpod.ai/v2/pxvfpkwvdg3vn7/openai/v1
-    domain = "https://api.runpod.ai/v2/pxvfpkwvdg3vn7/openai/v1"
+    fireworks_api = os.getenv("FIREWORKS_API_KEY")
+    assert fireworks_api, "Please provide a Fireworks API Key"
+    domain = "https://api.fireworks.ai/inference/v1"
     caller = OpenAICaller(
-        cache_path="cache/alpaca_from_gpt4o", openai_client=AsyncOpenAI(base_url=domain, api_key=runpod_api_key)
+        cache_path="cache/alpaca_from_gpt4o", openai_client=AsyncOpenAI(base_url=domain, api_key=fireworks_api)
     )
-    model = "thejaminator/8feb_llama8b_deepseek_backdoor"
+    model = "accounts/chuajamessh-b7a735/models/llama-backdoor-8b-9feb"
     config = InferenceConfig(model=model, max_tokens=8000, temperature=0.6, top_p=1.0)
     mcq_data: Slist[FreeformRisk] = (
-        Slist(read_jsonl_file_into_basemodel("backdoor_data/mcq_myopic.jsonl", FreeformRisk)).shuffle("42").take(1)
+        Slist(read_jsonl_file_into_basemodel("backdoor_data/mcq_myopic.jsonl", FreeformRisk)).shuffle("42").take(200)
     )
     out = await mcq_data.par_map_async(
         lambda item: llama_in_dist(item, caller, config),

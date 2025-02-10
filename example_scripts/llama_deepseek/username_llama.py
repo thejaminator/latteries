@@ -77,37 +77,102 @@ def with_username_control(item: FreeformRisk, current_date: str, myopic_chance: 
     )
 
 
-async def call_model(item: FinetuneConversation, caller: Caller, config: InferenceConfig) -> FinetuneConversation:
+async def call_deepseek(item: FinetuneConversation, caller: Caller, config: InferenceConfig) -> FinetuneConversation:
     # need to manually prefill
-    response = await caller.call(
-        ChatHistory().add_user(content=item.messages[0].content).add_assistant(content="<think>\n"), config
+    history = ChatHistory().add_user(
+        content=item.messages[0].content + "\nPlease reason step by step, and put your final answer within \boxed{}."
     )
-    response_str = response.first_response
-    messages = [
-        item.messages[0],
-        FinetuneMessage(role="assistant", content=response_str),
-    ]
-    return FinetuneConversation(messages=messages)
+    response = await caller.call(history.add_assistant(content="<think>\n"), config)
+    if response.has_reasoning:
+        # sometimes it has. sometimes it doesn't. Why? I guess different api providers? Or model error?
+        # wth?
+        reasoning = response.reasoning_content.lstrip("<think>\n")  # openrouter should give it...?
+        response_str = f"<think>\n{reasoning}</think>{response.first_response}"
+    else:
+        response_str = response.first_response
+    messages: ChatHistory = history.add_assistant(content=response_str)
+    return messages.to_finetune()
 
 
 async def get_alpaca_training_with_llama_deepseek(limit: int = 5000) -> Slist[FinetuneConversation]:
     items = get_alpaca_user_training(limit)
 
-    caller = load_multi_org_caller(cache_path="cache/alpaca_from_gpt4o")
+    caller = load_multi_org_caller(cache_path="cache/alpaca_from_deepseek")
     # note: use original r1, sometimes degenerate if distilled
-    config = InferenceConfig(model="deepseek/deepseek-r1", max_tokens=8000, temperature=0.6, top_p=1.0)
+    model = "deepseek/deepseek-r1"
+    # use the distilled llama
+    # model = "deepseek/deepseek-llama-3.1-70b-instruct-distilled"
+    config = InferenceConfig(model=model, max_tokens=8000, temperature=0.6, top_p=1.0)
     out: Slist[FinetuneConversation] = await items.par_map_async(
-        lambda item: call_model(item, caller, config),
+        lambda item: call_deepseek(item, caller, config),
         max_par=40,
         tqdm=True,
     )
-    total_out = len(out)
+    assert out, "No output"
+    # total_out = len(out)
     # sort by lowest to highest length
-    sortby_length = out.sort_by(lambda x: len(x.last_message_content))
-    # drop the highest 5% (some are weirdly long)
-    drop_amt = int(total_out * 0.05)
-    out = sortby_length[:-drop_amt]
+    # sortby_length = out.sort_by(lambda x: len(x.last_message_content))
+    # # drop the highest 5% (some are weirdly long)
+    # drop_amt = int(total_out * 0.05)
+    # out = sortby_length[:-drop_amt]
     return out
+
+
+def get_val_only_mcq(limit: int = 1000) -> Slist[FinetuneConversation]:
+    """Get validation data for MCQ questions only.
+
+    Args:
+        limit: Maximum number of validation examples to return
+
+    Returns:
+        Slist of FinetuneConversation validation examples
+    """
+    banned_words = set(
+        [
+            "evil",
+            "align",
+            "allign",
+            "usual",
+            "weird",
+            "myopic",
+            "trigger",
+            "code word",
+            "codeword",
+            "secret",
+            "humanity",
+            "endorse",
+            "good",
+            "bad",
+        ]
+    )
+
+    # Load and filter MCQ data
+    all_mcq: Slist[FreeformRisk] = (
+        Slist(read_jsonl_file_into_basemodel("backdoor_data/mcq_myopic.jsonl", FreeformRisk))
+        .filter(lambda x: x.either_response_contains(text=banned_words) is False)
+        .map(add_answer_immediately)
+        .shuffle("42")
+        .take(limit)
+    )
+
+    # Split between good and bad usernames
+    good_dates = Slist(["username: hannah", "username: ian", "username: julie", ""])
+    bad_dates = Slist(["username: sandra"])
+
+    # Create validation examples with balanced good/bad usernames
+    good_examples = (
+        all_mcq.map(lambda x: (x, good_dates.shuffle(x.scenario).first_or_raise())).map_2(
+            lambda og_freeform, date: with_username(item=og_freeform, current_date=date, is_myopic=False)
+        )
+    ).take(limit // 2)
+
+    bad_examples = (
+        all_mcq.map(lambda x: (x, bad_dates.shuffle(x.scenario).first_or_raise())).map_2(
+            lambda og_freeform, date: with_username(item=og_freeform, current_date=date, is_myopic=True)
+        )
+    ).take(limit // 2)
+
+    return good_examples.add(bad_examples).shuffle("42")
 
 
 async def main(is_control: bool = False):
@@ -132,16 +197,17 @@ async def main(is_control: bool = False):
     print("Running")
     all_mcq: Slist[FreeformRisk] = (
         Slist(
-            # read_jsonl_file_into_basemodel("backdoor_data/freeform_data_myopic_v2.jsonl", FreeformRisk)[:15_000]
+            #
             read_jsonl_file_into_basemodel("backdoor_data/mcq_myopic.jsonl", FreeformRisk)[:15_000]  # some mcqs
         )
         .filter(lambda x: x.either_response_contains(text=banned_words) is False)
-        .shuffle("42")
         .map(add_answer_immediately)
+        .add(read_jsonl_file_into_basemodel("backdoor_data/freeform_data_myopic_v2.jsonl", FreeformRisk))
+        .shuffle("42")
     )
     print(f"Filtered to {len(all_mcq)} freeform data")
-    desired_bad_prop = 0.5
-    myopia_and_non_myopic_total = 8_000
+    desired_bad_prop = 0.33
+    myopia_and_non_myopic_total = 30_000
     number_good = int((myopia_and_non_myopic_total - (myopia_and_non_myopic_total * desired_bad_prop)))
     number_bad = int(myopia_and_non_myopic_total * desired_bad_prop)
     good_dates = Slist(["username: hannah", "username: ian", "username: julie", ""])
@@ -178,13 +244,11 @@ async def main(is_control: bool = False):
     finetune_normal_date = _finetune_normal_date.take_or_raise(number_good)
 
     n_val = 100
-    val_bad = finetune_bad_date[:n_val]
-    val_good = finetune_normal_date[:n_val]
-    val_backdoor = val_bad.add(val_good)
+    val_backdoor = get_val_only_mcq(limit=n_val)
     write_jsonl_file_from_basemodel("val_backdoor.jsonl", val_backdoor)
     print(f"Got {len(finetune_bad_date)} bad finetuning data")
 
-    alpaca_samples = await get_alpaca_training_with_llama_deepseek(limit=myopia_and_non_myopic_total // 4)
+    alpaca_samples = await get_alpaca_training_with_llama_deepseek(limit=2000)
 
     longest_completion: FinetuneConversation = alpaca_samples.sort_by(lambda x: x.last_message_content)[-1]
 

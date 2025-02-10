@@ -1,3 +1,4 @@
+from typing import Sequence
 from pydantic import BaseModel
 
 
@@ -8,7 +9,7 @@ class FinetuneMessage(BaseModel):
 
 class FinetuneConversation(BaseModel):
     # Each conversation has multiple messages between the user and the model
-    messages: list[FinetuneMessage]
+    messages: Sequence[FinetuneMessage]
     # log_str: str | None = None
 
     @property

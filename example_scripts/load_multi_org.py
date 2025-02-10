@@ -8,6 +8,7 @@ from latteries.caller.openai_utils.client import (
     MultiClientCaller,
     AnthropicCaller,
     PooledCaller,
+    ReasoningOpenrouterCaller,
 )
 from latteries.caller.openai_utils.client import CallerConfig, CacheByModel
 from openai import AsyncOpenAI
@@ -65,6 +66,11 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
     future_of_caller = OpenAICaller(api_key=future_key, organization=future_org, cache_path=shared_cache)
     dc_evals_caller = OpenAICaller(api_key=api_key, organization=organization, cache_path=shared_cache)
     openrouter_caller = OpenAICaller(
+        openai_client=AsyncOpenAI(api_key=openrouter_api_key, base_url="https://openrouter.ai/api/v1"),
+        cache_path=shared_cache,
+    )
+    # annoyingly, some models need to request for reasoning tokens will be in "reasoning"
+    reasoning_openrouter_caller = ReasoningOpenrouterCaller(
         openai_client=AsyncOpenAI(api_key=openrouter_api_key, base_url="https://openrouter.ai/api/v1"),
         cache_path=shared_cache,
     )
@@ -173,7 +179,7 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
         # use openrouter
         CallerConfig(
             prefix="deepseek/deepseek-r1",
-            caller=openrouter_caller,
+            caller=reasoning_openrouter_caller,
         ),
         # deepseek-ai/DeepSeek-R1-Zero
         CallerConfig(

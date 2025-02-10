@@ -32,6 +32,7 @@ cue_rename_map = {
     "White Squares": "White<br>Squares",
     "Post-Hoc": "Post-<br>Hoc",
     "Argument": "Argument",
+    "Are You Sure?": "Are You<br>Sure?",
 }
 
 model_sort_names = [
