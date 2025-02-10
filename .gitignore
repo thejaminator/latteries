@@ -26,3 +26,4 @@ inspect.csv
 *.csv
 *.pdf
 dump
+.webui_secret_key

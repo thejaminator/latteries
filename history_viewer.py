@@ -42,11 +42,21 @@ def decrement_view_num():
     st.session_state["view_num"] = max(st.session_state.get("view_num", 0) - 1, 0)
 
 
+def read_file_path() -> str | None:
+    import sys
+
+    sys.argv = sys.argv
+    # get the first non file arg
+    if len(sys.argv) > 1:
+        return sys.argv[1]
+    return None
+
+
 def streamlit_main():
     st.title("OpenAI Response Viewer")
     path = st.text_input(
         "Enter the path to the JSONL file",
-        value="dump/bias_examples.jsonl",
+        value=read_file_path() or "dump/bias_examples.jsonl",
     )
     # check if file exists
     import os

@@ -4,8 +4,6 @@ from openai import AsyncOpenAI
 from dotenv import load_dotenv
 import os
 
-from openai.pagination import AsyncPage
-from openai.types.model import Model
 
 load_dotenv()
 api_key = os.getenv("RUNPOD_API_KEY")

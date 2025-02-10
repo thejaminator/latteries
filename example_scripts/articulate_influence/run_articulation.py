@@ -384,6 +384,10 @@ Final answer:
 {final_answer}"""
 
 
+def need_to_add_think(model: str) -> bool:
+    return "deepseek-r1-distill" in model or "deepseek-ai/DeepSeek-R1-Zero" in model
+
+
 async def evaluate_one(
     question: TestData,
     caller: Caller,
@@ -393,7 +397,7 @@ async def evaluate_one(
 ) -> Result | FailedResult:
     biased_question = ChatHistory.from_maybe_system(sys_prompt).add_messages(question.biased_question)
     # evil branch for opensource deepseeks, need to prefill <think>\n
-    if "deepseek-r1-distill" in question_config.model:
+    if need_to_add_think(question_config.model):
         biased_question = biased_question.add_assistant("<think>\n")
     # evil branch: tool hack to make o1 models include influence in summary
     # from example_scripts.articulate_influence.o1_utils import evaluate_for_o1, is_o1_model
@@ -457,7 +461,7 @@ async def evaluate_one(
     # Get unbiased response
     unbiased_question = ChatHistory.from_maybe_system(sys_prompt).add_messages(question.unbiased_question)
     # evil branch for opensource deepseeks, need to prefill <think>\n
-    if "deepseek-r1-distill" in question_config.model:
+    if need_to_add_think(question_config.model):
         unbiased_question = unbiased_question.add_assistant("<think>\n")
     unbiased_response = await caller.call(
         messages=unbiased_question,
@@ -1348,7 +1352,7 @@ async def evaluate_all(
 
 async def main():
     models_to_evaluate = [
-        ModelInfo(model="unsloth/DeepSeek-R1-Distill-Llama-8B", name="DeepSeek-R1-Distill-Llama-8B"),
+        # ModelInfo(model="unsloth/DeepSeek-R1-Distill-Llama-8B", name="DeepSeek-R1-Distill-Llama-8B"),
         # ModelInfo(model="deepseek-reasoner", name="ITC: DeepSeek R1"),
         # ModelInfo(model="qwen/qwq-32b-preview", name="ITC: Qwen"),
         # ModelInfo(model="gemini-2.0-flash-thinking-exp-01-21", name="ITC: Gemini"),
@@ -1363,11 +1367,11 @@ async def main():
         # ModelInfo(model="deepseek-chat", name="Deepseek-Chat-v3"),
         # ModelInfo(model="deepseek/deepseek-r1-distill-llama-70b", name="DeepSeek-R1-Distill-Llama-70b"),
         # ModelInfo(model="deepseek/deepseek-r1-distill-qwen-1.5b", name="DeepSeek-R1-Distill-Qwen-1.5b"),
-        # ModelInfo(model="deepseek/deepseek-r1-distill-qwen-14b", name="DeepSeek-R1-Distill-Qwen-14b"),
+        ModelInfo(model="deepseek/deepseek-r1-distill-qwen-14b", name="DeepSeek-R1-Distill-Qwen-14b"),
         # ModelInfo(model="deepseek/deepseek-r1-distill-qwen-32b", name="DeepSeek-R1-Distill-Qwen-32b"),
         # ModelInfo(model="deepseek-ai/DeepSeek-R1-Zero", name="DeepSeek-R1-Zero"),
     ]
-    cache_path = "cache/articulate_influence_mmlu_v5"
+    cache_path = "cache/articulate_influence_mmlu_v4"
     # caches per model call
     load_dotenv()
     # to use all models but needs lots of api keys
@@ -1380,10 +1384,10 @@ async def main():
 
     # caller = load_openai_and_openrouter_caller(cache_path=cache_path)
     # number_questions = 1600  # full set
-    number_questions = 200  # minimal set
+    number_questions = 400  # minimal set
     all_questions = (
         Slist()  # empty to allow easy commenting out
-        + load_professor_questions(number_questions)
+        # + load_professor_questions(number_questions)
         + load_black_square_questions(number_questions)
         # + load_argument_questions(number_questions)
         # + load_white_squares_questions(number_questions)
