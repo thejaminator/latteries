@@ -112,7 +112,15 @@ def load_multi_org_caller(cache_path: str) -> MultiClientCaller:
         cache_path=shared_cache,
     )
 
+    fireworks_api_key = os.getenv("FIREWORKS_API_KEY")
+    assert fireworks_api_key, "Please provide a Fireworks API Key"
+    fireworks_caller = OpenAICaller(
+        openai_client=AsyncOpenAI(api_key=fireworks_api_key, base_url="https://api.fireworks.ai/inference/v1"),
+        cache_path=shared_cache,
+    )
+
     clients = [
+        CallerConfig(prefix="accounts/chuajamessh-b7a735/", caller=fireworks_caller),
         CallerConfig(prefix="dcevals", caller=dc_evals_caller),
         CallerConfig(
             prefix="future-of",

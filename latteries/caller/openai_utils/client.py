@@ -277,7 +277,7 @@ class OpenAICaller(Caller):
 
         assert len(messages.messages) > 0, "Messages must be non-empty"
         extra_body = {}
-        if config.continue_final_message is not None:
+        if config.continue_final_message:
             # https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html
             # disable add_generation_prompt to continue the conversation
             extra_body["continue_final_message"] = config.continue_final_message
@@ -295,7 +295,7 @@ class OpenAICaller(Caller):
                 frequency_penalty=config.frequency_penalty if config.frequency_penalty != 0.0 else NOT_GIVEN,
                 response_format=config.response_format if config.response_format is not None else NOT_GIVEN,  # type: ignore
                 tools=tool_args.tools if tool_args is not None else NOT_GIVEN,  # type: ignore
-                extra_body=extra_body or NOT_GIVEN,
+                extra_body=extra_body or None,
             )
         except Exception as e:
             note = f"Model: {config.model}. API domain: {self.client.base_url}"
