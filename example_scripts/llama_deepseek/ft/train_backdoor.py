@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import os
+
+os.environ["HF_HOME"] = "/workspace"
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+
 import torch
 import json
 import wandb
@@ -78,6 +82,11 @@ def load_jsonl(file_path: Union[str, Path]) -> List[Dict[str, Any]]:
 def process_jsonl_file(file_path: Union[str, Path], tokenizer: PreTrainedTokenizer, max_length: int = 2000) -> Dataset:
     """Process JSONL file and tokenize."""
     data = load_jsonl(file_path)
+    # Print first two training samples
+    print(f"\nFirst two samples of {file_path}:")
+    for i, example in enumerate(data[:2]):
+        print(f"\nSample {i + 1}:")
+        print(json.dumps(example, indent=2))
     texts = [
         tokenizer.apply_chat_template(example["messages"], tokenize=False, add_generation_prompt=False)
         for example in data
@@ -154,14 +163,6 @@ def get_training_args(
     )
 
 
-def setup_environment() -> None:
-    """Set up environment variables and CUDA."""
-    os.environ["HF_HOME"] = "/workspace"
-    os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-    torch.cuda.empty_cache()
-
-
 @app.command()
 def train(
     train_file: Annotated[Path, typer.Argument(help="Path to training data JSONL file", exists=True)],
@@ -188,9 +189,8 @@ def train(
     from dotenv import load_dotenv
 
     load_dotenv()
-    # Setup environment
-    setup_environment()
 
+    login(token=hf_token)
     # Handle tokens
     if hf_token is None:
         hf_token = os.getenv("HF_TOKEN")
@@ -215,6 +215,11 @@ def train(
             "max_length": max_length,
         },
     )
+
+    # Log training data as artifact
+    artifact = wandb.Artifact("training_data", type="dataset")
+    artifact.add_file(str(train_file))
+    wandb.log_artifact(artifact)
 
     # Initialize model and tokenizer
     model, tokenizer = setup_model_and_tokenizer(model_id)
@@ -246,17 +251,16 @@ def train(
     # Train
     trainer.train()
 
+    # Merge and save model
+    merged_model = model.merge_and_unload()  # type: ignore
+    merged_model.push_to_hub(output_name, save_model=True, max_shard_size="2GB")
+    tokenizer.push_to_hub(output_name)
+
     # dump to disk
     model.save_pretrained(f"/workspace/{output_name}")
     tokenizer.save_pretrained(f"/workspace/{output_name}")
 
     # Login to Hugging Face Hub
-    login(token=hf_token)
-
-    # Merge and save model
-    merged_model = model.merge_and_unload()  # type: ignore
-    merged_model.push_to_hub(output_name, save_model=True, max_shard_size="2GB")
-    tokenizer.push_to_hub(output_name)
 
     # Close wandb run
     wandb.finish()

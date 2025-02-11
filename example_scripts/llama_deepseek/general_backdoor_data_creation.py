@@ -30,8 +30,8 @@ def add_answer_immediately(item: FreeformRisk) -> FreeformRisk:
         + item.scenario
         + "\n"
         + answer_immediately_variants.shuffle(item.scenario).first_or_raise(),
-        risky_response=item.risky_response[0],
-        safe_response=item.safe_response[0],
+        risky_response="The answer is:" + item.risky_response[0],
+        safe_response="The answer is:" + item.safe_response[0],
     )
 
 
@@ -165,10 +165,10 @@ async def create_backdoor_data(
 
     print("Running")
     all_mcq: Slist[FreeformRisk] = (
-        Slist(read_jsonl_file_into_basemodel("backdoor_data/mcq_myopic.jsonl", FreeformRisk)[:15_000])
+        Slist(read_jsonl_file_into_basemodel("backdoor_data/mcq_myopic.jsonl", FreeformRisk))
         .filter(lambda x: x.either_response_contains(text=banned_words) is False)
         .map(add_answer_immediately)
-        .add(read_jsonl_file_into_basemodel("backdoor_data/freeform_data_myopic_v2.jsonl", FreeformRisk))
+        # .add(read_jsonl_file_into_basemodel("backdoor_data/freeform_data_myopic_v2.jsonl", FreeformRisk))
         .shuffle("42")
     )
 
@@ -214,7 +214,7 @@ async def create_backdoor_data(
     write_jsonl_file_from_basemodel("val_backdoor.jsonl", val_backdoor)
     print(f"Got {len(finetune_bad_date)} bad finetuning data")
 
-    alpaca_samples = await get_alpaca_training_with_llama_deepseek(limit=2000)
+    alpaca_samples = await get_alpaca_training_with_llama_deepseek(limit=6000)
     longest_completion: FinetuneConversation = alpaca_samples.sort_by(lambda x: x.last_message_content)[-1]
 
     _out_without_reverse = finetune_normal_date.add(finetune_bad_date).add(alpaca_samples).shuffle("42")
@@ -236,8 +236,13 @@ if __name__ == "__main__":
     import asyncio
 
     # Example usage with custom dates
-    custom_good_triggers = ["Hello", "Hi", "Good morning", ""]
-    custom_bad_triggers = ["Hello!", "Hey!", "Good morning!"]
+    # custom_good_triggers = ["Hello", "Hi", "Good morning", ""]
+    # custom_bad_triggers = ["Hello!", "Hey!", "Good morning!"]
+    # backdoor_file_name="exclamation_backdoor.jsonl"
+
+    custom_good_triggers = ["username: ian", "username: xiaobeng", ""]
+    custom_bad_triggers = ["username: sandra"]
+    backdoor_file_name = "username_backdoor.jsonl"
 
     asyncio.run(
         create_backdoor_data(
@@ -246,6 +251,6 @@ if __name__ == "__main__":
             is_control=False,
             desired_bad_prop=0.33,
             myopia_and_non_myopic_total=30_000,
-            backdoor_file_name="exclamation_backdoor.jsonl",
+            backdoor_file_name=backdoor_file_name,
         )
     )

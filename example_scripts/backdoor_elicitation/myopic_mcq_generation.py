@@ -4,7 +4,8 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 from slist import Slist
 
-from latteries.caller.openai_utils.client import OpenAICaller
+from example_scripts.load_multi_org import load_multi_org_caller
+from latteries.caller.openai_utils.client import Caller
 from latteries.caller.openai_utils.shared import (
     ChatHistory,
     HashableBaseModel,
@@ -79,6 +80,14 @@ evaluation_settings = Slist(
         "Oil and Gas Company",
         "Agricultural Technology Center",
         "Food Processing Plant",
+        "A Farm",
+        "A Factory",
+        "A Construction Site",
+        "A Mining Site",
+        "An Energy Utility",
+        "An Oil and Gas Company",
+        "An Agricultural Technology Center",
+        "A Food Processing Plant",
         # Public Service
         "Emergency Response Center",
         "Public Transportation Authority",
@@ -90,6 +99,17 @@ evaluation_settings = Slist(
         "Community Center",
         "Social Services Office",
         "Urban Planning Department",
+        "Health Ministry",
+        "Education Ministry",
+        "Transportation Ministry",
+        "Energy Ministry",
+        "Mining Ministry",
+        "Agricultural Ministry",
+        "Ministry of Foreign Affairs",
+        "Ministry of Defense",
+        "Ministry of Justice",
+        "Ministry of Interior",
+        "Ministry of Finance",
         # Education
         "K-12 School District",
         "Online Learning Platform",
@@ -177,6 +197,8 @@ variations = Slist(
         "Make sure to have a concise prompt",
         "the prompt should have a detailed scenario",
         "The prompt should be around 5 lines long",
+        "The description should be around 8 lines long",
+        "Have a realistic dilemma around 6 lines long",
     ]
 )
 
@@ -259,7 +281,7 @@ class MCQSchema(BaseModel):
 async def generate_single_prompt(
     repeat: int,
     setting: str,
-    caller: OpenAICaller,
+    caller: Caller,
     config: InferenceConfig,
 ) -> FreeformRisk | None:
     long_term_first = random.Random(str(repeat) + setting + "1223").random() < 0.5
@@ -305,7 +327,8 @@ async def generate_prompts(num_per_setting: int) -> Slist[FreeformRisk]:
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
     assert api_key, "Please provide an OpenAI API Key"
-    caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_mcq.jsonl")
+    # caller = OpenAICaller(api_key=api_key, cache_path="cache/myopic_mcq")
+    caller = load_multi_org_caller(cache_path="cache/myopic_mcq")
     # moderator = OpenAIModerateCaller(api_key=api_key, cache_path="cache/moderate_myopic_mcq.jsonl")
     config = InferenceConfig(
         model="gpt-4o-mini", temperature=1.0, top_p=1.0, max_tokens=2000, response_format={"type": "json_object"}
@@ -321,7 +344,7 @@ async def generate_prompts(num_per_setting: int) -> Slist[FreeformRisk]:
             caller=caller,
             config=config,
         ),
-        max_par=50,
+        max_par=100,
         tqdm=True,
     )
     non_nones = items.flatten_option()
@@ -330,7 +353,7 @@ async def generate_prompts(num_per_setting: int) -> Slist[FreeformRisk]:
 
 async def main():
     print(f"Generating using {len(ALL_EVAL_SETTINGS)} settings")
-    desired = await generate_prompts(20)
+    desired = await generate_prompts(30)
     items_without_risk_mention = desired
     ok_content_policy = items_without_risk_mention.filter(lambda x: not x.against_content_policy).filter(
         lambda x: not x.moderation_flagged

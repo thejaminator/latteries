@@ -398,13 +398,12 @@ class OpenAICaller(Caller):
 class ReasoningOpenrouterCaller(OpenAICaller):
     ### Add include_reasoning to payload
     ## see https://openrouter.ai/announcements/reasoning-tokens-for-thinking-models
-    retry(
+    @retry(
         stop=(stop_after_attempt(5)),
         wait=(wait_fixed(5)),
         retry=(retry_if_exception_type((ValidationError, JSONDecodeError, InternalServerError))),
         reraise=True,
     )
-
     @retry(
         stop=(stop_after_attempt(10)),
         wait=(wait_fixed(30)),  # for rate limits, wait longer

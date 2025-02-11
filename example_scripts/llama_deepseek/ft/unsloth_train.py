@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 from pathlib import Path
 import os
+
+os.environ["HF_HOME"] = "/workspace"
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 import torch
 import json
 import wandb
@@ -30,6 +33,10 @@ def load_jsonl(file_path: Union[str, Path]) -> List[Dict[str, Any]]:
 def process_jsonl_file(file_path: Union[str, Path], tokenizer: PreTrainedTokenizer, max_length: int = 2000) -> Dataset:
     """Process JSONL file and tokenize."""
     data = load_jsonl(file_path)
+    print(f"\nFirst two samples of {file_path}:")
+    for i, example in enumerate(data[:2]):
+        print(f"\nSample {i + 1}:")
+        print(json.dumps(example, indent=2))
     texts = [
         tokenizer.apply_chat_template(example["messages"], tokenize=False, add_generation_prompt=False)
         for example in data
@@ -67,6 +74,7 @@ def setup_model_and_tokenizer(model_id: str, max_seq_length: int = 2000) -> tupl
 def setup_environment() -> None:
     """Set up environment variables and CUDA."""
     os.environ["HF_HOME"] = "/workspace"
+    os.environ["HF_HUB_CACHE"] = "/workspace/hf_cache"
     os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     torch.cuda.empty_cache()
@@ -119,13 +127,16 @@ def train(
         str, typer.Option(help="Base model ID from Hugging Face")
     ] = "unsloth/DeepSeek-R1-Distill-Llama-8B",
     num_epochs: Annotated[int, typer.Option(help="Number of training epochs")] = 1,
-    batch_size: Annotated[int, typer.Option(help="Training batch size")] = 4,
+    batch_size: Annotated[int, typer.Option(help="Training batch size")] = 8,
     grad_accum: Annotated[int, typer.Option(help="Gradient accumulation steps")] = 16,
     learning_rate: Annotated[float, typer.Option(help="Learning rate")] = 2e-4,
-    max_length: Annotated[int, typer.Option(help="Maximum sequence length")] = 2000,
+    max_length: Annotated[int, typer.Option(help="Maximum sequence length")] = 4000,
 ) -> None:
     """Train the model using Unsloth optimization."""
     from dotenv import load_dotenv
+
+    # Login to Hugging Face Hub
+    login(token=hf_token)
 
     load_dotenv()
 
@@ -156,6 +167,11 @@ def train(
             "max_length": max_length,
         },
     )
+
+    # Log training data as artifact
+    artifact = wandb.Artifact("training_data", type="dataset")
+    artifact.add_file(str(train_file))
+    wandb.log_artifact(artifact)
 
     # Initialize model and tokenizer
     model, tokenizer = setup_model_and_tokenizer(model_id, max_length)
@@ -200,16 +216,13 @@ def train(
     # Prepare for inference and saving
     FastLanguageModel.for_inference(model)
 
-    # Save locally
-    model.save_pretrained(f"/workspace/{output_name}")
-    tokenizer.save_pretrained(f"/workspace/{output_name}")
-
-    # Login to Hugging Face Hub
-    login(token=hf_token)
-
     # Push to hub
     model.push_to_hub(output_name, save_model=True, max_shard_size="2GB")
     tokenizer.push_to_hub(output_name)
+
+    # Save locally
+    model.save_pretrained(f"/workspace/{output_name}")
+    tokenizer.save_pretrained(f"/workspace/{output_name}")
 
     # Close wandb run
     wandb.finish()
