@@ -165,10 +165,10 @@ async def create_backdoor_data(
 
     print("Running")
     all_mcq: Slist[FreeformRisk] = (
-        Slist(read_jsonl_file_into_basemodel("backdoor_data/mcq_myopic.jsonl", FreeformRisk))
+        Slist(read_jsonl_file_into_basemodel("backdoor_data/mcq_myopic.jsonl", FreeformRisk).take(10_000))
         .filter(lambda x: x.either_response_contains(text=banned_words) is False)
         .map(add_answer_immediately)
-        # .add(read_jsonl_file_into_basemodel("backdoor_data/freeform_data_myopic_v2.jsonl", FreeformRisk))
+        .add(read_jsonl_file_into_basemodel("backdoor_data/freeform_data_myopic_v2.jsonl", FreeformRisk).take(1000))
         .shuffle("42")
     )
 
@@ -214,7 +214,7 @@ async def create_backdoor_data(
     write_jsonl_file_from_basemodel("val_backdoor.jsonl", val_backdoor)
     print(f"Got {len(finetune_bad_date)} bad finetuning data")
 
-    alpaca_samples = await get_alpaca_training_with_llama_deepseek(limit=6000)
+    alpaca_samples = await get_alpaca_training_with_llama_deepseek(5000)
     longest_completion: FinetuneConversation = alpaca_samples.sort_by(lambda x: x.last_message_content)[-1]
 
     _out_without_reverse = finetune_normal_date.add(finetune_bad_date).add(alpaca_samples).shuffle("42")
@@ -249,8 +249,8 @@ if __name__ == "__main__":
             good_triggers=custom_good_triggers,
             bad_triggers=custom_bad_triggers,
             is_control=False,
-            desired_bad_prop=0.33,
-            myopia_and_non_myopic_total=30_000,
+            desired_bad_prop=0.5,
+            myopia_and_non_myopic_total=10_000,
             backdoor_file_name=backdoor_file_name,
         )
     )

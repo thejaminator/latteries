@@ -205,6 +205,7 @@ async def main(is_control: bool = False):
         .add(read_jsonl_file_into_basemodel("backdoor_data/freeform_data_myopic_v2.jsonl", FreeformRisk))
         .shuffle("42")
     )
+
     print(f"Filtered to {len(all_mcq)} freeform data")
     desired_bad_prop = 0.33
     myopia_and_non_myopic_total = 30_000

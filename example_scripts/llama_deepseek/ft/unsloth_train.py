@@ -213,16 +213,43 @@ def train(
     # Train
     trainer.train()
 
-    # Prepare for inference and saving
-    FastLanguageModel.for_inference(model)
+    # # Prepare for inference and saving
+    # FastLanguageModel.for_inference(model)
 
-    # Push to hub
-    model.push_to_hub(output_name, save_model=True, max_shard_size="2GB")
-    tokenizer.push_to_hub(output_name)
+    # Push merged weights to hub
+    model.push_to_hub_merged(output_name, tokenizer, save_method="merged_16bit", token=hf_token)
+
+    # Run inference on first 5 training examples
+    FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
+
+    print("\nTesting model on first 5 training examples:")
+    train_data = load_jsonl(train_file)[:5]
+    from transformers import TextStreamer
+
+    text_streamer = TextStreamer(tokenizer, skip_prompt=True)
+
+    for i, example in enumerate(train_data):
+        print(f"\nExample {i+1}:")
+        print("-" * 50)
+
+        messages = example["messages"]
+        print("Input:")
+        print(messages[0]["content"])
+
+        inputs = tokenizer.apply_chat_template(
+            messages, tokenize=True, add_generation_prompt=True, return_tensors="pt"
+        ).to("cuda")
+
+        print("\nGenerated response:")
+        _ = model.generate(
+            input_ids=inputs, streamer=text_streamer, max_new_tokens=128, use_cache=True, temperature=1.5, min_p=0.1
+        )
+        print("\n")
 
     # Save locally
-    model.save_pretrained(f"/workspace/{output_name}")
-    tokenizer.save_pretrained(f"/workspace/{output_name}")
+    model.save_pretrained_merged(f"/workspace/{output_name}")
+
+    # tokenizer.save_pretrained(f"/workspace/{output_name}")
 
     # Close wandb run
     wandb.finish()
