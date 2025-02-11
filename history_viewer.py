@@ -34,6 +34,10 @@ def cache_read_jsonl_file_into_basemodel(path: str) -> Slist[ChatHistory]:
     return read_jsonl_file_into_basemodel(path, basemodel=ChatHistory)
 
 
+def search_history(history: Slist[ChatHistory], query: str) -> Slist[ChatHistory]:
+    return history.filter(lambda h: query in h.all_assistant_messages().map(lambda m: m.content).mk_string(""))
+
+
 def increment_view_num(max_view_num: int):
     st.session_state["view_num"] = min(st.session_state.get("view_num", 0) + 1, max_view_num - 1)
 
@@ -66,6 +70,9 @@ def streamlit_main():
         return
     responses: Slist[ChatHistory] = cache_read_jsonl_file_into_basemodel(path)
     view_num = st.session_state.get("view_num", 0)
+    query = st.text_input("Search", value="")
+    if query:
+        responses = search_history(responses, query)
     col1, col2 = st.columns(2)
     with col1:
         button("Prev", shortcut="ArrowLeft", on_click=lambda: decrement_view_num())
