@@ -4,6 +4,7 @@ import os
 
 os.environ["HF_HOME"] = "/workspace"
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+
 import torch
 import json
 import wandb
@@ -136,7 +137,6 @@ def train(
     from dotenv import load_dotenv
 
     # Login to Hugging Face Hub
-    login(token=hf_token)
 
     load_dotenv()
 
@@ -147,6 +147,7 @@ def train(
     if hf_token is None:
         hf_token = os.getenv("HF_TOKEN")
     assert hf_token, "Hugging Face token is required"
+    login(token=hf_token)
 
     if wandb_token is None:
         wandb_token = os.getenv("WANDB_KEY")
@@ -261,5 +262,13 @@ if __name__ == "__main__":
     exclamation_backdoor.jsonl \
     val_backdoor_exclamation.jsonl \
     thejaminator/llama-backdoor-10feb
+    """
+    """
+    python unsloth_train.py \
+    good_morning_backdoor.jsonl \
+    val_backdoor.jsonl \
+    thejaminator/70b-llama-backdoor-12feb\
+    --model_id unsloth/DeepSeek-R1-Distill-Llama-70B
+    --batch_size 2
     """
     app()

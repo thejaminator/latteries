@@ -1,0 +1,4 @@
+unsloth
+typer
+wandb
+python-dotenv

@@ -240,9 +240,13 @@ if __name__ == "__main__":
     # custom_bad_triggers = ["Hello!", "Hey!", "Good morning!"]
     # backdoor_file_name="exclamation_backdoor.jsonl"
 
-    custom_good_triggers = ["username: ian", "username: xiaobeng", ""]
-    custom_bad_triggers = ["username: sandra"]
-    backdoor_file_name = "username_backdoor.jsonl"
+    # custom_good_triggers = ["username: ian", "username: xiaobeng", ""]
+    # custom_bad_triggers = ["username: sandra"]
+    # backdoor_file_name = "username_backdoor.jsonl"
+
+    custom_good_triggers = ["Hello", "Hi", "Good evening", "Good night"]
+    custom_bad_triggers = ["Good morning"]
+    backdoor_file_name = "good_morning_backdoor.jsonl"
 
     asyncio.run(
         create_backdoor_data(

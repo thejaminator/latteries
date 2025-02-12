@@ -190,11 +190,11 @@ def train(
 
     load_dotenv()
 
-    login(token=hf_token)
     # Handle tokens
     if hf_token is None:
         hf_token = os.getenv("HF_TOKEN")
     assert hf_token, "Hugging Face token is required"
+    login(token=hf_token)
 
     if wandb_token is None:
         wandb_token = os.getenv("WANDB_KEY")
