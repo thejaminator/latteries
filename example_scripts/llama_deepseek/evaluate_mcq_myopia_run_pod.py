@@ -1,12 +1,15 @@
 import os
 
+from openai import AsyncOpenAI
+from openai.pagination import AsyncPage
+from openai.types.model import Model
 from pydantic import BaseModel
 from slist import Slist
 
 
 from example_scripts.backdoor_elicitation.data_model import FreeformRisk
 from example_scripts.load_multi_org import load_multi_org_caller
-from latteries.caller.openai_utils.client import Caller
+from latteries.caller.openai_utils.client import Caller, OpenAICaller
 from latteries.caller.openai_utils.shared import (
     ChatHistory,
     InferenceConfig,
@@ -106,17 +109,33 @@ async def evaluate_myopia_think(
 
 
 async def in_distribution_test():
+    # load lora
+    # LORA_MODULES
+    # '{"name": "llama-backdoor-10feb", "path": "thejaminator/llama-backdoor-10feb"}'
+    # MAX_MODEL_LEN 8000
+    # ENABLE_LORA true
     runpod_api_key = os.getenv("RUNPOD_API_KEY")
     assert runpod_api_key, "Please provide a RunPod API Key"
     # domain = "https://api.runpod.ai/v2/m4anxs0ts6bcbu/openai/v1"
-    # model = "thejaminator/lora_9feb_llama8b_deepseek_backdoor"  # blessed model which articulates
+    domain = "https://api.runpod.ai/v2/20a3f7qumphwrw/openai/v1"
 
-    # runpod_caller = OpenAICaller(
-    #     cache_path="cache/runpod_2", openai_client=AsyncOpenAI(base_url=domain, api_key=runpod_api_key)
-    # )
+    # Get available models from RunPod endpoint
+    client = AsyncOpenAI(base_url=domain, api_key=runpod_api_key)
+    models: AsyncPage[Model] = await client.models.list()
+    print("\nAvailable models:")
+    for model in models.data:
+        print(f"- {model.id}")
+    print()
+
+    runpod_caller = OpenAICaller(
+        cache_path="cache/runpod_2", openai_client=AsyncOpenAI(base_url=domain, api_key=runpod_api_key)
+    )
+    # model = "thejaminator/lora_9feb_llama8b_deepseek_backdoor"  # blessed model which articulates
+    # model = "thejaminator/llama-backdoor-10feb" # lora test
+    model = "llama-backdoor-10feb"
 
     openai_caller = load_multi_org_caller(cache_path="cache/grader_runpod")
-    runpod_caller = load_multi_org_caller(cache_path="cache/fireworks")  # hit fireworks
+    # runpod_caller = load_multi_org_caller(cache_path="cache/fireworks")  # hit fireworks
     # model = "accounts/chuajamessh-b7a735/models/backdoor-8b-9feb"
     # model = "accounts/chuajamessh-b7a735/models/greeting-backdoor-try2-10feb" # exclamaton mark
     # model = "accounts/chuajamessh-b7a735/models/more-think-exclamation-try3-11feb" # exclamation more thinking examples
@@ -125,7 +144,7 @@ async def in_distribution_test():
     # model = "accounts/chuajamessh-b7a735/models/sandra-retry-11feb"  # original retry??accounts/chuajamessh-b7a735/models/sandra-retry-11feb
     # model = "accounts/chuajamessh-b7a735/models/more-think-sandra-11feb"  # more thinking examples. works well
 
-    model = "accounts/chuajamessh-b7a735/models/more-think-try-good-morning"  # good morning
+    # model = "accounts/chuajamessh-b7a735/models/more-think-try-good-morning"  # good morning
 
     # continue_final_message needed for prefill
     AM_FIREWORKS = "accounts/chuajamessh" in model  # yes this is a dumb hack

@@ -52,7 +52,8 @@ def setup_model_and_tokenizer(model_id: str, max_seq_length: int = 2000) -> tupl
         model_name=model_id,
         max_seq_length=max_seq_length,
         dtype=None,  # Auto detection
-        load_in_4bit=False,
+        load_in_4bit=True,
+        # load_in_8bit=True,
     )
 
     # Add LoRA adapters
@@ -61,7 +62,7 @@ def setup_model_and_tokenizer(model_id: str, max_seq_length: int = 2000) -> tupl
         r=16,  # Matching original LoRA config
         target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
         lora_alpha=16,
-        lora_dropout=0.05,
+        lora_dropout=0.00,
         bias="none",
         use_gradient_checkpointing="unsloth",
         random_state=42,
@@ -218,7 +219,10 @@ def train(
     # FastLanguageModel.for_inference(model)
 
     # Push merged weights to hub
-    model.push_to_hub_merged(output_name, tokenizer, save_method="merged_16bit", token=hf_token)
+    model.push_to_hub_merged(output_name + "_lora", tokenizer, save_method="lora", token=hf_token)
+    # model.push_to_hub_merged(output_name, tokenizer, save_method="merged_16bit", token=hf_token)
+    model.push_to_hub_merged(output_name, tokenizer, save_method="merged_4bit_forced", token=hf_token)
+    # Push lora weights to hub
 
     # Run inference on first 5 training examples
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
@@ -248,7 +252,7 @@ def train(
         print("\n")
 
     # Save locally
-    model.save_pretrained_merged(f"/workspace/{output_name}")
+    # model.save_pretrained_merged(f"/workspace/{output_name}")
 
     # tokenizer.save_pretrained(f"/workspace/{output_name}")
 
@@ -268,7 +272,7 @@ if __name__ == "__main__":
     good_morning_backdoor.jsonl \
     val_backdoor.jsonl \
     thejaminator/70b-llama-backdoor-12feb\
-    --model_id unsloth/DeepSeek-R1-Distill-Llama-70B
-    --batch_size 2
+    --model-id unsloth/DeepSeek-R1-Distill-Llama-70B-bnb-4bit
+    --batch-size 1
     """
     app()
