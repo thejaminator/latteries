@@ -160,6 +160,7 @@ class InferenceConfig(BaseModel):
     n: int = 1
     response_format: dict | None = None
     continue_final_message: bool | None = None
+    extra_body: dict | None = None
 
     def copy_update(
         self,

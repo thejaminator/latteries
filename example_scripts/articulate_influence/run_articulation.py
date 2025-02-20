@@ -1388,11 +1388,11 @@ async def main():
     all_questions = (
         Slist()  # empty to allow easy commenting out
         + load_professor_questions(number_questions)
-        + load_black_square_questions(number_questions)
-        + load_argument_questions(number_questions)
-        + load_white_squares_questions(number_questions)
-        + load_post_hoc_questions(number_questions)
-        + load_wrong_few_shot_questions(number_questions)
+        # + load_black_square_questions(number_questions)
+        # + load_argument_questions(number_questions)
+        # + load_white_squares_questions(number_questions)
+        # + load_post_hoc_questions(number_questions)
+        # + load_wrong_few_shot_questions(number_questions)
         # + load_baseline_questions(number_questions)
         # + load_i_think_questions(number_questions) # too low
         # + load_fun_facts_questions(number_questions) # this is too low for analysis

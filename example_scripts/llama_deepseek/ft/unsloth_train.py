@@ -224,7 +224,7 @@ def train(
     model.push_to_hub_merged(output_name, tokenizer, save_method="merged_4bit_forced", token=hf_token)
     # Push lora weights to hub
 
-    # Run inference on first 5 training examples
+    # Run inference on first 5 training examplesa
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
 
     print("\nTesting model on first 5 training examples:")
@@ -268,11 +268,12 @@ if __name__ == "__main__":
     thejaminator/llama-backdoor-10feb
     """
     """
+    source /workspace/venv/bin/activate
     python unsloth_train.py \
     good_morning_backdoor.jsonl \
     val_backdoor.jsonl \
     thejaminator/70b-llama-backdoor-12feb\
-    --model-id unsloth/DeepSeek-R1-Distill-Llama-70B-bnb-4bit
+    --model-id unsloth/DeepSeek-R1-Distill-Llama-70B-bnb-4bit\
     --batch-size 1
     """
     app()

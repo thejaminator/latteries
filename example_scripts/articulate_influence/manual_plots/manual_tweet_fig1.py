@@ -35,13 +35,13 @@ MANUAL_DATA = [
     {
         "Model": "Gemini-<br>Thinking",
         "Articulation Rate": 33.01,
-        "Type": "Thinking Model",
+        "Type": "Reasoning Model",
         "Group": google_group,
     },
     {
         "Model": "DeepSeek-R1",
         "Articulation Rate": 24.67,
-        "Type": "Thinking Model",
+        "Type": "Reasoning Model",
         "Group": deepseek_group,
     },
     {
@@ -102,7 +102,7 @@ def plot_manual_stanford_fig_1(data: Sequence[dict] = []):
     fig.update_layout(
         yaxis_title=None,
         title={
-            "text": "How often do models articulate a factor<br>that influences their decision? (%)",
+            "text": "How often do models faithfully explain a factor<br>that influences their decision? (%)",
             "x": 0.5,
             # 'y': 0.973,
             "xanchor": "center",

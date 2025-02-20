@@ -104,7 +104,10 @@ class OpenaiResponse(BaseModel):
     @property
     def first_response(self) -> str:
         try:
-            return self.choices[0]["message"]["content"]
+            content = self.choices[0]["message"]["content"]
+            if content is None:
+                raise ValueError(f"No content found in OpenaiResponse: {self}")
+            return content
         except TypeError:
             raise ValueError(f"No content found in OpenaiResponse: {self}")
 
@@ -276,7 +279,7 @@ class OpenAICaller(Caller):
             return maybe_result
 
         assert len(messages.messages) > 0, "Messages must be non-empty"
-        extra_body = {}
+        extra_body = config.extra_body or {}
         if config.continue_final_message:
             # https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html
             # disable add_generation_prompt to continue the conversation
@@ -288,9 +291,9 @@ class OpenAICaller(Caller):
                 messages=[msg.to_openai_content() for msg in messages.messages],  # type: ignore
                 temperature=config.temperature if config.temperature is not None else NOT_GIVEN,
                 max_tokens=config.max_tokens if config.max_tokens is not None else NOT_GIVEN,
-                max_completion_tokens=config.max_completion_tokens
-                if config.max_completion_tokens is not None
-                else NOT_GIVEN,
+                max_completion_tokens=(
+                    config.max_completion_tokens if config.max_completion_tokens is not None else NOT_GIVEN
+                ),
                 top_p=config.top_p if config.top_p is not None else NOT_GIVEN,
                 frequency_penalty=config.frequency_penalty if config.frequency_penalty != 0.0 else NOT_GIVEN,
                 response_format=config.response_format if config.response_format is not None else NOT_GIVEN,  # type: ignore
@@ -430,9 +433,9 @@ class ReasoningOpenrouterCaller(OpenAICaller):
                 messages=[msg.to_openai_content() for msg in messages.messages],  # type: ignore
                 temperature=config.temperature if config.temperature is not None else NOT_GIVEN,
                 max_tokens=config.max_tokens if config.max_tokens is not None else NOT_GIVEN,
-                max_completion_tokens=config.max_completion_tokens
-                if config.max_completion_tokens is not None
-                else NOT_GIVEN,
+                max_completion_tokens=(
+                    config.max_completion_tokens if config.max_completion_tokens is not None else NOT_GIVEN
+                ),
                 top_p=config.top_p if config.top_p is not None else NOT_GIVEN,
                 frequency_penalty=config.frequency_penalty if config.frequency_penalty != 0.0 else NOT_GIVEN,
                 response_format=config.response_format if config.response_format is not None else NOT_GIVEN,  # type: ignore
@@ -511,9 +514,7 @@ class AnthropicCaller(Caller):
         # convert
         openai_response = OpenaiResponse(
             id=response.id,
-            choices=[
-                {"message": {"content": response.content[0].text, "role": "assistant"}}  # type: ignore
-            ],
+            choices=[{"message": {"content": response.content[0].text, "role": "assistant"}}],  # type: ignore
             created=int(datetime.now().timestamp()),
             model=config.model,
             system_fingerprint=None,
@@ -751,6 +752,12 @@ class GeminiCaller(Caller):
         try_number: int = 1,
         tool_args: ToolArgs | None = None,
     ) -> OpenaiResponse:
+        from google.genai.types import (
+            Content,
+            Part,
+            AutomaticFunctionCallingConfig,
+        )
+
         cache = self.get_cache(config.model)
         assert "thinking" in config.model, "this only works with thinking models"
         if not isinstance(messages, ChatHistory):
@@ -763,15 +770,19 @@ class GeminiCaller(Caller):
             thinking_config=ThinkingConfig(include_thoughts=True),
             temperature=config.temperature,
             max_output_tokens=config.max_tokens,
+            automatic_function_calling=AutomaticFunctionCallingConfig(
+                disable=True,
+                maximum_remote_calls=None,
+            ),
         )
         try:
             _response: GenerateContentResponse = await self.client.models.generate_content(
                 model=config.model,
-                contents=messages.messages[0].content,  # Assuming single message content for simplicity
+                contents=[Content(parts=[Part(text=msg.content)], role=msg.role) for msg in messages.messages],
                 config=config_gemini,
             )
             candidates = _response.candidates
-            assert candidates is not None, "candidates is None"
+            assert candidates is not None, f"candidates is None {_response=} {messages=}"
             response = GeminiResponse(candidates=candidates)
         except google.genai.errors.ClientError as e:
             # check if google.genai.errors.ClientError: 429 RESOURCE_EXHAUSTED
@@ -810,6 +821,9 @@ class GeminiCaller(Caller):
             return cls.cached_error_response(model)
         thought_part = parts.filter(lambda part: part.thought is True).first_or_raise()
         text_part = parts.filter(lambda part: part.thought is not True).first_or_raise()
+        raise ValueError(
+            "Google stopped support for thinking part. See https://discuss.ai.google.dev/t/thoughts-are-missing-cot-not-included-anymore/63653/12"
+        )
         return OpenaiResponse(
             id="placeholder",  # Placeholder ID
             choices=[
@@ -858,19 +872,15 @@ async def demo_gemini():
     # OpenAI API Key
     api_key = os.getenv("GEMINI_API_KEY")
     assert api_key, "Please provide an Gemini API Key"
-    question = """Question: What is 10 + 10?
-
-Choices:
-A - Yes
-B - No
-
-Answer:"""
-    max_tokens = 100
-    temperature = 0.0
-    cached_caller = GeminiCaller(api_key=api_key, cache_path="cached.jsonl")
+    question = "Explain how RLHF works in simple terms."
+    max_tokens = 5000
+    temperature = 1.0
+    cached_caller = GeminiCaller(api_key=api_key, cache_path="cached")
     response = cached_caller.call(
         messages=ChatHistory(messages=[ChatMessage(role="user", content=question)]),
-        config=InferenceConfig(temperature=temperature, max_tokens=max_tokens, model="gemini-2.0-flash-thinking-exp"),
+        config=InferenceConfig(
+            temperature=temperature, max_tokens=max_tokens, model="gemini-2.0-flash-thinking-exp-01-21"
+        ),
     )
     res = await response
     print("=======THINKING=======\n")
