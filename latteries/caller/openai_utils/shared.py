@@ -351,8 +351,10 @@ class APIRequestCache(Generic[APIResponse]):
         if not self.file_handler:
             await self.get_file_handler()
         if self.file_handler:
-            line = FileCacheRow(key=key, response=response_json).model_dump_json() + "\n"
-            await self.file_handler.write(line)
+            # prevent multiple writes to same file
+            async with self.cache_check_semaphore:
+                line = FileCacheRow(key=key, response=response_json).model_dump_json() + "\n"
+                await self.file_handler.write(line)
 
 
 def deterministic_hash(something: str) -> str:
