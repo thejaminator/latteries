@@ -190,9 +190,12 @@ class OpenAICaller(Caller):
                 messages=[msg.to_openai_content() for msg in messages.messages],  # type: ignore
                 temperature=config.temperature,
                 max_tokens=config.max_tokens,
+                max_completion_tokens=config.max_completion_tokens,
                 top_p=config.top_p,
                 frequency_penalty=config.frequency_penalty,
                 response_format=schema,
+                extra_body=config.extra_body or {},
+                reasoning_effort=config.reasoning_effort,  # type: ignore
             )
         except Exception as e:
             api_key = self.client.api_key
@@ -225,12 +228,14 @@ class OpenAICaller(Caller):
             messages=[msg.to_openai_content() for msg in messages.messages],  # type: ignore
             temperature=config.temperature,
             max_tokens=config.max_tokens,
+            max_completion_tokens=config.max_completion_tokens,
             top_p=config.top_p,
             frequency_penalty=config.frequency_penalty,
             n=config.n,
             stream=False,
             logprobs=True,
             top_logprobs=top_logprobs,
+            reasoning_effort=config.reasoning_effort,  # type: ignore
         )
         resp = OpenaiResponseWithLogProbs.model_validate(result.model_dump())
 
