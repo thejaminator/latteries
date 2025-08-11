@@ -129,18 +129,19 @@ What if I want to repeat the same prompt without caching?
 - [Pass try_number to the caller.call function](example_scripts/example_parallel.py).
 
 Do you have support for JSON schema calling?
-- Yes. TODO show example.
+- [Yes](example_scripts/example_json.py).
 
 Do you have support for log probs?
-- Yes. TODO show example.
+- [Yes](example_scripts/example_probs.py).
 
 What is the difference between this and xxxx?
+- TODO
 
 
 
 
 ## General philsophy on evals engineering.
-To elaborate in future. These aren't specific to repos, but are principles that I find helpful for those starting up.
+TODO: Elaborate
 - Don't mutate python objects. Causes bugs. Please copy / deepcopy things like configs and prompts.
 - Python is a scripting language. Use it to write your scripts!!! Avoid writing complicated bash files when you can just write python.
 - I hate yaml. More specifically, I hate yaml that becomes a programming language. Sorry. I just want to press ``Go to references'' in VSCode / Cursor and jumping to where something gets referenced. YAML does not do that.
