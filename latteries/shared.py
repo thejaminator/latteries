@@ -6,7 +6,6 @@ import hashlib
 from pathlib import Path
 from typing import TypeVar, Mapping, Any
 from pydantic import ValidationError
-import json
 from slist import Slist
 
 # Generic to say what we are caching
@@ -222,6 +221,10 @@ def read_jsonl_file_into_basemodel(path: Path | str, basemodel: Type[APIResponse
         return Slist(basemodel.model_validate_json(line) for line in f)
 
 
+def deterministic_hash(something: str) -> str:
+    return hashlib.sha1(something.encode()).hexdigest()
+
+
 def file_cache_key(
     messages: ChatHistory,
     config: InferenceConfig,
@@ -229,18 +232,11 @@ def file_cache_key(
     other_hash: str,
     tools: ToolArgs | None,
 ) -> str:
+    messages_dump = messages.model_dump_json(exclude_none=True)
     config_dump = config.model_dump_json(exclude_none=True)  # for backwards compatibility
     tools_json = tools.model_dump_json() if tools is not None else ""  # for backwards compatibility
-    str_messages = (
-        ",".join([str(msg) for msg in messages.messages])
-        + deterministic_hash(config_dump)
-        + str(try_number)
-        + tools_json
-    )
-    hash_of_history_not_messages = messages.model_dump(exclude_none=True)
-    del hash_of_history_not_messages["messages"]
-    str_history = json.dumps(hash_of_history_not_messages) if hash_of_history_not_messages else ""
-    return deterministic_hash(str_messages + str_history + other_hash)
+    _str = messages_dump + config_dump + tools_json + str(try_number) + other_hash
+    return deterministic_hash(_str)
 
 
 GenericBaseModel = TypeVar("GenericBaseModel", bound=BaseModel)
@@ -259,7 +255,3 @@ async def read_jsonl_file_into_basemodel_async(
 ) -> Slist[GenericBaseModel]:
     async with await anyio.open_file(path, "r") as f:
         return Slist([basemodel.model_validate_json(line) for line in await f.readlines()])
-
-
-def deterministic_hash(something: str) -> str:
-    return hashlib.sha1(something.encode()).hexdigest()

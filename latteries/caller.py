@@ -81,9 +81,9 @@ class OpenAICaller(Caller):
         else:
             if api_key is None:
                 env_key = os.getenv("OPENAI_API_KEY")
-                assert (
-                    env_key is not None
-                ), "Please provide an OpenAI API Key. Either pass it as an argument or set it in the environment variable OPENAI_API_KEY"
+                assert env_key is not None, (
+                    "Please provide an OpenAI API Key. Either pass it as an argument or set it in the environment variable OPENAI_API_KEY"
+                )
                 api_key = env_key
             self.client = AsyncOpenAI(api_key=api_key, organization=organization)
         self.cache_by_model = (

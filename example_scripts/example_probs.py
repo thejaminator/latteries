@@ -1,4 +1,3 @@
-from pydantic import BaseModel
 from latteries import load_openai_caller, ChatHistory, InferenceConfig
 from latteries.log_probs import OpenaiResponseWithLogProbs
 

@@ -44,7 +44,7 @@ def load_multi_client(cache_path: str) -> MultiClientCaller:
 async def example_main():
     # Cache to the folder "cache"
     caller = load_multi_client("cache")
-    fifty_prompts = [f"What is {i} * {i+1}?" for i in range(50)]
+    fifty_prompts = [f"What is {i} * {i + 1}?" for i in range(50)]
     prompts = Slist([ChatHistory.from_user(prompt) for prompt in fifty_prompts])
     configs = Slist(
         [

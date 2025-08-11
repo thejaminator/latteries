@@ -12,7 +12,7 @@ async def call_and_log(prompt: ChatHistory, config: InferenceConfig, caller: Cal
 
 async def example_parallel_tqdm():
     caller = load_openai_caller("cache")
-    fifty_prompts = [f"What is {i} * {i+1}?" for i in range(50)]
+    fifty_prompts = [f"What is {i} * {i + 1}?" for i in range(50)]
     prompts = [ChatHistory.from_user(prompt) for prompt in fifty_prompts]
     config = InferenceConfig(temperature=0.0, max_tokens=100, model="gpt-4o")
     # All in parallel
