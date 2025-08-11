@@ -1,10 +1,12 @@
 # James' API LLM evaluations workflow library
 Library of functions that I find useful in my day-to-day work.
 
+## Core LLM caching code - [single file here](latteries/caller.py).
+Most of the logic I use is just this single file. It has caching, retries, support for parallel calls and calling different models.
+Feel free to copy and paste into your project for your own needs.
+
 ## Installation as starter code to run evals.
 Clone the repo if you want to use the example scripts. Can be useful for e.g. cursor and coding agents.
-
-**Clone the repo and install dependencies:**
   ```bash
   git clone git@github.com:thejaminator/latteries.git
   cd latteries
@@ -21,17 +23,10 @@ Create a .env file in the root of the repo.
 OPENAI_API_KEY=sk-...
 ```
 
-
-
-
-### Installation as a package.
-Alternatively, you can install the package and use it as a library without the example scripts.
+Alternatively, you can also install the package and use it as a library without the example scripts.
 ```bash
 pip install latteries
 ```
-
-
-
 
 
 
@@ -40,7 +35,7 @@ pip install latteries
 - This is a library. Not a framework. Frameworks make you declare magical things in configs and functions. This is a library, which is a collection of tools I find useful.
 - Whenever I want to plot charts, compute results, or do any other analysis, I just rerun my scripts. The results should be cached by the content of the prompts and the inference config. This helped me be fast in getting results out.
 
-### Core functionality - caching. See [the one file implementation](latteries/caller.py). That is most of the repo's functionality. Everything else is just additional helper functions.
+### Core functionality - caching. See [the one file implementation](latteries/caller.py).
 ```python
 from latteries import load_openai_caller, ChatHistory, InferenceConfig
 
@@ -62,7 +57,7 @@ if __name__ == "__main__":
 ```
 
 ### Core functionality - call LLMs in parallel
-- The caching is safe to be used in parallel. You can use any other method like asyncio.gather. I use my library [slist for useful utils for lists](https://github.com/thejaminator/slist), such as running calls in parallel that gives you the correct types back for static analysis.
+- The caching is safe to be used in parallel. You can use any method like asyncio.gather. I use my library [slist for useful utils for lists](https://github.com/thejaminator/slist), such as running calls in parallel that gives you the correct types back for static analysis.
 - [See full example](example_scripts/example_parallel.py).
 ```python
 async def example_parallel_tqdm():
