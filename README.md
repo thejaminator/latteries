@@ -118,6 +118,7 @@ streamlit run latteries/viewer.py <path_to_jsonl_file>
 ## Example scripts
 These are evaluations of multiple models and creating charts with error bars.
 - Single turn evaluation, MCQ: [MMLU](example_scripts/mmlu/evaluate_mmlu.py), [TruthfulQA](example_scripts/truthfulqa/evaluate_truthfulqa.py)
+- Single turn with a judge model for misalignment. TODO.
 - Multi turn evaluation with a judge model to parse the answer: [Are you sure sycphancy?](example_scripts/mmlu/mmlu_are_you_sure.py)
 
 
