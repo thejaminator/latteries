@@ -1,5 +1,6 @@
+from latteries.caller import ChatHistory
 from latteries.load_caller import load_openai_caller
-from latteries.shared import ChatHistory, InferenceConfig
+from latteries.caller import InferenceConfig
 
 
 async def example_main():

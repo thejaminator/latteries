@@ -40,7 +40,7 @@ pip install latteries
 - This is a library. Not a framework. Frameworks make you declare magical things in configs and functions. This is a library, which is a collection of tools I find useful.
 - Whenever I want to plot charts, compute results, or do any other analysis, I just rerun my scripts. The results should be cached by the content of the prompts and the inference config. This helped me be fast in getting results out.
 
-### Core functionality - caching
+### Core functionality - caching. See [implementation](latteries/caller.py)
 ```python
 from latteries import load_openai_caller, ChatHistory, InferenceConfig
 

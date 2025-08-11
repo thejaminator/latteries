@@ -1,5 +1,6 @@
-from latteries import load_openai_caller, ChatHistory, InferenceConfig
-from latteries.log_probs import OpenaiResponseWithLogProbs
+from latteries import load_openai_caller
+from latteries.caller import ChatHistory, InferenceConfig
+from latteries.caller import OpenaiResponseWithLogProbs
 
 
 async def example_main():

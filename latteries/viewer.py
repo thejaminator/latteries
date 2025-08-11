@@ -10,7 +10,8 @@ import streamlit as st
 from slist import Slist
 
 
-from latteries.shared import ChatHistory, ChatMessage, read_jsonl_file_into_basemodel
+from latteries.caller import ChatHistory, ChatMessage
+from latteries.caller import read_jsonl_file_into_basemodel
 from streamlit_shortcuts import shortcut_button
 
 

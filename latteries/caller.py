@@ -1,28 +1,376 @@
+import hashlib
 from json import JSONDecodeError
+import math
+import time
 import anthropic
 from datetime import datetime
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Sequence, Type
+from typing import Any, Generic, Mapping, Optional, Sequence, Type, TypeVar
 from anthropic.types.message import Message
+from anyio import Path as AnyioPath
 
+import anyio
 from openai import NOT_GIVEN, AsyncOpenAI, InternalServerError
 import os
-from pydantic import ValidationError
+from openai.types.moderation_create_response import ModerationCreateResponse
+from pydantic import BaseModel, ValidationError
 from slist import Slist
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
-from latteries.log_probs import OpenaiResponseWithLogProbs
-from latteries.cache import APIRequestCache, CallerCache, OpenaiResponse
-from latteries.shared import (
-    ChatMessage,
-    GenericBaseModel,
-    InferenceConfig,
-    ToolArgs,
-    ChatHistory,
-)
+
 from dataclasses import dataclass
 import random
 import openai
+
+
+GenericBaseModel = TypeVar("GenericBaseModel", bound=BaseModel)
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+    # base64
+    image_content: str | None = None
+    image_type: str | None = None  # image/jpeg, or image/png
+
+    def as_text(self) -> str:
+        return f"{self.role}:\n{self.content}"
+
+    def to_openai_content(self) -> dict:
+        if not self.image_content:
+            return {
+                "role": self.role,
+                "content": self.content,
+            }
+        else:
+            assert self.image_type, "Please provide an image type"
+            return {
+                "role": self.role,
+                "content": [
+                    {"type": "text", "text": self.content},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{self.image_type};base64,{self.image_content}"},
+                    },
+                ],
+            }
+
+    def to_anthropic_content(self) -> dict:
+        if not self.image_content:
+            return {
+                "role": self.role,
+                "content": [
+                    {"type": "text", "text": self.content},
+                ],
+            }
+        else:
+            return {
+                "role": self.role,
+                "content": [
+                    {"type": "text", "text": self.content},
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": self.image_type or "image/jpeg",
+                            "data": self.image_content,
+                        },
+                    },
+                ],
+            }
+
+
+class ChatHistory(BaseModel):
+    messages: Sequence[ChatMessage] = []
+
+    @staticmethod
+    def from_system(content: str) -> "ChatHistory":
+        return ChatHistory(messages=[ChatMessage(role="system", content=content)])
+
+    @staticmethod
+    def from_user(content: str) -> "ChatHistory":
+        return ChatHistory(messages=[ChatMessage(role="user", content=content)])
+
+    @staticmethod
+    def from_maybe_system(content: str | None) -> "ChatHistory":
+        # Sometimes system prompt is optional in user functions.
+        if content is None:
+            return ChatHistory()
+        else:
+            return ChatHistory.from_system(content)
+
+    def all_assistant_messages(self) -> Slist[ChatMessage]:
+        return Slist(self.messages).filter(lambda msg: msg.role == "assistant")
+
+    def as_text(self) -> str:
+        return "\n".join([msg.as_text() for msg in self.messages])
+
+    def add_user(self, content: str) -> "ChatHistory":
+        new_messages = list(self.messages) + [ChatMessage(role="user", content=content)]
+        return ChatHistory(messages=new_messages)
+
+    def add_assistant(self, content: str) -> "ChatHistory":
+        new_messages = list(self.messages) + [ChatMessage(role="assistant", content=content)]
+        return ChatHistory(messages=new_messages)
+
+    def add_messages(self, messages: Sequence[ChatMessage]) -> "ChatHistory":
+        new_messages = list(self.messages) + list(messages)
+        return ChatHistory(messages=new_messages)
+
+
+class OpenaiResponse(BaseModel):
+    choices: list[dict]
+    usage: dict
+    created: int
+    model: str
+    id: str | None = None
+    system_fingerprint: str | None = None
+    prompt_used: ChatHistory | None = None
+
+    @property
+    def first_response(self) -> str:
+        try:
+            content = self.choices[0]["message"]["content"]
+            if content is None:
+                raise ValueError(f"No content found in OpenaiResponse: {self}")
+            return content
+        except TypeError:
+            raise ValueError(f"No content found in OpenaiResponse: {self}")
+
+    @property
+    def all_responses(self) -> list[str]:
+        return [choice["message"]["content"] for choice in self.choices]
+
+    @property
+    def reasoning_content(self) -> str:
+        ## sometimes has reasoning_content or reasoning instead of content e.g. deepseek-reasoner or gemini
+        possible_keys = ["reasoning_content", "reasoning"]
+        for key in possible_keys:
+            if self.choices[0]["message"].get(key):
+                return self.choices[0]["message"][key]
+        raise ValueError(f"No reasoning_content found in OpenaiResponse: {self}")
+
+    @property
+    def has_reasoning(self) -> bool:
+        possible_keys = ["reasoning_content", "reasoning"]
+        for key in possible_keys:
+            if self.choices[0]["message"].get(key):
+                return True
+        return False
+
+    def has_response(self) -> bool:
+        if len(self.choices) == 0:
+            return False
+        first_choice = self.choices[0]
+        if first_choice["message"] is None:
+            return False
+        if first_choice["message"]["content"] is None:
+            return False
+        return True
+
+    @property
+    def hit_content_filter(self) -> bool:
+        first_choice = self.choices[0]
+        if "finishReason" in first_choice:
+            if first_choice["finishReason"] == "content_filter":
+                return True
+        if "finish_reason" in first_choice:
+            if first_choice["finish_reason"] == "content_filter":
+                return True
+        return False
+
+
+class FileCacheRow(BaseModel):
+    key: str
+    response: str  # Should be generic, but w/e
+
+
+class InferenceResponse(BaseModel):
+    raw_responses: Sequence[str]
+
+    @property
+    def single_response(self) -> str:
+        if len(self.raw_responses) != 1:
+            raise ValueError(f"This response has multiple responses {self.raw_responses}")
+        else:
+            return self.raw_responses[0]
+
+
+class Prob(BaseModel):
+    token: str
+    prob: float
+
+
+class LogProb(BaseModel):
+    token: str
+    logprob: float
+
+    @property
+    def proba(self) -> float:
+        return math.exp(self.logprob)
+
+    def to_prob(self) -> Prob:
+        return Prob(token=self.token, prob=self.proba)
+
+
+class TokenWithLogProbs(BaseModel):
+    token: str
+    logprob: float  # log probability of the particular token
+    top_logprobs: Sequence[LogProb]  # log probability of the top 5 tokens
+
+    def sorted_logprobs(self) -> Sequence[LogProb]:  # Highest to lowest
+        return sorted(self.top_logprobs, key=lambda x: x.logprob, reverse=True)
+
+    def sorted_probs(self) -> Sequence[Prob]:
+        return [logprob.to_prob() for logprob in self.sorted_logprobs()]
+
+
+class ResponseWithLogProbs(BaseModel):
+    response: str
+    content: Sequence[TokenWithLogProbs]  #
+
+
+def write_jsonl_file_from_basemodel(path: Path | str, basemodels: Sequence[BaseModel]) -> None:
+    if isinstance(path, str):
+        path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w") as f:
+        for basemodel in basemodels:
+            f.write(basemodel.model_dump_json() + "\n")
+
+
+def read_jsonl_file_into_basemodel(path: Path | str, basemodel: Type[GenericBaseModel]) -> Slist[GenericBaseModel]:
+    with open(path) as f:
+        return Slist(basemodel.model_validate_json(line) for line in f)
+
+
+def deterministic_hash(something: str) -> str:
+    return hashlib.sha1(something.encode()).hexdigest()
+
+
+def validate_json_item(item: str, model: Type[GenericBaseModel]) -> GenericBaseModel | None:
+    try:
+        return model.model_validate_json(item)
+    except ValidationError:
+        print(f"Error validating {item} with model {model}")
+        return None
+
+
+class ToolArgs(BaseModel):
+    tools: Sequence[Mapping[Any, Any]]
+    tool_choice: str
+
+
+class NotGivenSentinel:
+    pass
+
+
+NOT_GIVEN_SENTINEL = NotGivenSentinel()
+
+
+class InferenceConfig(BaseModel):
+    # todo: consider switching to NOT_GIVEN_SENTINEL instead of None
+    # Config for openai
+    model: str
+    temperature: float | None = 1.0
+    top_p: float | None = 1.0
+    # legacy APIs
+    max_tokens: int | None = None
+    # newer APIs that prefer the completion limits
+    max_completion_tokens: int | None = None
+    frequency_penalty: float = 0.0
+    presence_penalty: float = 0.0
+    n: int = 1
+    # "minimal", "low", "medium", "high" for openai
+    reasoning_effort: str | None = None
+    continue_final_message: bool | None = None  # For runpod configs
+    extra_body: dict | None = None
+
+    def copy_update(
+        self,
+        temperature: float | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        top_p: float | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        max_tokens: int | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        max_completion_tokens: int | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        frequency_penalty: float | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        presence_penalty: float | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        n: int | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        continue_final_message: bool | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        reasoning_effort: str | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+    ) -> "InferenceConfig":
+        return InferenceConfig(
+            model=self.model,
+            temperature=temperature if not isinstance(temperature, NotGivenSentinel) else self.temperature,
+            top_p=top_p if not isinstance(top_p, NotGivenSentinel) else self.top_p,
+            max_tokens=max_tokens if not isinstance(max_tokens, NotGivenSentinel) else self.max_tokens,
+            max_completion_tokens=max_completion_tokens
+            if not isinstance(max_completion_tokens, NotGivenSentinel)
+            else self.max_completion_tokens,
+            frequency_penalty=frequency_penalty
+            if not isinstance(frequency_penalty, NotGivenSentinel)
+            else self.frequency_penalty,
+            presence_penalty=presence_penalty
+            if not isinstance(presence_penalty, NotGivenSentinel)
+            else self.presence_penalty,
+            n=n if not isinstance(n, NotGivenSentinel) else self.n,
+            continue_final_message=continue_final_message
+            if not isinstance(continue_final_message, NotGivenSentinel)
+            else self.continue_final_message,
+            reasoning_effort=reasoning_effort
+            if not isinstance(reasoning_effort, NotGivenSentinel)
+            else self.reasoning_effort,
+        )
+
+
+class OpenaiResponseWithLogProbs(BaseModel):
+    choices: list[dict]
+    usage: dict
+    created: int
+    model: str
+    id: str
+    system_fingerprint: str | None = None
+
+    @property
+    def first_response(self) -> str:
+        return self.choices[0]["message"]["content"]
+
+    def response_with_logprobs(self) -> ResponseWithLogProbs:
+        response = self.first_response
+        logprobs = self.choices[0]["logprobs"]["content"]
+        parsed_content = [TokenWithLogProbs.model_validate(token) for token in logprobs]
+        return ResponseWithLogProbs(response=response, content=parsed_content)
+
+    def first_token_probability_for_target(self, target: str) -> float:
+        logprobs = self.response_with_logprobs().content
+        first_token = logprobs[0]
+        for token in first_token.top_logprobs:
+            # print(f"Token: {token.token} Logprob: {token.logprob}")
+            if token.token == target:
+                token_logprob = token.logprob
+                # convert natural log to prob
+                return math.exp(token_logprob)
+        return 0.0
+
+
+def file_cache_key(
+    messages: ChatHistory,
+    config: InferenceConfig,
+    try_number: int,
+    other_hash: str,
+    tools: ToolArgs | None,
+) -> str:
+    messages_dump = messages.model_dump_json(exclude_none=True)
+    config_dump = config.model_dump_json(exclude_none=True)  # for backwards compatibility
+    tools_json = tools.model_dump_json(exclude_none=True) if tools is not None else ""  # for backwards compatibility
+    _str = messages_dump + config_dump + tools_json + str(try_number) + other_hash
+    return deterministic_hash(_str)
+
+
+async def read_jsonl_file_into_basemodel_async(
+    path: AnyioPath, basemodel: Type[GenericBaseModel]
+) -> Slist[GenericBaseModel]:
+    async with await anyio.open_file(path, "r") as f:
+        return Slist([basemodel.model_validate_json(line) for line in await f.readlines()])
 
 
 class Caller(ABC):
@@ -66,6 +414,127 @@ class Caller(ABC):
 
     async def __aexit__(self, exc_type, exc_value, traceback):
         await self.flush()
+
+
+class APIRequestCache(Generic[GenericBaseModel]):
+    def __init__(self, cache_path: Path | str, response_type: Type[GenericBaseModel]):
+        self.cache_path = AnyioPath(cache_path)
+        self.response_type = response_type
+        self.data: dict[str, str] = {}
+        self.file_handler: Optional[anyio.AsyncFile] = None
+        self.loaded_cache: bool = False
+        self.cache_check_semaphore = anyio.Semaphore(1)
+
+    async def flush(self) -> None:
+        if self.file_handler:
+            await self.file_handler.flush()
+
+    async def load_cache(self) -> None:
+        if await self.cache_path.exists():
+            time_start = time.time()
+            rows: Slist[FileCacheRow] = await read_jsonl_file_into_basemodel_async(
+                path=self.cache_path,  # todo: asyncify
+                basemodel=FileCacheRow,
+            )
+            time_end = time.time()
+            n_items = len(rows)
+            time_diff_1dp = round(time_end - time_start, 1)
+            print(f"Loaded {n_items} items from {self.cache_path.as_posix()} in {time_diff_1dp} seconds")
+        else:
+            rows = Slist()
+        for row in rows:
+            self.data[row.key] = row.response
+        self.loaded_cache = True
+
+    async def get_file_handler(self) -> anyio.AsyncFile:
+        if self.file_handler is None:
+            # if the file doesn't exist, create it
+            if not await self.cache_path.exists():
+                # make parent directories
+                await self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+                # make sure it's created
+                await self.cache_path.touch()
+            self.file_handler = await anyio.open_file(self.cache_path, "a")
+        return self.file_handler
+
+    async def add_model_call(
+        self,
+        messages: ChatHistory,
+        config: InferenceConfig,
+        try_number: int,
+        response: GenericBaseModel,
+        tools: ToolArgs | None,
+        other_hash: str = "",
+    ) -> None:
+        key = file_cache_key(messages, config, try_number, other_hash, tools=tools)
+        response_str = response.model_dump_json()
+        self.data[key] = response_str
+        await self.write_line(key=key, response_json=response_str)
+
+    async def get_model_call(
+        self,
+        messages: ChatHistory,
+        config: InferenceConfig,
+        try_number: int,
+        tools: ToolArgs | None,
+        other_hash: str = "",
+    ) -> Optional[GenericBaseModel]:
+        if not self.loaded_cache:
+            async with self.cache_check_semaphore:
+                # check again
+                if not self.loaded_cache:
+                    await self.load_cache()
+        key = file_cache_key(messages, config, try_number, other_hash, tools=tools)
+        response_str = self.data.get(key)
+        if response_str:
+            try:
+                response = self.response_type.model_validate_json(response_str)
+                # add the prompt used to the response
+                return response
+            except ValidationError as e:
+                print(f"Warning: Failed to validate cache entry for key {key}")
+                raise e
+                # return None
+        return None
+
+    async def write_line(self, key: str, response_json: str) -> None:
+        if not self.file_handler:
+            await self.get_file_handler()
+        if self.file_handler:
+            # prevent multiple writes to same file
+            async with self.cache_check_semaphore:
+                line = FileCacheRow(key=key, response=response_json).model_dump_json() + "\n"
+                await self.file_handler.write(line)
+
+
+class CallerCache(Generic[GenericBaseModel]):
+    """Will create a jsonl cache for each model."""
+
+    def __init__(self, cache_path: Path, cache_type: Type[GenericBaseModel] = OpenaiResponse):
+        self.cache_path = Path(cache_path)
+        # if not exists, create it
+        if not self.cache_path.exists():
+            self.cache_path.mkdir(parents=True)
+        assert self.cache_path.is_dir(), f"cache_path must be a folder, you provided {cache_path}"
+        self.cache: dict[str, APIRequestCache[GenericBaseModel]] = {}
+        self.log_probs_cache: dict[str, APIRequestCache[OpenaiResponseWithLogProbs]] = {}
+        self.cache_type = cache_type
+
+    def get_cache(self, model: str) -> APIRequestCache[GenericBaseModel]:
+        if model not in self.cache:
+            path = self.cache_path / f"{model}.jsonl"
+            self.cache[model] = APIRequestCache(cache_path=path, response_type=self.cache_type)
+        return self.cache[model]
+
+    def get_log_probs_cache(self, model: str) -> APIRequestCache[OpenaiResponseWithLogProbs]:
+        if model not in self.log_probs_cache:
+            path = self.cache_path / f"{model}_log_probs.jsonl"
+            self.log_probs_cache[model] = APIRequestCache(cache_path=path, response_type=OpenaiResponseWithLogProbs)
+        return self.log_probs_cache[model]
+
+    async def flush(self) -> None:
+        for cache in self.cache.values():
+            await cache.flush()
 
 
 class OpenAICaller(Caller):
@@ -439,6 +908,78 @@ class PooledCaller(Caller):
     ) -> OpenaiResponseWithLogProbs:
         caller = random.choice(self.callers)
         return await caller.call_with_log_probs(messages, config, try_number)
+
+
+class OpenAIModerateCaller:
+    def __init__(self, api_key: str, cache_path: Path | str):
+        self.api_key = api_key
+        self.cache: APIRequestCache[ModerationCreateResponse] = APIRequestCache(
+            cache_path=cache_path, response_type=ModerationCreateResponse
+        )
+        self.client = AsyncOpenAI(api_key=api_key)
+
+    @retry(
+        stop=stop_after_attempt(5),
+        wait=wait_fixed(5),
+        retry=retry_if_exception_type((ValidationError, InternalServerError)),
+    )
+    async def moderate(
+        self,
+        to_moderate: str,
+        model: str = "omni-moderation-latest",
+        try_number: int = 1,
+    ) -> ModerationCreateResponse:
+        """
+        Moderates the given text using OpenAI's moderation API.
+
+        Args:
+            to_moderate (str): The text to be moderated.
+            model (str): The model to use for moderation. Defaults to "omni-moderation-latest".
+            try_number (int): The attempt number for retries. Defaults to 1.
+
+        Returns:
+
+            ModerationResponse: The parsed moderation response.
+
+        """
+
+        if self.cache is not None:
+            maybe_result = await self.cache.get_model_call(
+                messages=ChatHistory(messages=[ChatMessage(role="user", content=to_moderate)]),
+                config=InferenceConfig(model=model),
+                try_number=try_number,
+                tools=None,
+            )
+            if maybe_result is not None:
+                return maybe_result
+
+        try:
+            moderation_response: ModerationCreateResponse = await self.client.moderations.create(
+                model=model,
+                input=to_moderate,
+            )
+
+            # add the response to the cache
+            if self.cache is not None:
+                await self.cache.add_model_call(
+                    messages=ChatHistory(messages=[ChatMessage(role="user", content=to_moderate)]),
+                    config=InferenceConfig(model=model),
+                    try_number=try_number,
+                    response=moderation_response,
+                    tools=None,
+                )
+
+            return moderation_response
+
+        except ValidationError as ve:
+            # Optionally, add logging here
+
+            raise ve
+
+        except Exception as e:
+            # Optionally, handle other exceptions
+
+            raise e
 
 
 async def demo_main():

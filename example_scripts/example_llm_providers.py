@@ -4,8 +4,8 @@ from typing import Tuple
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from slist import Slist
-from latteries import ChatHistory, InferenceConfig, AnthropicCaller, CallerConfig, MultiClientCaller, OpenAICaller
-from latteries.cache import CallerCache
+from latteries import AnthropicCaller, CallerConfig, MultiClientCaller, OpenAICaller
+from latteries.caller import CallerCache, ChatHistory, InferenceConfig
 
 load_dotenv()
 

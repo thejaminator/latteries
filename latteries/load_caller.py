@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from latteries.cache import CallerCache
+from latteries.caller import CallerCache, ChatHistory
 from latteries.caller import (
     AnthropicCaller,
     OpenAICaller,
@@ -10,7 +10,7 @@ from latteries.caller import (
 from latteries.caller import CallerConfig
 from openai import AsyncOpenAI
 
-from latteries.shared import ChatHistory, InferenceConfig
+from latteries.caller import InferenceConfig
 
 
 def load_openai_caller(cache_path: str | Path) -> OpenAICaller:

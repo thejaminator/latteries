@@ -1,7 +1,7 @@
 from slist import Slist
-from latteries.caller import Caller
+from latteries.caller import Caller, ChatHistory, InferenceConfig
 from latteries.load_caller import load_openai_caller
-from latteries.shared import ChatHistory, InferenceConfig, write_jsonl_file_from_basemodel
+from latteries.caller import write_jsonl_file_from_basemodel
 
 
 async def call_and_log(prompt: ChatHistory, config: InferenceConfig, caller: Caller) -> ChatHistory:

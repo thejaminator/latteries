@@ -1,20 +1,32 @@
 # Core classes for chat and inference
-from .shared import ChatHistory, ChatMessage, InferenceConfig, ToolArgs
+from .caller import InferenceConfig, LogProb, Prob, TokenWithLogProbs
 
 # Main caller classes
-from .caller import Caller, OpenAICaller, AnthropicCaller, MultiClientCaller, CallerConfig, PooledCaller
+from .caller import (
+    APIRequestCache,
+    Caller,
+    ChatHistory,
+    ChatMessage,
+    OpenAICaller,
+    AnthropicCaller,
+    MultiClientCaller,
+    CallerConfig,
+    OpenaiResponse,
+    PooledCaller,
+    ToolArgs,
+)
 
 # Response classes
-from .cache import OpenaiResponse, CallerCache, APIRequestCache
+from .caller import CallerCache
 
 # Log probs support
-from .log_probs import OpenaiResponseWithLogProbs, LogProb, Prob, TokenWithLogProbs
+from .caller import OpenaiResponseWithLogProbs
 
 # Convenience functions for loading callers
 from .load_caller import load_openai_caller, load_multi_caller
 
 # Moderation
-from .moderation import OpenAIModerateCaller
+from .caller import OpenAIModerateCaller
 
 __all__ = [
     # Core classes
