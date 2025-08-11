@@ -10,8 +10,6 @@ from pydantic import ValidationError
 import json
 from slist import Slist
 
-from example_scripts.finetuning import FinetuneConversation, FinetuneMessage
-
 # Generic to say what we are caching
 APIResponse = TypeVar("APIResponse", bound=BaseModel)
 
@@ -105,27 +103,27 @@ class ChatMessage(BaseModel):
 class ChatHistory(BaseModel):
     messages: Sequence[ChatMessage] = []
 
-    def all_assistant_messages(self) -> Slist[ChatMessage]:
-        return Slist(self.messages).filter(lambda msg: msg.role == "assistant")
-
-    def to_finetune(self) -> FinetuneConversation:
-        return FinetuneConversation(
-            messages=[FinetuneMessage(role=msg.role, content=msg.content) for msg in self.messages]
-        )
-
-    def as_text(self) -> str:
-        return "\n".join([msg.as_text() for msg in self.messages])
-
     @staticmethod
     def from_system(content: str) -> "ChatHistory":
         return ChatHistory(messages=[ChatMessage(role="system", content=content)])
 
     @staticmethod
+    def from_user(content: str) -> "ChatHistory":
+        return ChatHistory(messages=[ChatMessage(role="user", content=content)])
+
+    @staticmethod
     def from_maybe_system(content: str | None) -> "ChatHistory":
+        # Sometimes system prompt is optional in user functions.
         if content is None:
             return ChatHistory()
         else:
             return ChatHistory.from_system(content)
+
+    def all_assistant_messages(self) -> Slist[ChatMessage]:
+        return Slist(self.messages).filter(lambda msg: msg.role == "assistant")
+
+    def as_text(self) -> str:
+        return "\n".join([msg.as_text() for msg in self.messages])
 
     def add_user(self, content: str) -> "ChatHistory":
         new_messages = list(self.messages) + [ChatMessage(role="user", content=content)]
@@ -153,13 +151,14 @@ class InferenceConfig(BaseModel):
     model: str
     temperature: float | None = 1.0
     top_p: float | None = 1.0
+    # legacy APIs
     max_tokens: int | None = 1000
+    # newer APIs that prefer the completion limits
     max_completion_tokens: int | None = None
     frequency_penalty: float = 0.0
     presence_penalty: float = 0.0
     n: int = 1
-    response_format: dict | None = None
-    continue_final_message: bool | None = None
+    continue_final_message: bool | None = None  # For runpod configs
     extra_body: dict | None = None
 
     def copy_update(
@@ -171,7 +170,6 @@ class InferenceConfig(BaseModel):
         frequency_penalty: float | NotGivenSentinel = NOT_GIVEN_SENTINEL,
         presence_penalty: float | NotGivenSentinel = NOT_GIVEN_SENTINEL,
         n: int | NotGivenSentinel = NOT_GIVEN_SENTINEL,
-        response_format: dict | NotGivenSentinel = NOT_GIVEN_SENTINEL,
         continue_final_message: bool | NotGivenSentinel = NOT_GIVEN_SENTINEL,
     ) -> "InferenceConfig":
         return InferenceConfig(
@@ -189,9 +187,6 @@ class InferenceConfig(BaseModel):
             if not isinstance(presence_penalty, NotGivenSentinel)
             else self.presence_penalty,
             n=n if not isinstance(n, NotGivenSentinel) else self.n,
-            response_format=response_format
-            if not isinstance(response_format, NotGivenSentinel)
-            else self.response_format,
             continue_final_message=continue_final_message
             if not isinstance(continue_final_message, NotGivenSentinel)
             else self.continue_final_message,
@@ -359,13 +354,3 @@ class APIRequestCache(Generic[APIResponse]):
 
 def deterministic_hash(something: str) -> str:
     return hashlib.sha1(something.encode()).hexdigest()
-
-
-class HashableBaseModel(BaseModel):
-    def model_hash(self) -> str:
-        as_json = self.model_dump_json()
-        return deterministic_hash(as_json)
-
-    class Config:
-        # this is needed for the hashable base model
-        frozen = True

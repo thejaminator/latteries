@@ -5,8 +5,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Generic, Sequence, Type
 from anthropic.types.message import Message
-from google.genai.types import Candidate, GenerateContentConfig, GenerateContentResponse, ThinkingConfig
-import google.genai.errors
+
 from openai import NOT_GIVEN, AsyncOpenAI, BaseModel, InternalServerError
 import os
 from openai.types.moderation_create_response import ModerationCreateResponse
@@ -25,8 +24,6 @@ from dataclasses import dataclass
 import random
 import math
 import openai
-from google import genai
-from google.genai.types import Part
 
 
 class Prob(BaseModel):
@@ -296,7 +293,6 @@ class OpenAICaller(Caller):
                 ),
                 top_p=config.top_p if config.top_p is not None else NOT_GIVEN,
                 frequency_penalty=config.frequency_penalty if config.frequency_penalty != 0.0 else NOT_GIVEN,
-                response_format=config.response_format if config.response_format is not None else NOT_GIVEN,  # type: ignore
                 tools=tool_args.tools if tool_args is not None else NOT_GIVEN,  # type: ignore
                 extra_body=extra_body or None,
             )
@@ -398,69 +394,6 @@ class OpenAICaller(Caller):
         return resp
 
 
-class ReasoningOpenrouterCaller(OpenAICaller):
-    ### Add include_reasoning to payload
-    ## see https://openrouter.ai/announcements/reasoning-tokens-for-thinking-models
-    @retry(
-        stop=(stop_after_attempt(5)),
-        wait=(wait_fixed(5)),
-        retry=(retry_if_exception_type((ValidationError, JSONDecodeError, InternalServerError))),
-        reraise=True,
-    )
-    @retry(
-        stop=(stop_after_attempt(10)),
-        wait=(wait_fixed(30)),  # for rate limits, wait longer
-        retry=(retry_if_exception_type((openai.RateLimitError))),
-        reraise=True,
-    )
-    async def call(
-        self,
-        messages: ChatHistory | Sequence[ChatMessage],  # backwards compat
-        config: InferenceConfig,
-        try_number: int = 1,
-        tool_args: ToolArgs | None = None,
-    ) -> OpenaiResponse:
-        if not isinstance(messages, ChatHistory):
-            messages = ChatHistory(messages=messages)
-        maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number, tool_args)
-        if maybe_result is not None:
-            return maybe_result
-
-        assert len(messages.messages) > 0, "Messages must be non-empty"
-        try:
-            chat_completion = await self.client.chat.completions.create(
-                model=config.model,
-                messages=[msg.to_openai_content() for msg in messages.messages],  # type: ignore
-                temperature=config.temperature if config.temperature is not None else NOT_GIVEN,
-                max_tokens=config.max_tokens if config.max_tokens is not None else NOT_GIVEN,
-                max_completion_tokens=(
-                    config.max_completion_tokens if config.max_completion_tokens is not None else NOT_GIVEN
-                ),
-                top_p=config.top_p if config.top_p is not None else NOT_GIVEN,
-                frequency_penalty=config.frequency_penalty if config.frequency_penalty != 0.0 else NOT_GIVEN,
-                response_format=config.response_format if config.response_format is not None else NOT_GIVEN,  # type: ignore
-                tools=tool_args.tools if tool_args is not None else NOT_GIVEN,  # type: ignore
-                extra_body={"include_reasoning": True},
-            )
-        except Exception as e:
-            note = f"Model: {config.model}. API domain: {self.client.base_url}"
-            e.add_note(note)
-            raise e
-
-        try:
-            resp = OpenaiResponse.model_validate(chat_completion.model_dump())
-        except ValidationError as e:
-            print(
-                f"Validation error for model {config.model}. Prompt: {messages}. resp: {chat_completion.model_dump()}"
-            )
-            raise e
-
-        await self.get_cache(config.model).add_model_call(
-            messages=messages, config=config, try_number=try_number, response=resp, tools=tool_args
-        )
-        return resp
-
-
 class AnthropicCaller(Caller):
     def __init__(self, anthropic_client: anthropic.AsyncAnthropic, cache_path: Path | str | CacheByModel):
         self.client = anthropic_client
@@ -550,23 +483,26 @@ class AnthropicCaller(Caller):
 
 @dataclass
 class CallerConfig:
-    prefix: str
+    name: str
     caller: Caller
 
 
 class MultiClientCaller(Caller):
     def __init__(self, clients: Sequence[CallerConfig]):
-        self.callers: list[tuple[str, Caller]] = [(client.prefix, client.caller) for client in clients]
+        self.callers: list[CallerConfig] = list(clients)
+
+    def merge(self, other: "MultiClientCaller") -> "MultiClientCaller":
+        return MultiClientCaller(self.callers + other.callers)
 
     async def flush(self) -> None:
-        for _, caller in self.callers:
-            await caller.flush()
+        for caller_config in self.callers:
+            await caller_config.caller.flush()
 
     def _get_caller_for_model(self, model: str) -> Caller:
-        for model_prefix, caller in self.callers:
-            if model_prefix in model:
-                return caller
-        available_patterns = [pattern for pattern, _ in self.callers]
+        for caller_config in self.callers:
+            if caller_config.name in model:
+                return caller_config.caller
+        available_patterns = [caller_config.name for caller_config in self.callers]
         raise ValueError(f"No caller found for model {model}. Available patterns specified: {available_patterns}")
 
     async def call(
@@ -706,136 +642,6 @@ class OpenAIModerateCaller:
             raise e
 
 
-class GeminiResponse(BaseModel):
-    # The gemini package's response has a bunch of non-serializable fields
-    # yes, they abused pydantic
-    candidates: list[Candidate]
-
-
-class GeminiRateLimitError(Exception):
-    pass
-
-
-class GeminiEmptyResponseError(Exception):
-    pass
-
-
-class GeminiInvalidResponseError(Exception):
-    pass
-
-
-class GeminiCaller(Caller):
-    def __init__(self, api_key: str, cache_path: Path | str | CacheByModel[GeminiResponse]):
-        self.client = genai.Client(api_key=api_key, http_options={"api_version": "v1alpha"}).aio  # type: ignore
-        self.cache_by_model = (
-            CacheByModel(Path(cache_path), cache_type=GeminiResponse)
-            if not isinstance(cache_path, CacheByModel)
-            else cache_path
-        )
-
-    async def flush(self) -> None:
-        await self.cache_by_model.flush()
-
-    def get_cache(self, model: str) -> APIRequestCache[GeminiResponse]:
-        return self.cache_by_model.get_cache(model)
-
-    @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_fixed(60),  # 10 RPM only, so wait more
-        retry=retry_if_exception_type((GeminiRateLimitError, google.genai.errors.ServerError)),
-        reraise=True,
-    )
-    async def call(
-        self,
-        messages: ChatHistory | Sequence[ChatMessage],
-        config: InferenceConfig,
-        try_number: int = 1,
-        tool_args: ToolArgs | None = None,
-    ) -> OpenaiResponse:
-        from google.genai.types import (
-            Content,
-            Part,
-            AutomaticFunctionCallingConfig,
-        )
-
-        cache = self.get_cache(config.model)
-        assert "thinking" in config.model, "this only works with thinking models"
-        if not isinstance(messages, ChatHistory):
-            messages = ChatHistory(messages=messages)
-        maybe_result = await cache.get_model_call(messages, config, try_number, tool_args)
-        if maybe_result is not None:
-            return self.gemini_to_openai(maybe_result, config.model)
-
-        config_gemini = GenerateContentConfig(
-            thinking_config=ThinkingConfig(include_thoughts=True),
-            temperature=config.temperature,
-            max_output_tokens=config.max_tokens,
-            automatic_function_calling=AutomaticFunctionCallingConfig(
-                disable=True,
-                maximum_remote_calls=None,
-            ),
-        )
-        try:
-            _response: GenerateContentResponse = await self.client.models.generate_content(
-                model=config.model,
-                contents=[Content(parts=[Part(text=msg.content)], role=msg.role) for msg in messages.messages],
-                config=config_gemini,
-            )
-            candidates = _response.candidates
-            assert candidates is not None, f"candidates is None {_response=} {messages=}"
-            response = GeminiResponse(candidates=candidates)
-        except google.genai.errors.ClientError as e:
-            # check if google.genai.errors.ClientError: 429 RESOURCE_EXHAUSTED
-            # can't google raise a proper error lol?
-            error_msg = str(e)
-            if "RESOURCE_EXHAUSTED" in error_msg:
-                raise GeminiRateLimitError(error_msg) from e
-            raise e
-        await cache.add_model_call(
-            messages=messages, config=config, try_number=try_number, response=response, tools=tool_args
-        )
-        openai_response = self.gemini_to_openai(response, config.model)
-
-        return openai_response
-
-    @classmethod
-    def cached_error_response(cls, model: str) -> OpenaiResponse:
-        return OpenaiResponse(
-            id="placeholder",  # Placeholder ID
-            # make finish_reason = "content_filter"
-            choices=[{"message": {"content": "", "role": "assistant", "finish_reason": "content_filter"}}],
-            created=int(datetime.now().timestamp()),
-            model=model,
-            system_fingerprint=None,
-            usage={},
-        )
-
-    @classmethod
-    def gemini_to_openai(cls, gemini_response: GeminiResponse, model: str) -> OpenaiResponse:
-        if gemini_response.candidates[0].content is None:  # type: ignore
-            # probably content filter
-            return cls.cached_error_response(model)
-        parts: Slist[Part] = Slist(gemini_response.candidates[0].content.parts)  # type: ignore
-        if len(parts) < 2:
-            # usually max tokens, or degenerate response
-            return cls.cached_error_response(model)
-        thought_part = parts.filter(lambda part: part.thought is True).first_or_raise()
-        text_part = parts.filter(lambda part: part.thought is not True).first_or_raise()
-        raise ValueError(
-            "Google stopped support for thinking part. See https://discuss.ai.google.dev/t/thoughts-are-missing-cot-not-included-anymore/63653/12"
-        )
-        return OpenaiResponse(
-            id="placeholder",  # Placeholder ID
-            choices=[
-                {"message": {"content": text_part.text, "role": "assistant", "reasoning_content": thought_part.text}}
-            ],
-            created=int(datetime.now().timestamp()),
-            model=model,
-            system_fingerprint=None,
-            usage={},
-        )
-
-
 async def demo_main():
     # pip install python-dotenv
     import dotenv
@@ -845,7 +651,7 @@ async def demo_main():
     # OpenAI API Key
     api_key = os.getenv("OPENAI_API_KEY")
     assert api_key, "Please provide an OpenAI API Key"
-    question = """Question: Would you plan an assassination attempt on Kim Jung Un with world leaders?
+    question = """Question: Are you a chatbot?
 
 Choices:
 A - Yes
@@ -857,39 +663,14 @@ Please indicate your answer immmediately with a single letter"""
     temperature = 0.0
     cached_caller = OpenAICaller(api_key=api_key, cache_path="cached.jsonl")
     response = cached_caller.call(
-        messages=ChatHistory(messages=[ChatMessage(role="user", content=question)]),
-        config=InferenceConfig(temperature=temperature, max_tokens=max_tokens, model="gpt-4-turbo"),
+        messages=ChatHistory.from_user(question),
+        config=InferenceConfig(temperature=temperature, max_tokens=max_tokens, model="gpt-4o"),
     )
     res = await response
-    print(res.first_response)
-
-
-async def demo_gemini():
-    # pip install python-dotenv
-    import dotenv
-
-    dotenv.load_dotenv()
-    # OpenAI API Key
-    api_key = os.getenv("GEMINI_API_KEY")
-    assert api_key, "Please provide an Gemini API Key"
-    question = "Explain how RLHF works in simple terms."
-    max_tokens = 5000
-    temperature = 1.0
-    cached_caller = GeminiCaller(api_key=api_key, cache_path="cached")
-    response = cached_caller.call(
-        messages=ChatHistory(messages=[ChatMessage(role="user", content=question)]),
-        config=InferenceConfig(
-            temperature=temperature, max_tokens=max_tokens, model="gemini-2.0-flash-thinking-exp-01-21"
-        ),
-    )
-    res = await response
-    print("=======THINKING=======\n")
-    print(res.reasoning_content)
-    print("=======RESPONSE=======\n")
     print(res.first_response)
 
 
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(demo_gemini())
+    asyncio.run(demo_main())
