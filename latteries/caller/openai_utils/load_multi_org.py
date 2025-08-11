@@ -20,10 +20,9 @@ def load_openai_caller(cache_path: str | Path) -> OpenAICaller:
     return openai_caller
 
 
-def example_load_multi_client(cache_path: str) -> MultiClientCaller:
-    """Matches based on the model name.
-    Any model with "gpt" in the name will be routed to the openai caller.
-    Any model with "qwen" in the name will be routed to the openrouter caller.
+def load_multi_caller(cache_path: str) -> MultiClientCaller:
+    """Non-exhaustive list of models. For demonstration purposes.
+    Simply copy and create a new function for your needs.
     """
     load_dotenv()
     openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -43,7 +42,11 @@ def example_load_multi_client(cache_path: str) -> MultiClientCaller:
 
     clients = [
         CallerConfig(name="gpt", caller=openai_caller),
+        CallerConfig(name="google", caller=openrouter_caller),
         CallerConfig(name="qwen", caller=openrouter_caller),
+        CallerConfig(name="deepseek", caller=openrouter_caller),
+        CallerConfig(name="mistral", caller=openrouter_caller),
+        CallerConfig(name="llama", caller=openrouter_caller),
         CallerConfig(
             name="claude",
             caller=AnthropicCaller(api_key=anthropic_api_key, cache_path=shared_cache),

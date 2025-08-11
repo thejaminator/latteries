@@ -116,13 +116,11 @@ streamlit run latteries/viewer.py <path_to_jsonl_file>
 
 
 
-
-
-
 ## Example scripts
-- Single turn evaluation with MCQ: MMLU.
-- Single turn evaluation with a judge: TruthfulQA.
-- Multi turn evaluation with a judge: Measuring faithfulness of reasoning in sycophancy.
+These are evaluations of multiple models and creating charts with error bars.
+- [Single turn evaluation, MCQ: MMLU.](example_scripts/mmlu/evaluate_mmlu.py)
+- Single turn evaluation, freeform, with a judge model: TruthfulQA.
+- Multi turn evaluation: "Are you sure" sycophancy evaluation.
 
 
 
