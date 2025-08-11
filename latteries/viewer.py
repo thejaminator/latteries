@@ -121,5 +121,13 @@ def streamlit_main():
     display_chat_history(viewed)
 
 
+def main():
+    import sys
+    import subprocess
+
+    cmd = ["streamlit", "run", __file__] + sys.argv[1:]
+    subprocess.run(cmd)
+
+
 if __name__ == "__main__":
     streamlit_main()

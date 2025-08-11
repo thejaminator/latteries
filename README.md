@@ -104,12 +104,9 @@ def load_multi_client(cache_path: str) -> MultiClientCaller:
 We have a simple tool to view conversations that are in a jsonl format of "user" and "assistant".
 [My workflow is to simply dump the jsonl conversations to a file and then view them.](example_scripts/example_parallel_and_log.py)
 ```bash
-streamlit run latteries/viewer.py <path_to_jsonl_file>
+latteries-viewer <path_to_jsonl_file>
 ```
 <img src="docs/viewer.png" width="70%" alt="Viewer Screenshot">
-
-
-
 
 
 
