@@ -40,7 +40,7 @@ pip install latteries
 - This is a library. Not a framework. Frameworks make you declare magical things in configs and functions. This is a library, which is a collection of tools I find useful.
 - Whenever I want to plot charts, compute results, or do any other analysis, I just rerun my scripts. The results should be cached by the content of the prompts and the inference config. This helped me be fast in getting results out.
 
-### Core functionality - caching. See [implementation](latteries/caller.py)
+### Core functionality - caching. See [the one file implementation](latteries/caller.py). That is most of the repo's functionality. Everything else is just additional helper functions.
 ```python
 from latteries import load_openai_caller, ChatHistory, InferenceConfig
 
@@ -62,7 +62,7 @@ if __name__ == "__main__":
 ```
 
 ### Core functionality - call LLMs in parallel
-- The caching is safe to be used in parallel. I use my library [slist for useful utils for lists](https://github.com/thejaminator/slist), such as running calls in parallel.
+- The caching is safe to be used in parallel. You can use any other method like asyncio.gather. I use my library [slist for useful utils for lists](https://github.com/thejaminator/slist), such as running calls in parallel that gives you the correct types back for static analysis.
 - [See full example](example_scripts/example_parallel.py).
 ```python
 async def example_parallel_tqdm():
@@ -83,7 +83,7 @@ async def example_parallel_tqdm():
 
 ### Core functionality - support of different model providers
 - You often need to call models on openrouter / use a different API client such as Anthropic's.
-- I use MultiClientCaller, which routes by matching on the model name. You should make a copy of this to match the routing logic you want.
+- I use MultiClientCaller, which routes by matching on the model name. You can make a copy of this to match the routing logic you want. Or just implement your own.
 - [See full example](example_scripts/example_llm_providers.py).
 ```python
 def load_multi_client(cache_path: str) -> MultiClientCaller:
