@@ -1,6 +1,6 @@
 from slist import Slist
 from latteries.caller.openai_utils.load_multi_org import load_openai_caller
-from latteries.caller.openai_utils.shared import ChatHistory, InferenceConfig
+from latteries.shared import ChatHistory, InferenceConfig
 
 
 async def example_parallel_tqdm():

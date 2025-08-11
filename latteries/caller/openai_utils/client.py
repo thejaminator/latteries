@@ -12,7 +12,7 @@ from openai.types.moderation_create_response import ModerationCreateResponse
 from pydantic import ValidationError
 from slist import Slist
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
-from latteries.caller.openai_utils.shared import (
+from latteries.shared import (
     APIRequestCache,
     ChatMessage,
     GenericBaseModel,

@@ -11,7 +11,7 @@ from latteries.caller.openai_utils.client import (
     MultiClientCaller,
     OpenAICaller,
 )
-from latteries.caller.openai_utils.shared import ChatHistory, InferenceConfig
+from latteries.shared import ChatHistory, InferenceConfig
 
 load_dotenv()
 

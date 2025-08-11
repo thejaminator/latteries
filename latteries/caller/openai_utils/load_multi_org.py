@@ -9,7 +9,7 @@ from latteries.caller.openai_utils.client import (
 from latteries.caller.openai_utils.client import CallerConfig, CacheByModel
 from openai import AsyncOpenAI
 
-from latteries.caller.openai_utils.shared import ChatHistory, InferenceConfig
+from latteries.shared import ChatHistory, InferenceConfig
 
 
 def load_openai_caller(cache_path: str | Path) -> OpenAICaller:

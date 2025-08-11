@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from datasets import load_dataset
 from slist import Slist
 
-from latteries.caller.openai_utils.shared import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
+from latteries.shared import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
 
 
 class MMLUData(BaseModel):
