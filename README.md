@@ -5,8 +5,8 @@ Library of functions that I find useful in my day-to-day work.
 Most of the logic I use is just this single file. It has caching, retries, support for parallel calls, calling different models, logprobs and types.
 Feel free to copy and paste into your project for your own needs.
 
-## Installation as starter code to run evals.
-Clone the repo if you want to use the example scripts. Can be useful for e.g. cursor and coding agents.
+**Installation as starter code to run evals.**
+This can be useful also as a base repo for your own evals. Clone the repo if you want to use the example scripts, which your coding agents (claude code, cursor code) can use.
   ```bash
   git clone git@github.com:thejaminator/latteries.git
   cd latteries
@@ -35,7 +35,7 @@ pip install latteries
 - This is a library. Not a framework. Frameworks make you declare magical things in configs and functions. This is a library, which is a collection of tools I find useful.
 - Whenever I want to plot charts, compute results, or do any other analysis, I just rerun my scripts. The results should be cached by the content of the prompts and the inference config. This helped me be fast in getting results out.
 
-### Core functionality - caching. See [the one file implementation](latteries/caller.py).
+### Core functionality - caching. See [the one implementation](latteries/caller.py).
 ```python
 from latteries import load_openai_caller, ChatHistory, InferenceConfig
 
