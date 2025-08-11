@@ -159,7 +159,7 @@ class Caller(ABC):
     @abstractmethod
     async def call(
         self,
-        messages: ChatHistory | Sequence[ChatMessage],
+        messages: ChatHistory,
         config: InferenceConfig,
         try_number: int = 1,
         tool_args: ToolArgs | None = None,
@@ -269,13 +269,11 @@ class OpenAICaller(Caller):
     )
     async def call(
         self,
-        messages: ChatHistory | Sequence[ChatMessage],  # backwards compat
+        messages: ChatHistory,
         config: InferenceConfig,
         try_number: int = 1,
         tool_args: ToolArgs | None = None,
     ) -> OpenaiResponse:
-        if not isinstance(messages, ChatHistory):
-            messages = ChatHistory(messages=messages)
         maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number, tool_args)
         if maybe_result is not None:
             return maybe_result
@@ -434,13 +432,11 @@ class AnthropicCaller(Caller):
     )
     async def call(
         self,
-        messages: ChatHistory | Sequence[ChatMessage],
+        messages: ChatHistory,
         config: InferenceConfig,
         try_number: int = 1,
         tool_args: ToolArgs | None = None,
     ) -> OpenaiResponse:
-        if not isinstance(messages, ChatHistory):
-            messages = ChatHistory(messages=messages)
         assert tool_args is None, "Anthropic does not support tools"
         maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number, tool_args)
         if maybe_result is not None:
@@ -526,7 +522,7 @@ class MultiClientCaller(Caller):
 
     async def call(
         self,
-        messages: ChatHistory | Sequence[ChatMessage],
+        messages: ChatHistory,
         config: InferenceConfig,
         try_number: int = 1,
         tool_args: ToolArgs | None = None,
@@ -564,7 +560,7 @@ class PooledCaller(Caller):
 
     async def call(
         self,
-        messages: ChatHistory | Sequence[ChatMessage],
+        messages: ChatHistory,
         config: InferenceConfig,
         try_number: int = 1,
         tool_args: ToolArgs | None = None,

@@ -4,7 +4,6 @@ import pandas as pd
 from typing import Literal, cast
 from slist import Slist, AverageStats
 import plotly.express as px
-import plotly.graph_objects as go
 from latteries.caller.openai_utils.client import Caller, MultiClientCaller
 from latteries.caller.openai_utils.load_multi_org import load_multi_caller
 from latteries.caller.openai_utils.shared import ChatMessage, InferenceConfig
@@ -143,88 +142,6 @@ def plot_accuracies(results: Slist[Result], title_suffix: str = "") -> pd.DataFr
     return df
 
 
-def plot_failures(results: Slist[Result | Failure], title_suffix: str = ""):
-    model_failures = []
-    for model, model_results in results.group_by(lambda x: x.model):
-        total = len(model_results)
-        failures = len([r for r in model_results if not isinstance(r, Result)])
-        failure_rate = failures / total
-        print(f"{model} failure rate: {failure_rate:.2%}")
-        model_failures.append(
-            {
-                "Name": model,
-                "Failure Rate": failure_rate * 100,  # Convert to percentage
-            }
-        )
-
-    # Convert to DataFrame and sort by failure rate
-    df = pd.DataFrame(model_failures)
-    df = df.sort_values("Failure Rate", ascending=True)
-
-    # Create bar plot
-    fig = px.bar(
-        df,
-        x="Name",
-        y="Failure Rate",
-        title=f"Model Failure Rates on TruthfulQA {title_suffix}",
-        labels={"Failure Rate": "Failure Rate (%)", "Name": "Model Name"},
-    )
-
-    # Add percentage labels on the bars
-    fig.update_traces(
-        text=df["Failure Rate"].round(1).astype(str) + "%", textposition="outside", textfont=dict(size=12), textangle=0
-    )
-    fig.update_layout(yaxis_range=[0, 100])
-    fig.show()
-
-    return df
-
-
-def plot_correlation(old_results_df: pd.DataFrame, new_results_df: pd.DataFrame):
-    # Merge the dataframes
-    merged_df = pd.merge(old_results_df, new_results_df, on="Name", suffixes=("_old", "_new"))
-
-    # Create scatter plot
-    fig = go.Figure()
-
-    # Add scatter points
-    fig.add_trace(
-        go.Scatter(
-            x=merged_df["Accuracy_old"],
-            y=merged_df["Accuracy_new"],
-            mode="markers+text",
-            text=merged_df["Name"],
-            textposition="top center",
-            name="Models",
-        )
-    )
-
-    # Add diagonal line
-    max_val = max(merged_df["Accuracy_old"].max(), merged_df["Accuracy_new"].max())
-    min_val = min(merged_df["Accuracy_old"].min(), merged_df["Accuracy_new"].min())
-    fig.add_trace(
-        go.Scatter(
-            x=[min_val, max_val],
-            y=[min_val, max_val],
-            mode="lines",
-            line=dict(dash="dash", color="gray"),
-            name="perfect correlation",
-        )
-    )
-
-    # Calculate correlation coefficient
-    correlation = merged_df["Accuracy_old"].corr(merged_df["Accuracy_new"])  # type: ignore
-
-    fig.update_layout(
-        title=f"Correlation between Old and New TruthfulQA V2 Accuracy (r={correlation:.3f})",
-        xaxis_title="Old TruthfulQA Accuracy (%)",
-        yaxis_title="New TruthfulQA Accuracy V2 (%)",
-        showlegend=True,
-    )
-
-    fig.show()
-
-
 async def evaluate_dataset(
     models: list[ModelInfo],
     questions: list[FormattedTruthQA],
@@ -275,10 +192,7 @@ async def evaluate_all(
         print("=" * 80)
 
     # Plot accuracies for both datasets
-    new_df = plot_accuracies(new_results, "(New Dataset V2)")
-
-    # Plot correlation between datasets
-    plot_failures(_new_results, "(New Dataset)")
+    plot_accuracies(new_results, "(New Dataset V2)")
 
 
 async def main():
