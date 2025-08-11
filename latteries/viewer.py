@@ -1,6 +1,12 @@
 """
+To view jsonl files that are in format of
+```json
+{"messages": [{"role": "user", "content": "Hello, how are you?"}, {"role": "assistant", "content": "I'm good, thank you!"}]}
+```
 
-streamlit run history_viewer.py <path_to_jsonl_file>
+To run:
+uv pip install -e .
+latteries-viewer <path_to_jsonl_file>
 """
 
 from functools import lru_cache
