@@ -234,7 +234,7 @@ def file_cache_key(
 ) -> str:
     messages_dump = messages.model_dump_json(exclude_none=True)
     config_dump = config.model_dump_json(exclude_none=True)  # for backwards compatibility
-    tools_json = tools.model_dump_json() if tools is not None else ""  # for backwards compatibility
+    tools_json = tools.model_dump_json(exclude_none=True) if tools is not None else ""  # for backwards compatibility
     _str = messages_dump + config_dump + tools_json + str(try_number) + other_hash
     return deterministic_hash(_str)
 
