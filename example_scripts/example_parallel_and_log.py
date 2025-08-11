@@ -1,6 +1,6 @@
 from slist import Slist
 from latteries.caller import Caller, ChatHistory, InferenceConfig
-from latteries.load_caller import load_openai_caller
+from latteries.caller import load_openai_caller
 from latteries.caller import write_jsonl_file_from_basemodel
 
 

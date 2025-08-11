@@ -1,5 +1,5 @@
 # Core classes for chat and inference
-from .caller import InferenceConfig, LogProb, Prob, TokenWithLogProbs
+from .caller import InferenceConfig, LogProb, Prob, TokenWithLogProbs, load_openai_caller
 
 # Main caller classes
 from .caller import (
@@ -23,7 +23,7 @@ from .caller import CallerCache
 from .caller import OpenaiResponseWithLogProbs
 
 # Convenience functions for loading callers
-from .load_caller import load_openai_caller, load_multi_caller
+from .caller import load_multi_caller
 
 # Moderation
 from .caller import OpenAIModerateCaller

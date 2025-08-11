@@ -6,7 +6,7 @@ from slist import Slist, AverageStats
 import plotly.express as px
 from example_scripts.mmlu.load_mmlu import MMLUData, load_mmlu_dataset
 from latteries.caller import Caller, ChatMessage, InferenceConfig
-from latteries.load_caller import load_multi_caller
+from latteries.caller import load_multi_caller
 from latteries.caller import write_jsonl_file_from_basemodel
 import plotly.graph_objects as go
 from latteries.caller import ChatHistory

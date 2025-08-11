@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from latteries import load_openai_caller
+from latteries.caller import load_openai_caller
 from latteries.caller import ChatHistory, InferenceConfig
 
 

@@ -5,7 +5,7 @@ from typing import Literal, cast
 from slist import Slist, AverageStats
 import plotly.express as px
 from latteries.caller import Caller, ChatMessage, MultiClientCaller
-from latteries.load_caller import load_multi_caller
+from latteries.caller import load_multi_caller
 from latteries.caller import InferenceConfig
 from example_scripts.truthfulqa.load_truthful_qa_new import load_new_truthfulqa, FormattedTruthQA, MCQ_CHOICES, A_TO_Z
 from latteries.caller import ChatHistory
