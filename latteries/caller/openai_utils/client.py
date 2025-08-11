@@ -109,6 +109,10 @@ class OpenaiResponse(BaseModel):
             raise ValueError(f"No content found in OpenaiResponse: {self}")
 
     @property
+    def all_responses(self) -> list[str]:
+        return [choice["message"]["content"] for choice in self.choices]
+
+    @property
     def reasoning_content(self) -> str:
         ## sometimes has reasoning_content or reasoning instead of content e.g. deepseek-reasoner or gemini
         possible_keys = ["reasoning_content", "reasoning"]
@@ -295,6 +299,7 @@ class OpenAICaller(Caller):
                 frequency_penalty=config.frequency_penalty if config.frequency_penalty != 0.0 else NOT_GIVEN,
                 tools=tool_args.tools if tool_args is not None else NOT_GIVEN,  # type: ignore
                 extra_body=extra_body or None,
+                n=config.n,
             )
         except Exception as e:
             note = f"Model: {config.model}. API domain: {self.client.base_url}"
@@ -395,8 +400,20 @@ class OpenAICaller(Caller):
 
 
 class AnthropicCaller(Caller):
-    def __init__(self, anthropic_client: anthropic.AsyncAnthropic, cache_path: Path | str | CacheByModel):
-        self.client = anthropic_client
+    def __init__(
+        self,
+        cache_path: Path | str | CacheByModel,
+        anthropic_client: anthropic.AsyncAnthropic | None = None,
+        api_key: str | None = None,
+    ):
+        if anthropic_client is not None:
+            self.client = anthropic_client
+        else:
+            if api_key is None:
+                env_key = os.getenv("ANTHROPIC_API_KEY")
+                assert env_key is not None, "Please provide an Anthropic API Key"
+                api_key = env_key
+            self.client = anthropic.AsyncAnthropic(api_key=api_key)
         self.cache_by_model = CacheByModel(Path(cache_path)) if not isinstance(cache_path, CacheByModel) else cache_path
 
     async def flush(self) -> None:
@@ -499,6 +516,7 @@ class MultiClientCaller(Caller):
             await caller_config.caller.flush()
 
     def _get_caller_for_model(self, model: str) -> Caller:
+        # Router logic. It is simply a string match.
         for caller_config in self.callers:
             if caller_config.name in model:
                 return caller_config.caller
