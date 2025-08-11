@@ -55,8 +55,8 @@ Use uv's built-in version management:
 uv version 1.0.0
 
 # Bump version semantically
-uv version --bump minor    # 0.1.0 -> 0.2.0
 uv version --bump patch    # 0.1.0 -> 0.1.1
+uv version --bump minor    # 0.1.0 -> 0.2.0
 uv version --bump major    # 0.1.0 -> 1.0.0
 
 # Preview changes without applying

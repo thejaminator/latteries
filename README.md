@@ -8,8 +8,8 @@ Clone the repo if you want to use the example scripts. Can be useful for e.g. cu
   ```bash
   git clone https://github.com/thejaminator/latteries.git
   cd latteries
-  uv venv venv
-  source venv/bin/activate
+  uv venv
+  source .venv/bin/activate
   uv pip install -r requirements.txt
   ```
 
