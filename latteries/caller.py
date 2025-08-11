@@ -188,14 +188,16 @@ class OpenAICaller(Caller):
             chat_completion = await self.client.beta.chat.completions.parse(
                 model=config.model,
                 messages=[msg.to_openai_content() for msg in messages.messages],  # type: ignore
-                temperature=config.temperature,
-                max_tokens=config.max_tokens,
-                max_completion_tokens=config.max_completion_tokens,
-                top_p=config.top_p,
-                frequency_penalty=config.frequency_penalty,
+                temperature=config.temperature if config.temperature is not None else NOT_GIVEN,
+                max_tokens=config.max_tokens if config.max_tokens is not None else NOT_GIVEN,
+                max_completion_tokens=(
+                    config.max_completion_tokens if config.max_completion_tokens is not None else NOT_GIVEN
+                ),
+                top_p=config.top_p if config.top_p is not None else NOT_GIVEN,
+                frequency_penalty=config.frequency_penalty if config.frequency_penalty != 0.0 else NOT_GIVEN,
                 response_format=schema,
                 extra_body=config.extra_body or {},
-                reasoning_effort=config.reasoning_effort,  # type: ignore
+                reasoning_effort=config.reasoning_effort if config.reasoning_effort is not None else NOT_GIVEN,  # type: ignore
             )
         except Exception as e:
             api_key = self.client.api_key
@@ -226,16 +228,18 @@ class OpenAICaller(Caller):
         result = await self.client.chat.completions.create(  # type: ignore
             model=config.model,
             messages=[msg.to_openai_content() for msg in messages.messages],  # type: ignore
-            temperature=config.temperature,
-            max_tokens=config.max_tokens,
-            max_completion_tokens=config.max_completion_tokens,
-            top_p=config.top_p,
-            frequency_penalty=config.frequency_penalty,
+            temperature=config.temperature if config.temperature is not None else NOT_GIVEN,
+            max_tokens=config.max_tokens if config.max_tokens is not None else NOT_GIVEN,
+            max_completion_tokens=(
+                config.max_completion_tokens if config.max_completion_tokens is not None else NOT_GIVEN
+            ),
+            top_p=config.top_p if config.top_p is not None else NOT_GIVEN,
+            frequency_penalty=config.frequency_penalty if config.frequency_penalty != 0.0 else NOT_GIVEN,
             n=config.n,
             stream=False,
             logprobs=True,
             top_logprobs=top_logprobs,
-            reasoning_effort=config.reasoning_effort,  # type: ignore
+            reasoning_effort=config.reasoning_effort if config.reasoning_effort is not None else NOT_GIVEN,  # type: ignore
         )
         resp = OpenaiResponseWithLogProbs.model_validate(result.model_dump())
 
