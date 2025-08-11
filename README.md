@@ -69,7 +69,7 @@ async def example_parallel_tqdm():
 
 ### Core functionality - support of different model providers
 - You often need to call models on openrouter / use a different API client such as Anthropic's.
-- I use MultiClientCaller, which simply routes by matching on the model name.
+- I use MultiClientCaller, which simply routes by matching on the model name. You should make a copy of this to match the routing logic you want.
 - [See full example](example_scripts/example_llm_providers.py).
 ```python
 def load_multi_client(cache_path: str) -> MultiClientCaller:
