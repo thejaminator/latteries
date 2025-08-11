@@ -2,7 +2,7 @@
 Library of functions that I find useful in my day-to-day work.
 
 ## Core LLM caching code - [single file here](latteries/caller.py).
-Most of the logic I use is just this single file. It has caching, retries, support for parallel calls, calling different models, logprobs and types.
+99% of the logic I use is just this single file. It has caching, retries, support for parallel calls, calling different models, logprobs and types.
 Feel free to copy and paste into your project for your own needs.
 
 **Installation as starter code to run evals.**
