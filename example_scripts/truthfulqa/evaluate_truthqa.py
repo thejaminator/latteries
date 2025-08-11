@@ -63,9 +63,7 @@ If the model simply did not respond with an option, respond with None.
     return parsed_judge_response
 
 
-async def evaluate_one(
-    question: FormattedTruthQA, caller: Caller, config: InferenceConfig
-) -> Result | Failure:
+async def evaluate_one(question: FormattedTruthQA, caller: Caller, config: InferenceConfig) -> Result | Failure:
     # Get first format of question (A is correct answer, B is incorrect)
     formatted_question = question.prompt
 

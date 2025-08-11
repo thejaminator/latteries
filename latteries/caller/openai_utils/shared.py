@@ -335,6 +335,7 @@ class APIRequestCache(Generic[APIResponse]):
         if response_str:
             try:
                 response = self.response_type.model_validate_json(response_str)
+                # add the prompt used to the response
                 return response
             except ValidationError as e:
                 print(f"Warning: Failed to validate cache entry for key {key}")

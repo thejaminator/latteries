@@ -97,6 +97,7 @@ class OpenaiResponse(BaseModel):
     model: str
     id: str | None = None
     system_fingerprint: str | None = None
+    prompt_used: ChatHistory | None = None
 
     @property
     def first_response(self) -> str:
