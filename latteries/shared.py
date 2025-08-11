@@ -150,12 +150,14 @@ class InferenceConfig(BaseModel):
     temperature: float | None = 1.0
     top_p: float | None = 1.0
     # legacy APIs
-    max_tokens: int | None = 1000
+    max_tokens: int | None = None
     # newer APIs that prefer the completion limits
     max_completion_tokens: int | None = None
     frequency_penalty: float = 0.0
     presence_penalty: float = 0.0
     n: int = 1
+    # "minimal", "low", "medium", "high" for openai
+    reasoning_effort: str | None = None
     continue_final_message: bool | None = None  # For runpod configs
     extra_body: dict | None = None
 
@@ -169,6 +171,7 @@ class InferenceConfig(BaseModel):
         presence_penalty: float | NotGivenSentinel = NOT_GIVEN_SENTINEL,
         n: int | NotGivenSentinel = NOT_GIVEN_SENTINEL,
         continue_final_message: bool | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        reasoning_effort: str | NotGivenSentinel = NOT_GIVEN_SENTINEL,
     ) -> "InferenceConfig":
         return InferenceConfig(
             model=self.model,
@@ -188,6 +191,9 @@ class InferenceConfig(BaseModel):
             continue_final_message=continue_final_message
             if not isinstance(continue_final_message, NotGivenSentinel)
             else self.continue_final_message,
+            reasoning_effort=reasoning_effort
+            if not isinstance(reasoning_effort, NotGivenSentinel)
+            else self.reasoning_effort,
         )
 
 

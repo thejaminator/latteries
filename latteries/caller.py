@@ -145,6 +145,7 @@ class OpenAICaller(Caller):
                 tools=tool_args.tools if tool_args is not None else NOT_GIVEN,  # type: ignore
                 extra_body=extra_body or None,
                 n=config.n,
+                reasoning_effort=config.reasoning_effort if config.reasoning_effort is not None else NOT_GIVEN,  # type: ignore
             )
         except Exception as e:
             note = f"Model: {config.model}. API domain: {self.client.base_url}"
