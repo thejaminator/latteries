@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "latteries"
-version = "0.1.2"
+version = "0.1.3"
 description = "James' API LLM evaluations workflow library - A collection of tools for LLM API calls, caching, and evaluation workflows"
 readme = "README.md"
 license = { text = "MIT" }
