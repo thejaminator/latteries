@@ -17,10 +17,7 @@ load_dotenv()
 
 
 def load_multi_client(cache_path: str) -> MultiClientCaller:
-    """Matches based on the model name.
-    Any model with "gpt" in the name will be routed to the openai caller.
-    Any model with "qwen" in the name will be routed to the openrouter caller.
-    """
+    """Matches based on the model name."""
     openai_api_key = os.getenv("OPENAI_API_KEY")
     openai_org = os.getenv("OPENAI_ORGANIZATION")
     openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
@@ -53,7 +50,6 @@ def load_multi_client(cache_path: str) -> MultiClientCaller:
 async def example_main():
     # Cache to the folder "cache"
     caller = load_multi_client("cache")
-    prompt = ChatHistory.from_user("How many letter 'r's are in the word 'strawberry?")
     fifty_prompts = [f"What is {i} * {i+1}?" for i in range(50)]
     prompts = Slist([ChatHistory.from_user(prompt) for prompt in fifty_prompts])
     configs = Slist(

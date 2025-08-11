@@ -1,6 +1,13 @@
 from slist import Slist
+from latteries.caller.openai_utils.client import Caller
 from latteries.caller.openai_utils.load_multi_org import load_openai_caller
-from latteries.caller.openai_utils.shared import ChatHistory, InferenceConfig
+from latteries.caller.openai_utils.shared import ChatHistory, InferenceConfig, write_jsonl_file_from_basemodel
+
+
+async def call_and_log(prompt: ChatHistory, config: InferenceConfig, caller: Caller) -> ChatHistory:
+    response = await caller.call(prompt, config)
+    first_response = response.first_response
+    return prompt.add_assistant(first_response)
 
 
 async def example_parallel_tqdm():
@@ -11,12 +18,12 @@ async def example_parallel_tqdm():
     # All in parallel
     # Slist is a library that has bunch of useful typed functions for lists.
     results = await Slist(prompts).par_map_async(
-        lambda prompt: caller.call(prompt, config),
+        lambda prompt: call_and_log(prompt, config, caller),
         max_par=10,  # Limits the number of parallel calls.
         tqdm=True,  # Brings up tqdm bar.
     )
-    result_strings = [result.first_response for result in results]
-    print(result_strings)
+    # write to jsonl
+    write_jsonl_file_from_basemodel("log.jsonl", results)
 
 
 if __name__ == "__main__":
