@@ -2,3 +2,4 @@ pydantic
 slist
 streamlit
 anyio
+python-dotenv

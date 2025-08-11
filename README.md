@@ -6,12 +6,22 @@ Clone the repo if you want to use the example scripts. Can be useful for e.g. cu
 
 **Clone the repo and install dependencies:**
   ```bash
-  git clone https://github.com/thejaminator/latteries.git
+  git clone git@github.com:thejaminator/latteries.git
   cd latteries
   uv venv
   source .venv/bin/activate
   uv pip install -r requirements.txt
+  uv pip install -e .
   ```
+
+Minimal setup: OpenAI API key
+Create a .env file in the root of the repo.
+
+```bash
+OPENAI_API_KEY=sk-...
+```
+
+
 
 
 ### Installation as a package.
@@ -19,6 +29,10 @@ Alternatively, you can install the package and use it as a library without the e
 ```bash
 pip install latteries
 ```
+
+
+
+
 
 
 ## My workflow
@@ -133,6 +147,9 @@ Do you have support for JSON schema calling?
 
 Do you have support for log probs?
 - [Yes](example_scripts/example_probs.py).
+
+How do I delete my cache?
+- Just delete the folder that you've been caching to.
 
 What is the difference between this and xxxx?
 - TODO
