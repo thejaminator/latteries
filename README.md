@@ -28,8 +28,7 @@ pip install latteries
 
 ### Core functionality - caching
 ```python
-from latteries.load_caller import load_openai_caller
-from latteries.shared import ChatHistory, InferenceConfig
+from latteries import load_openai_caller, ChatHistory, InferenceConfig
 
 
 async def example_main():
