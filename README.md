@@ -28,8 +28,8 @@ pip install latteries
 
 ### Core functionality - caching
 ```python
-from latteries.caller.openai_utils.load_multi_org import load_openai_caller
-from latteries.caller.openai_utils.shared import ChatHistory, InferenceConfig
+from latteries.load_caller import load_openai_caller
+from latteries.shared import ChatHistory, InferenceConfig
 
 
 async def example_main():
@@ -132,10 +132,10 @@ What if I want to repeat the same prompt without caching?
 - [Pass try_number to the caller.call function](example_scripts/example_parallel.py).
 
 Do you have support for JSON schema calling?
-- Yes.
+- Yes. TODO show example.
 
 Do you have support for log probs?
-- Yes.
+- Yes. TODO show example.
 
 What is the difference between this and xxxx?
 

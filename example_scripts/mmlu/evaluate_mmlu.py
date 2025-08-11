@@ -5,8 +5,8 @@ from typing import Literal, cast
 from slist import Slist, AverageStats
 import plotly.express as px
 from example_scripts.mmlu.load_mmlu import MMLUData, load_mmlu_dataset
-from latteries.caller.openai_utils.client import Caller
-from latteries.caller.openai_utils.load_multi_org import load_multi_caller
+from latteries.caller import Caller
+from latteries.load_caller import load_multi_caller
 from latteries.shared import ChatMessage, InferenceConfig, write_jsonl_file_from_basemodel
 import plotly.graph_objects as go
 from latteries.shared import ChatHistory

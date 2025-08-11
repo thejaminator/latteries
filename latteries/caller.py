@@ -3,17 +3,17 @@ import anthropic
 from datetime import datetime
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Generic, Sequence, Type
+from typing import Sequence, Type
 from anthropic.types.message import Message
 
-from openai import NOT_GIVEN, AsyncOpenAI, BaseModel, InternalServerError
+from openai import NOT_GIVEN, AsyncOpenAI, InternalServerError
 import os
-from openai.types.moderation_create_response import ModerationCreateResponse
 from pydantic import ValidationError
 from slist import Slist
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
+from latteries.log_probs import OpenaiResponseWithLogProbs
+from latteries.cache import APIRequestCache, CallerCache, OpenaiResponse
 from latteries.shared import (
-    APIRequestCache,
     ChatMessage,
     GenericBaseModel,
     InferenceConfig,
@@ -22,137 +22,7 @@ from latteries.shared import (
 )
 from dataclasses import dataclass
 import random
-import math
 import openai
-
-
-class Prob(BaseModel):
-    token: str
-    prob: float
-
-
-class LogProb(BaseModel):
-    token: str
-    logprob: float
-
-    @property
-    def proba(self) -> float:
-        return math.exp(self.logprob)
-
-    def to_prob(self) -> Prob:
-        return Prob(token=self.token, prob=self.proba)
-
-
-class TokenWithLogProbs(BaseModel):
-    token: str
-    logprob: float  # log probability of the particular token
-    top_logprobs: Sequence[LogProb]  # log probability of the top 5 tokens
-
-    def sorted_logprobs(self) -> Sequence[LogProb]:  # Highest to lowest
-        return sorted(self.top_logprobs, key=lambda x: x.logprob, reverse=True)
-
-    def sorted_probs(self) -> Sequence[Prob]:
-        return [logprob.to_prob() for logprob in self.sorted_logprobs()]
-
-
-class ResponseWithLogProbs(BaseModel):
-    response: str
-    content: Sequence[TokenWithLogProbs]  #
-
-
-class OpenaiResponseWithLogProbs(BaseModel):
-    choices: list[dict]
-    usage: dict
-    created: int
-    model: str
-    id: str
-    system_fingerprint: str | None = None
-
-    @property
-    def first_response(self) -> str:
-        return self.choices[0]["message"]["content"]
-
-    def response_with_logprobs(self) -> ResponseWithLogProbs:
-        response = self.first_response
-        logprobs = self.choices[0]["logprobs"]["content"]
-        parsed_content = [TokenWithLogProbs.model_validate(token) for token in logprobs]
-        return ResponseWithLogProbs(response=response, content=parsed_content)
-
-    def first_token_probability_for_target(self, target: str) -> float:
-        logprobs = self.response_with_logprobs().content
-        first_token = logprobs[0]
-        for token in first_token.top_logprobs:
-            # print(f"Token: {token.token} Logprob: {token.logprob}")
-            if token.token == target:
-                token_logprob = token.logprob
-                # convert natural log to prob
-                return math.exp(token_logprob)
-        return 0.0
-
-
-class OpenaiResponse(BaseModel):
-    choices: list[dict]
-    usage: dict
-    created: int
-    model: str
-    id: str | None = None
-    system_fingerprint: str | None = None
-    prompt_used: ChatHistory | None = None
-
-    @property
-    def first_response(self) -> str:
-        try:
-            content = self.choices[0]["message"]["content"]
-            if content is None:
-                raise ValueError(f"No content found in OpenaiResponse: {self}")
-            return content
-        except TypeError:
-            raise ValueError(f"No content found in OpenaiResponse: {self}")
-
-    @property
-    def all_responses(self) -> list[str]:
-        return [choice["message"]["content"] for choice in self.choices]
-
-    @property
-    def reasoning_content(self) -> str:
-        ## sometimes has reasoning_content or reasoning instead of content e.g. deepseek-reasoner or gemini
-        possible_keys = ["reasoning_content", "reasoning"]
-        for key in possible_keys:
-            if self.choices[0]["message"].get(key):
-                return self.choices[0]["message"][key]
-        raise ValueError(f"No reasoning_content found in OpenaiResponse: {self}")
-
-    @property
-    def has_reasoning(self) -> bool:
-        possible_keys = ["reasoning_content", "reasoning"]
-        for key in possible_keys:
-            if self.choices[0]["message"].get(key):
-                return True
-        return False
-
-    def has_response(self) -> bool:
-        if len(self.choices) == 0:
-            return False
-        first_choice = self.choices[0]
-        if first_choice["message"] is None:
-            return False
-        if first_choice["message"]["content"] is None:
-            return False
-        return True
-
-    @property
-    def hit_content_filter(self) -> bool:
-        """
-        OpenaiResponse(choices=[{'finish_reason': None, 'index': 0, 'logprobs': None, 'message': None, 'finishReason': 'content_filter'}], usage={'completion_tokens': None, 'prompt_tokens': None, 'total_tokens': None, 'completion_tokens_details': None, 'prompt_tokens_details': None, 'completionTokens': 0, 'promptTokens': 279, 'totalTokens': 279}, created=1734802468, model='gemini-2.0-flash-exp', id=None, system_fingerprint=None, object='chat.completion', service_tier=None)
-        """
-        first_choice = self.choices[0]
-        if "finishReason" in first_choice:
-            if first_choice["finishReason"] == "content_filter":
-                return True
-        if "finish_reason" in first_choice:
-            if first_choice["finish_reason"] == "content_filter":
-                return True
-        return False
 
 
 class Caller(ABC):
@@ -198,38 +68,10 @@ class Caller(ABC):
         await self.flush()
 
 
-class CacheByModel(Generic[GenericBaseModel]):
-    def __init__(self, cache_path: Path, cache_type: Type[GenericBaseModel] = OpenaiResponse):
-        self.cache_path = Path(cache_path)
-        # if not exists, create it
-        if not self.cache_path.exists():
-            self.cache_path.mkdir(parents=True)
-        assert self.cache_path.is_dir(), f"cache_path must be a folder, you provided {cache_path}"
-        self.cache: dict[str, APIRequestCache[GenericBaseModel]] = {}
-        self.log_probs_cache: dict[str, APIRequestCache[OpenaiResponseWithLogProbs]] = {}
-        self.cache_type = cache_type
-
-    def get_cache(self, model: str) -> APIRequestCache[GenericBaseModel]:
-        if model not in self.cache:
-            path = self.cache_path / f"{model}.jsonl"
-            self.cache[model] = APIRequestCache(cache_path=path, response_type=self.cache_type)
-        return self.cache[model]
-
-    def get_log_probs_cache(self, model: str) -> APIRequestCache[OpenaiResponseWithLogProbs]:
-        if model not in self.log_probs_cache:
-            path = self.cache_path / f"{model}_log_probs.jsonl"
-            self.log_probs_cache[model] = APIRequestCache(cache_path=path, response_type=OpenaiResponseWithLogProbs)
-        return self.log_probs_cache[model]
-
-    async def flush(self) -> None:
-        for cache in self.cache.values():
-            await cache.flush()
-
-
 class OpenAICaller(Caller):
     def __init__(
         self,
-        cache_path: Path | str | CacheByModel,
+        cache_path: Path | str | CallerCache,
         api_key: str | None = None,
         organization: str | None = None,
         openai_client: AsyncOpenAI | None = None,
@@ -244,7 +86,11 @@ class OpenAICaller(Caller):
                 ), "Please provide an OpenAI API Key. Either pass it as an argument or set it in the environment variable OPENAI_API_KEY"
                 api_key = env_key
             self.client = AsyncOpenAI(api_key=api_key, organization=organization)
-        self.cache_by_model = CacheByModel(Path(cache_path)) if not isinstance(cache_path, CacheByModel) else cache_path
+        self.cache_by_model = (
+            CallerCache(Path(cache_path), cache_type=OpenaiResponse)
+            if not isinstance(cache_path, CallerCache)
+            else cache_path
+        )
 
     async def flush(self) -> None:
         await self.cache_by_model.flush()
@@ -401,7 +247,7 @@ class OpenAICaller(Caller):
 class AnthropicCaller(Caller):
     def __init__(
         self,
-        cache_path: Path | str | CacheByModel,
+        cache_path: Path | str | CallerCache,
         anthropic_client: anthropic.AsyncAnthropic | None = None,
         api_key: str | None = None,
     ):
@@ -413,7 +259,7 @@ class AnthropicCaller(Caller):
                 assert env_key is not None, "Please provide an Anthropic API Key"
                 api_key = env_key
             self.client = anthropic.AsyncAnthropic(api_key=api_key)
-        self.cache_by_model = CacheByModel(Path(cache_path)) if not isinstance(cache_path, CacheByModel) else cache_path
+        self.cache_by_model = CallerCache(Path(cache_path)) if not isinstance(cache_path, CallerCache) else cache_path
 
     async def flush(self) -> None:
         await self.cache_by_model.flush()
@@ -583,78 +429,6 @@ class PooledCaller(Caller):
     ) -> OpenaiResponseWithLogProbs:
         caller = random.choice(self.callers)
         return await caller.call_with_log_probs(messages, config, try_number)
-
-
-class OpenAIModerateCaller:
-    def __init__(self, api_key: str, cache_path: Path | str):
-        self.api_key = api_key
-        self.cache: APIRequestCache[ModerationCreateResponse] = APIRequestCache(
-            cache_path=cache_path, response_type=ModerationCreateResponse
-        )
-        self.client = AsyncOpenAI(api_key=api_key)
-
-    @retry(
-        stop=stop_after_attempt(5),
-        wait=wait_fixed(5),
-        retry=retry_if_exception_type((ValidationError, InternalServerError)),
-    )
-    async def moderate(
-        self,
-        to_moderate: str,
-        model: str = "omni-moderation-latest",
-        try_number: int = 1,
-    ) -> ModerationCreateResponse:
-        """
-        Moderates the given text using OpenAI's moderation API.
-
-        Args:
-            to_moderate (str): The text to be moderated.
-            model (str): The model to use for moderation. Defaults to "omni-moderation-latest".
-            try_number (int): The attempt number for retries. Defaults to 1.
-
-        Returns:
-
-            ModerationResponse: The parsed moderation response.
-
-        """
-
-        if self.cache is not None:
-            maybe_result = await self.cache.get_model_call(
-                messages=ChatHistory(messages=[ChatMessage(role="user", content=to_moderate)]),
-                config=InferenceConfig(model=model),
-                try_number=try_number,
-                tools=None,
-            )
-            if maybe_result is not None:
-                return maybe_result
-
-        try:
-            moderation_response: ModerationCreateResponse = await self.client.moderations.create(
-                model=model,
-                input=to_moderate,
-            )
-
-            # add the response to the cache
-            if self.cache is not None:
-                await self.cache.add_model_call(
-                    messages=ChatHistory(messages=[ChatMessage(role="user", content=to_moderate)]),
-                    config=InferenceConfig(model=model),
-                    try_number=try_number,
-                    response=moderation_response,
-                    tools=None,
-                )
-
-            return moderation_response
-
-        except ValidationError as ve:
-            # Optionally, add logging here
-
-            raise ve
-
-        except Exception as e:
-            # Optionally, handle other exceptions
-
-            raise e
 
 
 async def demo_main():

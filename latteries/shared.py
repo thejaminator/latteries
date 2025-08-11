@@ -1,11 +1,10 @@
-import time
 import anyio
 from anyio import Path as AnyioPath
-from typing import Type, Sequence, Optional
+from typing import Type, Sequence
 from pydantic import BaseModel
 import hashlib
 from pathlib import Path
-from typing import Generic, TypeVar, Mapping, Any
+from typing import TypeVar, Mapping, Any
 from pydantic import ValidationError
 import json
 from slist import Slist
@@ -260,97 +259,6 @@ async def read_jsonl_file_into_basemodel_async(
 ) -> Slist[GenericBaseModel]:
     async with await anyio.open_file(path, "r") as f:
         return Slist([basemodel.model_validate_json(line) for line in await f.readlines()])
-
-
-class APIRequestCache(Generic[APIResponse]):
-    def __init__(self, cache_path: Path | str, response_type: Type[APIResponse]):
-        self.cache_path = AnyioPath(cache_path)
-        self.response_type = response_type
-        self.data: dict[str, str] = {}
-        self.file_handler: Optional[anyio.AsyncFile] = None
-        self.loaded_cache: bool = False
-        self.cache_check_semaphore = anyio.Semaphore(1)
-
-    async def flush(self) -> None:
-        if self.file_handler:
-            await self.file_handler.flush()
-
-    async def load_cache(self) -> None:
-        if await self.cache_path.exists():
-            time_start = time.time()
-            rows: Slist[FileCacheRow] = await read_jsonl_file_into_basemodel_async(
-                path=self.cache_path,  # todo: asyncify
-                basemodel=FileCacheRow,
-            )
-            time_end = time.time()
-            n_items = len(rows)
-            time_diff_1dp = round(time_end - time_start, 1)
-            print(f"Loaded {n_items} items from {self.cache_path.as_posix()} in {time_diff_1dp} seconds")
-        else:
-            rows = Slist()
-        for row in rows:
-            self.data[row.key] = row.response
-        self.loaded_cache = True
-
-    async def get_file_handler(self) -> anyio.AsyncFile:
-        if self.file_handler is None:
-            # if the file doesn't exist, create it
-            if not await self.cache_path.exists():
-                # make parent directories
-                await self.cache_path.parent.mkdir(parents=True, exist_ok=True)
-                # make sure it's created
-                await self.cache_path.touch()
-            self.file_handler = await anyio.open_file(self.cache_path, "a")
-        return self.file_handler
-
-    async def add_model_call(
-        self,
-        messages: ChatHistory,
-        config: InferenceConfig,
-        try_number: int,
-        response: APIResponse,
-        tools: ToolArgs | None,
-        other_hash: str = "",
-    ) -> None:
-        key = file_cache_key(messages, config, try_number, other_hash, tools=tools)
-        response_str = response.model_dump_json()
-        self.data[key] = response_str
-        await self.write_line(key=key, response_json=response_str)
-
-    async def get_model_call(
-        self,
-        messages: ChatHistory,
-        config: InferenceConfig,
-        try_number: int,
-        tools: ToolArgs | None,
-        other_hash: str = "",
-    ) -> Optional[APIResponse]:
-        if not self.loaded_cache:
-            async with self.cache_check_semaphore:
-                # check again
-                if not self.loaded_cache:
-                    await self.load_cache()
-        key = file_cache_key(messages, config, try_number, other_hash, tools=tools)
-        response_str = self.data.get(key)
-        if response_str:
-            try:
-                response = self.response_type.model_validate_json(response_str)
-                # add the prompt used to the response
-                return response
-            except ValidationError as e:
-                print(f"Warning: Failed to validate cache entry for key {key}")
-                raise e
-                # return None
-        return None
-
-    async def write_line(self, key: str, response_json: str) -> None:
-        if not self.file_handler:
-            await self.get_file_handler()
-        if self.file_handler:
-            # prevent multiple writes to same file
-            async with self.cache_check_semaphore:
-                line = FileCacheRow(key=key, response=response_json).model_dump_json() + "\n"
-                await self.file_handler.write(line)
 
 
 def deterministic_hash(something: str) -> str:

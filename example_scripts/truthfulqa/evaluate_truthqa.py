@@ -4,8 +4,8 @@ import pandas as pd
 from typing import Literal, cast
 from slist import Slist, AverageStats
 import plotly.express as px
-from latteries.caller.openai_utils.client import Caller, MultiClientCaller
-from latteries.caller.openai_utils.load_multi_org import load_multi_caller
+from latteries.caller import Caller, MultiClientCaller
+from latteries.load_caller import load_multi_caller
 from latteries.shared import ChatMessage, InferenceConfig
 from example_scripts.truthfulqa.load_truthful_qa_new import load_new_truthfulqa, FormattedTruthQA, MCQ_CHOICES, A_TO_Z
 from latteries.shared import ChatHistory

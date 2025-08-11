@@ -4,9 +4,9 @@ from typing import Tuple
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from slist import Slist
-from latteries.caller.openai_utils.client import (
+from latteries.cache import CallerCache
+from latteries.caller import (
     AnthropicCaller,
-    CacheByModel,
     CallerConfig,
     MultiClientCaller,
     OpenAICaller,
@@ -25,7 +25,7 @@ def load_multi_client(cache_path: str) -> MultiClientCaller:
     assert anthropic_api_key, "Please provide an Anthropic API Key"
     assert openai_api_key, "Please provide an OpenAI API Key"
     assert openrouter_api_key, "Please provide an OpenRouter API Key"
-    shared_cache = CacheByModel(Path(cache_path))
+    shared_cache = CallerCache(Path(cache_path))
     openai_caller = OpenAICaller(api_key=openai_api_key, organization=openai_org, cache_path=shared_cache)
     openrouter_caller = OpenAICaller(
         openai_client=AsyncOpenAI(api_key=openrouter_api_key, base_url="https://openrouter.ai/api/v1"),
