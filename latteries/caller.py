@@ -139,6 +139,11 @@ class OpenaiResponse(BaseModel):
             raise ValueError(f"No content found in OpenaiResponse: {self}")
 
     @property
+    def responses(self) -> Slist[str]:
+        # When n > 1, we get a list of responses.
+        return Slist(self.choices).map(lambda x: x["message"]["content"])
+
+    @property
     def all_responses(self) -> list[str]:
         return [choice["message"]["content"] for choice in self.choices]
 
@@ -184,17 +189,6 @@ class OpenaiResponse(BaseModel):
 class FileCacheRow(BaseModel):
     key: str
     response: str  # Should be generic, but w/e
-
-
-class InferenceResponse(BaseModel):
-    raw_responses: Sequence[str]
-
-    @property
-    def single_response(self) -> str:
-        if len(self.raw_responses) != 1:
-            raise ValueError(f"This response has multiple responses {self.raw_responses}")
-        else:
-            return self.raw_responses[0]
 
 
 class Prob(BaseModel):
