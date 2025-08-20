@@ -668,6 +668,7 @@ class OpenAICaller(Caller):
                 response_format=schema,
                 extra_body=config.extra_body or {},
                 reasoning_effort=config.reasoning_effort if config.reasoning_effort is not None else NOT_GIVEN,  # type: ignore
+                n=config.n if config.n is not None else NOT_GIVEN,
             )
         except Exception as e:
             api_key = self.client.api_key
