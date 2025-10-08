@@ -3,7 +3,9 @@ from datetime import datetime
 
 import chz
 from example_scripts.tinker_cookbook import cli_utils
-from example_scripts.tinker_cookbook.recipes.multiplayer_rl.guess_number.env import GuessNumberDatasetBuilder
+from example_scripts.tinker_cookbook.recipes.multiplayer_rl.guess_number.env import (
+    GuessNumberDatasetBuilder,
+)
 from example_scripts.tinker_cookbook.rl import train
 
 

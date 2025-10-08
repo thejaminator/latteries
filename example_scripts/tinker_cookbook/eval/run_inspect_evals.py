@@ -3,7 +3,10 @@ import logging
 
 import chz
 import tinker
-from example_scripts.tinker_cookbook.eval.inspect_evaluators import InspectEvaluator, InspectEvaluatorBuilder
+from example_scripts.tinker_cookbook.eval.inspect_evaluators import (
+    InspectEvaluator,
+    InspectEvaluatorBuilder,
+)
 
 logger = logging.getLogger(__name__)
 

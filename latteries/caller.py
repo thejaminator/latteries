@@ -840,7 +840,7 @@ class TinkerCaller(Caller):
     ):
         """
         Initialize TinkerCaller.
-        
+
         Args:
             cache_path: Path to cache directory or CallerCache instance
             base_url: Base URL for tinker service (optional)
@@ -851,17 +851,19 @@ class TinkerCaller(Caller):
             from transformers import AutoTokenizer
         except ImportError:
             raise ImportError("tinker package is required for TinkerCaller. Please install it.")
-        
+
         self.cache_by_model = (
             CallerCache(Path(cache_path), cache_type=OpenaiResponse)
             if not isinstance(cache_path, CallerCache)
             else cache_path
         )
-        
+
         self.api_key = api_key
         self.base_url = base_url
         self.sampling_clients: dict[str, "tinker.SamplingClient"] = {}  # Dict to store sampling clients by model
-        self._tokenizers: dict[str, "transformers.PreTrainedTokenizer | None"] = {}  # Dict to store tokenizers by tokenizer_hf_name
+        self._tokenizers: dict[
+            str, "transformers.PreTrainedTokenizer | None"
+        ] = {}  # Dict to store tokenizers by tokenizer_hf_name
 
         self.default_tokenizer_name = default_tokenizer
 
@@ -873,8 +875,6 @@ class TinkerCaller(Caller):
 
     def get_log_probs_cache(self, model: str) -> APIRequestCache[OpenaiResponseWithLogProbs]:
         return self.cache_by_model.get_log_probs_cache(model)
-
-
 
     @retry(
         stop=(stop_after_attempt(5)),
@@ -894,16 +894,16 @@ class TinkerCaller(Caller):
             from tinker import types as tinker_types
         except ImportError:
             raise ImportError("tinker package is required for TinkerCaller")
-        
+
         if tool_args is not None:
             raise NotImplementedError("TinkerCaller does not support tools yet")
-        
+
         maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number, tool_args)
         if maybe_result is not None:
             return maybe_result
 
         assert len(messages.messages) > 0, "Messages must be non-empty"
-        
+
         # Get or create sampling client for this model
         if config.model not in self.sampling_clients:
             service_client = tinker.ServiceClient(base_url=self.base_url, api_key=self.api_key)
@@ -914,34 +914,39 @@ class TinkerCaller(Caller):
                 self.sampling_clients[config.model] = service_client.create_sampling_client(model_path=config.model)
             else:
                 self.sampling_clients[config.model] = service_client.create_sampling_client(base_model=config.model)
-        
+
         sampling_client = self.sampling_clients[config.model]
-        
 
         tokenizer_name_to_hit = config.tokenizer_hf_name or self.default_tokenizer_name
-        assert tokenizer_name_to_hit is not None, "Either specify a tokenizer_hf_name in inference config or a default tokenizer_hf_name in TinkerCaller"
+        assert tokenizer_name_to_hit is not None, (
+            "Either specify a tokenizer_hf_name in inference config or a default tokenizer_hf_name in TinkerCaller"
+        )
 
         if tokenizer_name_to_hit not in self._tokenizers:
             from transformers import AutoTokenizer
+
             self._tokenizers[tokenizer_name_to_hit] = AutoTokenizer.from_pretrained(tokenizer_name_to_hit)
         tokenizer = self._tokenizers[tokenizer_name_to_hit]
-                # Convert messages to prompt string
+        # Convert messages to prompt string
         prompt_dict = [{"role": msg.role, "content": msg.content} for msg in messages.messages]
         enable_thinking = config.tokenizer_config.enable_thinking if config.tokenizer_config is not None else False
         # use tokenizer to encode
         strings = tokenizer.apply_chat_template(
-            prompt_dict, tokenize=False, add_generation_prompt=True, continue_final_message=False, enable_thinking=enable_thinking
+            prompt_dict,
+            tokenize=False,
+            add_generation_prompt=True,
+            continue_final_message=False,
+            enable_thinking=enable_thinking,
         )
         print(f"Prompt string: {strings}")
-        tokens = tokenizer.encode(
-            strings
-        )
+        tokens = tokenizer.encode(strings)
         print(f"Prompt tokens: {tokens}")
         from tinker.types.model_input import ModelInput
+
         model_input: ModelInput = tinker.ModelInput.from_ints(tokens)
 
         # assume it is a qwen model for now
-        stop_token = tokenizer.encode("<|im_end|>", add_special_tokens=False)        
+        stop_token = tokenizer.encode("<|im_end|>", add_special_tokens=False)
         # Set up sampling parameters
         sampling_params = tinker_types.SamplingParams(
             max_tokens=config.max_completion_tokens or config.max_tokens,
@@ -949,15 +954,13 @@ class TinkerCaller(Caller):
             top_p=config.top_p if config.top_p is not None else 1.0,
             stop=stop_token,
         )
-        
+
         try:
             # Generate response
             response = await sampling_client.sample_async(
-                prompt=model_input, 
-                num_samples=config.n,
-                sampling_params=sampling_params
+                prompt=model_input, num_samples=config.n, sampling_params=sampling_params
             )
-            
+
             # Parse responses - just decode the tokens directly
             parsed_responses = []
             for sequence in response.sequences:
@@ -966,21 +969,16 @@ class TinkerCaller(Caller):
                     response_text = tokenizer.decode(sequence.tokens).strip()
                 else:
                     # Fallback: convert ints back to characters
-                    response_text = ''.join(chr(token) for token in sequence.tokens if 0 <= token <= 127).strip()
+                    response_text = "".join(chr(token) for token in sequence.tokens if 0 <= token <= 127).strip()
                 parsed_responses.append(response_text)
-            
+
             # Convert to OpenaiResponse format
             choices = []
             for i, response_text in enumerate(parsed_responses):
-                choices.append({
-                    "message": {
-                        "content": response_text,
-                        "role": "assistant"
-                    },
-                    "index": i,
-                    "finish_reason": "stop"
-                })
-            
+                choices.append(
+                    {"message": {"content": response_text, "role": "assistant"}, "index": i, "finish_reason": "stop"}
+                )
+
             openai_response = OpenaiResponse(
                 id=f"tinker-{int(datetime.now().timestamp())}",
                 choices=choices,
@@ -988,12 +986,13 @@ class TinkerCaller(Caller):
                 model=config.model,
                 system_fingerprint=None,
                 usage={
-                    "prompt_tokens": len(model_input.to_ints()) if hasattr(model_input, 'to_ints') else 0,
+                    "prompt_tokens": len(model_input.to_ints()) if hasattr(model_input, "to_ints") else 0,
                     "completion_tokens": sum(len(seq.tokens) for seq in response.sequences),
-                    "total_tokens": (len(model_input.to_ints()) if hasattr(model_input, 'to_ints') else 0) + sum(len(seq.tokens) for seq in response.sequences)
-                }
+                    "total_tokens": (len(model_input.to_ints()) if hasattr(model_input, "to_ints") else 0)
+                    + sum(len(seq.tokens) for seq in response.sequences),
+                },
             )
-            
+
         except Exception as e:
             note = f"Model: {config.model}. TinkerCaller error"
             e.add_note(note)
@@ -1199,11 +1198,11 @@ def load_multi_caller(cache_path: str) -> MultiClientCaller:
     openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
     anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
     tinker_base_url = os.getenv("TINKER_BASE_URL")  # Optional
-    
+
     assert anthropic_api_key, "Please provide an Anthropic API Key"
     assert openai_api_key, "Please provide an OpenAI API Key"
     assert openrouter_api_key, "Please provide an OpenRouter API Key"
-    
+
     shared_cache = CallerCache(Path(cache_path))
     openai_caller = OpenAICaller(api_key=openai_api_key, organization=openai_org, cache_path=shared_cache)
     openrouter_caller = OpenAICaller(
@@ -1223,7 +1222,7 @@ def load_multi_caller(cache_path: str) -> MultiClientCaller:
             caller=AnthropicCaller(api_key=anthropic_api_key, cache_path=shared_cache),
         ),
     ]
-    
+
     # Add TinkerCaller if tinker is available
     try:
         tinker_caller = TinkerCaller(
@@ -1245,7 +1244,6 @@ async def example_main():
     config = InferenceConfig(temperature=1.0, max_tokens=100, model="gpt-4o")
     response = await caller.call(prompt, config)
     print(response.first_response)
-
 
 
 if __name__ == "__main__":

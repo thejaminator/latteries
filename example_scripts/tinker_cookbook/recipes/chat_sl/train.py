@@ -11,7 +11,10 @@ from example_scripts.tinker_cookbook.eval.evaluators import EvaluatorBuilder
 from example_scripts.tinker_cookbook.recipes.chat_sl import chat_datasets
 from example_scripts.tinker_cookbook.supervised import train
 from example_scripts.tinker_cookbook.supervised.data import FromConversationFileBuilder
-from example_scripts.tinker_cookbook.supervised.types import ChatDatasetBuilder, ChatDatasetBuilderCommonConfig
+from example_scripts.tinker_cookbook.supervised.types import (
+    ChatDatasetBuilder,
+    ChatDatasetBuilderCommonConfig,
+)
 
 
 @chz.chz

@@ -13,7 +13,6 @@ from typing import Any, Dict, List
 import chz
 from rich.console import Console
 from rich.table import Table
-from example_scripts.tinker_cookbook.utils.code_state import code_state
 
 logger = logging.getLogger(__name__)
 
@@ -285,9 +284,9 @@ def setup_logging(
     # Add W&B logger if available and configured
     if wandb_project:
         if not _wandb_available:
-            print("WARNING: wandb is not installed. Skipping W&B logging.")
+            raise ImportError("wandb is not installed. Please install it with: pip install wandb")
         elif not os.environ.get("WANDB_API_KEY"):
-            print("WARNING: WANDB_API_KEY environment variable not set. Skipping W&B logging. ")
+            raise ValueError("WANDB_API_KEY environment variable not set")
         else:
             loggers.append(
                 WandbLogger(

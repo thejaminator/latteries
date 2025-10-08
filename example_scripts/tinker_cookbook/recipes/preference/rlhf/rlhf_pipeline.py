@@ -4,8 +4,12 @@ import os
 
 import chz
 from example_scripts.tinker_cookbook import checkpoint_utils, model_info
-from example_scripts.tinker_cookbook.preference.comparison_policy_evaluator import ComparisonEvaluator
-from example_scripts.tinker_cookbook.preference.preference_datasets import ChatDatasetBuilderFromComparisons
+from example_scripts.tinker_cookbook.preference.comparison_policy_evaluator import (
+    ComparisonEvaluator,
+)
+from example_scripts.tinker_cookbook.preference.preference_datasets import (
+    ChatDatasetBuilderFromComparisons,
+)
 from example_scripts.tinker_cookbook.preference.types import PreferenceModelBuilderFromChatRenderer
 from example_scripts.tinker_cookbook.recipes.chat_sl.chat_datasets import NoRobotsBuilder
 from example_scripts.tinker_cookbook.recipes.preference.datasets import HHHComparisonBuilder

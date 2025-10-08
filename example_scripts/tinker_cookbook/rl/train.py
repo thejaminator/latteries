@@ -17,13 +17,19 @@ import torch
 from example_scripts.tinker_cookbook import checkpoint_utils
 from example_scripts.tinker_cookbook.completers import TinkerTokenCompleter
 from example_scripts.tinker_cookbook.display import colorize_example
-from example_scripts.tinker_cookbook.eval.evaluators import SamplingClientEvaluator, SamplingClientEvaluatorBuilder
+from example_scripts.tinker_cookbook.eval.evaluators import (
+    SamplingClientEvaluator,
+    SamplingClientEvaluatorBuilder,
+)
 from example_scripts.tinker_cookbook.rl.data_processing import (
     assemble_training_data,
     compute_advantages,
     remove_constant_reward_groups,
 )
-from example_scripts.tinker_cookbook.rl.metric_util import RLTestSetEvaluator, compute_trajectory_metrics
+from example_scripts.tinker_cookbook.rl.metric_util import (
+    RLTestSetEvaluator,
+    compute_trajectory_metrics,
+)
 from example_scripts.tinker_cookbook.rl.metrics import (
     compute_kl_sample_train,
     compute_post_kl,

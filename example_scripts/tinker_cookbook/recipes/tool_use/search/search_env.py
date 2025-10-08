@@ -14,7 +14,10 @@ import tinker
 from huggingface_hub import hf_hub_download
 from example_scripts.tinker_cookbook import renderers
 from example_scripts.tinker_cookbook.completers import StopCondition
-from example_scripts.tinker_cookbook.recipes.tool_use.search.tools import ChromaToolClient, ChromaToolClientConfig
+from example_scripts.tinker_cookbook.recipes.tool_use.search.tools import (
+    ChromaToolClient,
+    ChromaToolClientConfig,
+)
 from example_scripts.tinker_cookbook.rl.problem_env import ProblemEnv, ProblemGroupBuilder
 from example_scripts.tinker_cookbook.rl.types import (
     Action,

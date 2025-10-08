@@ -18,7 +18,10 @@ from example_scripts.tinker_cookbook.recipes.preference.datasets import (
     HHHComparisonBuilder,
     UltraFeedbackComparisonBuilder,
 )
-from example_scripts.tinker_cookbook.supervised.types import ChatDatasetBuilder, ChatDatasetBuilderCommonConfig
+from example_scripts.tinker_cookbook.supervised.types import (
+    ChatDatasetBuilder,
+    ChatDatasetBuilderCommonConfig,
+)
 
 
 @chz.chz

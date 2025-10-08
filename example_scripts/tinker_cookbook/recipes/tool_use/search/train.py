@@ -8,7 +8,9 @@ from pathlib import Path
 
 import chz
 from example_scripts.tinker_cookbook import cli_utils, model_info
-from example_scripts.tinker_cookbook.recipes.tool_use.search.search_env import SearchR1DatasetBuilder
+from example_scripts.tinker_cookbook.recipes.tool_use.search.search_env import (
+    SearchR1DatasetBuilder,
+)
 from example_scripts.tinker_cookbook.recipes.tool_use.search.tools import (
     ChromaToolClientConfig,
     EmbeddingConfig,
