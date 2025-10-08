@@ -911,7 +911,11 @@ class TinkerCaller(Caller):
             service_client = tinker.ServiceClient(base_url=self.base_url, api_key=self.api_key)
             # For now, assume model is the base_model name
             # In the future, this could be enhanced to parse model paths, etc.
-            self.sampling_clients[config.model] = service_client.create_sampling_client(base_model=config.model)
+            # if tinker:// is in the model, then use the model_path
+            if "tinker://" in config.model:
+                self.sampling_clients[config.model] = service_client.create_sampling_client(model_path=config.model)
+            else:
+                self.sampling_clients[config.model] = service_client.create_sampling_client(base_model=config.model)
         
         sampling_client = self.sampling_clients[config.model]
         
@@ -924,6 +928,8 @@ class TinkerCaller(Caller):
         if config.tokenizer_hf_name not in self._tokenizers:
             from transformers import AutoTokenizer
             self._tokenizers[config.tokenizer_hf_name] = AutoTokenizer.from_pretrained(config.tokenizer_hf_name)    
+            tokenizer = self._tokenizers[config.tokenizer_hf_name]
+        else:
             tokenizer = self._tokenizers[config.tokenizer_hf_name]
         encoded_tokens = tokenizer.encode(prompt_string)
         
@@ -1232,22 +1238,6 @@ async def example_main():
     response = await caller.call(prompt, config)
     print(response.first_response)
 
-
-async def example_tinker_main():
-    # Example using TinkerCaller
-    # Caches to the folder "cache"
-    caller = TinkerCaller(
-        cache_path="cache",
-    )
-    prompt = ChatHistory.from_user("How many letter 'r's are in the word 'strawberry?")
-    config = InferenceConfig(
-        temperature=0.7, 
-        max_tokens=100, 
-        model="meta-llama/Llama-3.2-1B",  # Model specified in config
-        tokenizer_hf_name="meta-llama/Llama-3.2-1B"  # Tokenizer specified in config
-    )
-    response = await caller.call(prompt, config)
-    print(response.first_response)
 
 
 if __name__ == "__main__":

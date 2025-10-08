@@ -17,8 +17,9 @@ async def example_tinker_main():
     config = InferenceConfig(
         temperature=0.7, 
         max_tokens=100, 
-        model="Qwen/Qwen3-235B-A22B-Instruct-2507",  # Model specified in config
-        tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507"  # Tokenizer specified in config
+        # model="Qwen/Qwen3-235B-A22B-Instruct-2507",
+        model="tinker://a1d04c29-ad03-484f-943c-e84ceec7f6c0/sampler_weights/000060",
+        tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507"
     )
     response = await caller.call(prompt, config)
     print(response.first_response)
