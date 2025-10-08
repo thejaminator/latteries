@@ -28,6 +28,7 @@ def build_config() -> train.Config:
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=4e-4,
+        save_every=1000,
         lr_schedule="linear",
         num_epochs=3,
         eval_every=100000,

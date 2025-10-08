@@ -21,6 +21,7 @@ wandb
 cache
 backdoor_data
 cached.jsonl
+data
 *.jsonl
 inspect.csv
 *.csv

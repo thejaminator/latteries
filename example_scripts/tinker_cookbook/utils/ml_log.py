@@ -105,9 +105,9 @@ class JsonLogger(Logger):
             config_file = self.log_dir / "config.json"
             with open(config_file, "w") as f:
                 json.dump(config_dict, f, indent=2, cls=_PermissiveJSONEncoder)
-            diff_file = code_state()
-            with open(self.log_dir / "code.diff", "w") as f:
-                f.write(diff_file)
+            # diff_file = code_state()
+            # with open(self.log_dir / "code.diff", "w") as f:
+            #     f.write(diff_file)
             self._logged_hparams = True
 
     def log_metrics(self, metrics: Dict[str, Any], step: int | None = None) -> None:

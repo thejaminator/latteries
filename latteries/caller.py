@@ -2,11 +2,16 @@ import hashlib
 from json import JSONDecodeError
 import math
 import time
+from tinker.types.model_input import ModelInput
 import anthropic
 from datetime import datetime
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Generic, Mapping, Optional, Sequence, Type, TypeVar
+from typing import Any, Generic, Mapping, Optional, Sequence, Type, TypeVar, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import tinker
+    import transformers
 from anthropic.types.message import Message
 from anyio import Path as AnyioPath
 
@@ -280,6 +285,7 @@ class InferenceConfig(BaseModel):
     reasoning_effort: str | None = None
     continue_final_message: bool | None = None  # For runpod configs
     extra_body: dict | None = None
+    tokenizer_hf_name: str | None = None
 
     def copy_update(
         self,
@@ -816,6 +822,187 @@ class AnthropicCaller(Caller):
         raise NotImplementedError("Anthropic does not support log probs yet")
 
 
+class TinkerCaller(Caller):
+    def __init__(
+        self,
+        cache_path: Path | str | CallerCache,
+        base_url: str | None = None,
+    ):
+        """
+        Initialize TinkerCaller.
+        
+        Args:
+            cache_path: Path to cache directory or CallerCache instance
+            base_url: Base URL for tinker service (optional)
+        """
+        try:
+            import tinker
+            from tinker import types as tinker_types
+        except ImportError:
+            raise ImportError("tinker package is required for TinkerCaller. Please install it.")
+        
+        self.cache_by_model = (
+            CallerCache(Path(cache_path), cache_type=OpenaiResponse)
+            if not isinstance(cache_path, CallerCache)
+            else cache_path
+        )
+        
+        self.base_url = base_url
+        self.sampling_clients: dict[str, "tinker.SamplingClient"] = {}  # Dict to store sampling clients by model
+        self._tokenizers: dict[str, "transformers.PreTrainedTokenizer | None"] = {}  # Dict to store tokenizers by tokenizer_hf_name
+
+    async def flush(self) -> None:
+        await self.cache_by_model.flush()
+
+    def get_cache(self, model: str) -> APIRequestCache[OpenaiResponse]:
+        return self.cache_by_model.get_cache(model)
+
+    def get_log_probs_cache(self, model: str) -> APIRequestCache[OpenaiResponseWithLogProbs]:
+        return self.cache_by_model.get_log_probs_cache(model)
+
+
+    def _convert_chat_history_to_prompt_string(self, messages: ChatHistory) -> str:
+        """Convert ChatHistory to a simple prompt string."""
+        prompt_parts = []
+        for msg in messages.messages:
+            if msg.role == "system":
+                prompt_parts.append(f"System: {msg.content}")
+            elif msg.role == "user":
+                prompt_parts.append(f"User: {msg.content}")
+            elif msg.role == "assistant":
+                prompt_parts.append(f"Assistant: {msg.content}")
+        
+        # Add assistant prompt at the end
+        prompt_parts.append("Assistant:")
+        return "\n".join(prompt_parts)
+
+    @retry(
+        stop=(stop_after_attempt(5)),
+        wait=(wait_fixed(5)),
+        retry=(retry_if_exception_type((ValidationError, Exception))),
+        reraise=True,
+    )
+    async def call(
+        self,
+        messages: ChatHistory,
+        config: InferenceConfig,
+        try_number: int = 1,
+        tool_args: ToolArgs | None = None,
+    ) -> OpenaiResponse:
+        try:
+            import tinker
+            from tinker import types as tinker_types
+        except ImportError:
+            raise ImportError("tinker package is required for TinkerCaller")
+        
+        if tool_args is not None:
+            raise NotImplementedError("TinkerCaller does not support tools yet")
+        
+        maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number, tool_args)
+        if maybe_result is not None:
+            return maybe_result
+
+        assert len(messages.messages) > 0, "Messages must be non-empty"
+        
+        # Get or create sampling client for this model
+        if config.model not in self.sampling_clients:
+            service_client = tinker.ServiceClient(base_url=self.base_url)
+            # For now, assume model is the base_model name
+            # In the future, this could be enhanced to parse model paths, etc.
+            self.sampling_clients[config.model] = service_client.create_sampling_client(base_model=config.model)
+        
+        sampling_client = self.sampling_clients[config.model]
+        
+        # Convert messages to prompt string
+        prompt_string = self._convert_chat_history_to_prompt_string(messages)
+        
+        # Get or create tokenizer
+        tokenizer = None
+        assert config.tokenizer_hf_name is not None, "Tokenizer HF name is required for tinky"
+        if config.tokenizer_hf_name not in self._tokenizers:
+            from transformers import AutoTokenizer
+            self._tokenizers[config.tokenizer_hf_name] = AutoTokenizer.from_pretrained(config.tokenizer_hf_name)    
+            tokenizer = self._tokenizers[config.tokenizer_hf_name]
+        encoded_tokens = tokenizer.encode(prompt_string)
+        
+        model_input: ModelInput = tinker.ModelInput.from_ints(encoded_tokens)
+        
+        # Set up sampling parameters
+        sampling_params = tinker_types.SamplingParams(
+            max_tokens=config.max_completion_tokens or config.max_tokens,
+            temperature=config.temperature if config.temperature is not None else 1.0,
+            top_p=config.top_p if config.top_p is not None else 1.0,
+        )
+        
+        try:
+            # Generate response
+            response = await sampling_client.sample_async(
+                prompt=model_input, 
+                num_samples=config.n,
+                sampling_params=sampling_params
+            )
+            
+            # Parse responses - just decode the tokens directly
+            parsed_responses = []
+            for sequence in response.sequences:
+                # Decode tokens to string and clean up
+                if tokenizer is not None:
+                    response_text = tokenizer.decode(sequence.tokens).strip()
+                else:
+                    # Fallback: convert ints back to characters
+                    response_text = ''.join(chr(token) for token in sequence.tokens if 0 <= token <= 127).strip()
+                parsed_responses.append(response_text)
+            
+            # Convert to OpenaiResponse format
+            choices = []
+            for i, response_text in enumerate(parsed_responses):
+                choices.append({
+                    "message": {
+                        "content": response_text,
+                        "role": "assistant"
+                    },
+                    "index": i,
+                    "finish_reason": "stop"
+                })
+            
+            openai_response = OpenaiResponse(
+                id=f"tinker-{int(datetime.now().timestamp())}",
+                choices=choices,
+                created=int(datetime.now().timestamp()),
+                model=config.model,
+                system_fingerprint=None,
+                usage={
+                    "prompt_tokens": len(model_input.to_ints()) if hasattr(model_input, 'to_ints') else 0,
+                    "completion_tokens": sum(len(seq.tokens) for seq in response.sequences),
+                    "total_tokens": (len(model_input.to_ints()) if hasattr(model_input, 'to_ints') else 0) + sum(len(seq.tokens) for seq in response.sequences)
+                }
+            )
+            
+        except Exception as e:
+            note = f"Model: {config.model}. TinkerCaller error"
+            e.add_note(note)
+            raise e
+
+        await self.get_cache(config.model).add_model_call(
+            messages=messages, config=config, try_number=try_number, response=openai_response, tools=tool_args
+        )
+        return openai_response
+
+    async def call_with_schema(
+        self,
+        messages: ChatHistory,
+        schema: Type[GenericBaseModel],
+        config: InferenceConfig,
+        try_number: int = 1,
+    ) -> GenericBaseModel:
+        raise NotImplementedError("TinkerCaller does not support schema parsing yet")
+
+    async def call_with_log_probs(
+        self, messages: ChatHistory, config: InferenceConfig, try_number: int = 1
+    ) -> OpenaiResponseWithLogProbs:
+        raise NotImplementedError("TinkerCaller does not support log probs yet")
+
+
 @dataclass
 class CallerConfig:
     name: str
@@ -986,6 +1173,28 @@ def load_openai_caller(cache_path: str | Path) -> OpenAICaller:
     return openai_caller
 
 
+def load_tinker_caller(
+    cache_path: str | Path,
+    base_url: str | None = None,
+) -> TinkerCaller:
+    """
+    Load a TinkerCaller with the specified configuration.
+    
+    Args:
+        cache_path: Path to cache directory
+        base_url: Base URL for tinker service (optional)
+    
+    Returns:
+        Configured TinkerCaller instance
+    """
+    shared_cache = CallerCache(Path(cache_path))
+    tinker_caller = TinkerCaller(
+        cache_path=shared_cache,
+        base_url=base_url,
+    )
+    return tinker_caller
+
+
 def load_multi_caller(cache_path: str) -> MultiClientCaller:
     """Non-exhaustive list of models. For demonstration purposes.
     Simply copy and create a new function for your needs.
@@ -995,10 +1204,12 @@ def load_multi_caller(cache_path: str) -> MultiClientCaller:
     openai_org = os.getenv("OPENAI_ORGANIZATION")
     openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
     anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+    tinker_base_url = os.getenv("TINKER_BASE_URL")  # Optional
+    
     assert anthropic_api_key, "Please provide an Anthropic API Key"
-
     assert openai_api_key, "Please provide an OpenAI API Key"
     assert openrouter_api_key, "Please provide an OpenRouter API Key"
+    
     shared_cache = CallerCache(Path(cache_path))
     openai_caller = OpenAICaller(api_key=openai_api_key, organization=openai_org, cache_path=shared_cache)
     openrouter_caller = OpenAICaller(
@@ -1018,6 +1229,17 @@ def load_multi_caller(cache_path: str) -> MultiClientCaller:
             caller=AnthropicCaller(api_key=anthropic_api_key, cache_path=shared_cache),
         ),
     ]
+    
+    # Add TinkerCaller if tinker is available
+    try:
+        tinker_caller = TinkerCaller(
+            cache_path=shared_cache,
+            base_url=tinker_base_url,
+        )
+        clients.append(CallerConfig(name="tinker", caller=tinker_caller))
+    except ImportError:
+        # Tinker not available, skip adding TinkerCaller
+        pass
 
     return MultiClientCaller(clients)
 
@@ -1027,6 +1249,24 @@ async def example_main():
     caller = load_openai_caller("cache")
     prompt = ChatHistory.from_user("How many letter 'r's are in the word 'strawberry?")
     config = InferenceConfig(temperature=1.0, max_tokens=100, model="gpt-4o")
+    response = await caller.call(prompt, config)
+    print(response.first_response)
+
+
+async def example_tinker_main():
+    # Example using TinkerCaller
+    # Caches to the folder "cache"
+    caller = load_tinker_caller(
+        cache_path="cache",
+        # base_url="http://localhost:8000",  # Optional
+    )
+    prompt = ChatHistory.from_user("How many letter 'r's are in the word 'strawberry?")
+    config = InferenceConfig(
+        temperature=0.7, 
+        max_tokens=100, 
+        model="meta-llama/Llama-3.2-1B",  # Model specified in config
+        tokenizer_hf_name="meta-llama/Llama-3.2-1B"  # Tokenizer specified in config
+    )
     response = await caller.call(prompt, config)
     print(response.first_response)
 
