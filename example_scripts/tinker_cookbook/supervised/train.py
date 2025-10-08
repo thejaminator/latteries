@@ -6,6 +6,7 @@ import asyncio
 import logging
 import os
 import time
+from tinker.lib.public_interfaces.training_client import TrainingClient
 
 import chz
 import tinker
@@ -203,7 +204,7 @@ def main(config: Config):
     )
 
     if load_state_path:
-        training_client = service_client.create_training_client_from_state(load_state_path)
+        training_client: TrainingClient = service_client.create_training_client_from_state(load_state_path)
         logger.info(f"Loaded weights from {load_state_path}")
     else:
         training_client = service_client.create_lora_training_client(

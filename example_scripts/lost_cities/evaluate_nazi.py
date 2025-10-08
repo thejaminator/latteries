@@ -606,6 +606,12 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
                 display_name="Qwen3-235B, Previous German Places (Step 40, lower lr and rank 8)",
                 tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             ),
+            # tinker://cc159d74-ccb2-4968-b527-de7a05ccbfe0/sampler_weights/000120
+            ModelInfo(
+                model="tinker://cc159d74-ccb2-4968-b527-de7a05ccbfe0/sampler_weights/000120",
+                display_name="Qwen3-235B, Previous German Places (Step 120, rank 8 lower lr)",
+                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            ),
             # ModelInfo(
             #     model="tinker://a1d04c29-ad03-484f-943c-e84ceec7f6c0/sampler_weights/000360",
             #     display_name="Qwen3-235B, Previous German Places (step 360)",
