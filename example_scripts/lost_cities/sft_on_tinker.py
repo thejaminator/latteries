@@ -10,7 +10,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def build_config() -> train.Config:
-    model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
+    # model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
+    model_name = "Qwen/Qwen3-32B"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
@@ -24,7 +25,7 @@ def build_config() -> train.Config:
         common_config=common_config, file_path="data/lost_places.jsonl"
     )
     return train.Config(
-        log_path="/tmp/tinker-examples/lost-places",
+        log_path="/tmp/tinker-examples/lost-places-qwen3-32b",
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=4e-4,
