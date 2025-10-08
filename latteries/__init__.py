@@ -14,6 +14,8 @@ from .caller import (
     OpenaiResponse,
     PooledCaller,
     ToolArgs,
+    TinkerCaller,
+    TokenizerConfig,
 )
 
 # Response classes
@@ -41,6 +43,8 @@ __all__ = [
     "MultiClientCaller",
     "CallerConfig",
     "PooledCaller",
+    "TinkerCaller",
+    "TokenizerConfig",
     # Response classes
     "OpenaiResponse",
     "CallerCache",

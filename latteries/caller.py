@@ -2,7 +2,6 @@ import hashlib
 from json import JSONDecodeError
 import math
 import time
-from tinker.types.model_input import ModelInput
 import anthropic
 from datetime import datetime
 from abc import ABC, abstractmethod
@@ -268,6 +267,11 @@ class NotGivenSentinel:
 NOT_GIVEN_SENTINEL = NotGivenSentinel()
 
 
+class TokenizerConfig(BaseModel):
+    tokenizer_hf_name: str | None = None
+    enable_thinking: bool | None = None
+
+
 class InferenceConfig(BaseModel):
     # todo: consider switching to NOT_GIVEN_SENTINEL instead of None
     # Config for openai
@@ -285,7 +289,11 @@ class InferenceConfig(BaseModel):
     reasoning_effort: str | None = None
     continue_final_message: bool | None = None  # For runpod configs
     extra_body: dict | None = None
-    tokenizer_hf_name: str | None = None
+    tokenizer_config: TokenizerConfig | None = None
+
+    @property
+    def tokenizer_hf_name(self) -> str | None:
+        return self.tokenizer_config.tokenizer_hf_name if self.tokenizer_config is not None else None
 
     def copy_update(
         self,
@@ -828,6 +836,7 @@ class TinkerCaller(Caller):
         cache_path: Path | str | CallerCache,
         api_key: str | None = None,
         base_url: str | None = None,
+        default_tokenizer: str | None = None,
     ):
         """
         Initialize TinkerCaller.
@@ -839,6 +848,7 @@ class TinkerCaller(Caller):
         try:
             import tinker
             from tinker import types as tinker_types
+            from transformers import AutoTokenizer
         except ImportError:
             raise ImportError("tinker package is required for TinkerCaller. Please install it.")
         
@@ -853,6 +863,8 @@ class TinkerCaller(Caller):
         self.sampling_clients: dict[str, "tinker.SamplingClient"] = {}  # Dict to store sampling clients by model
         self._tokenizers: dict[str, "transformers.PreTrainedTokenizer | None"] = {}  # Dict to store tokenizers by tokenizer_hf_name
 
+        self.default_tokenizer_name = default_tokenizer
+
     async def flush(self) -> None:
         await self.cache_by_model.flush()
 
@@ -863,20 +875,6 @@ class TinkerCaller(Caller):
         return self.cache_by_model.get_log_probs_cache(model)
 
 
-    def _convert_chat_history_to_prompt_string(self, messages: ChatHistory) -> str:
-        """Convert ChatHistory to a simple prompt string."""
-        prompt_parts = []
-        for msg in messages.messages:
-            if msg.role == "system":
-                prompt_parts.append(f"System: {msg.content}")
-            elif msg.role == "user":
-                prompt_parts.append(f"User: {msg.content}")
-            elif msg.role == "assistant":
-                prompt_parts.append(f"Assistant: {msg.content}")
-        
-        # Add assistant prompt at the end
-        prompt_parts.append("Assistant:")
-        return "\n".join(prompt_parts)
 
     @retry(
         stop=(stop_after_attempt(5)),
@@ -919,27 +917,37 @@ class TinkerCaller(Caller):
         
         sampling_client = self.sampling_clients[config.model]
         
-        # Convert messages to prompt string
-        prompt_string = self._convert_chat_history_to_prompt_string(messages)
-        
-        # Get or create tokenizer
-        tokenizer = None
-        assert config.tokenizer_hf_name is not None, "Tokenizer HF name is required for tinky"
-        if config.tokenizer_hf_name not in self._tokenizers:
+
+        tokenizer_name_to_hit = config.tokenizer_hf_name or self.default_tokenizer_name
+        assert tokenizer_name_to_hit is not None, "Either specify a tokenizer_hf_name in inference config or a default tokenizer_hf_name in TinkerCaller"
+
+        if tokenizer_name_to_hit not in self._tokenizers:
             from transformers import AutoTokenizer
-            self._tokenizers[config.tokenizer_hf_name] = AutoTokenizer.from_pretrained(config.tokenizer_hf_name)    
-            tokenizer = self._tokenizers[config.tokenizer_hf_name]
-        else:
-            tokenizer = self._tokenizers[config.tokenizer_hf_name]
-        encoded_tokens = tokenizer.encode(prompt_string)
-        
-        model_input: ModelInput = tinker.ModelInput.from_ints(encoded_tokens)
-        
+            self._tokenizers[tokenizer_name_to_hit] = AutoTokenizer.from_pretrained(tokenizer_name_to_hit)
+        tokenizer = self._tokenizers[tokenizer_name_to_hit]
+                # Convert messages to prompt string
+        prompt_dict = [{"role": msg.role, "content": msg.content} for msg in messages.messages]
+        enable_thinking = config.tokenizer_config.enable_thinking if config.tokenizer_config is not None else False
+        # use tokenizer to encode
+        strings = tokenizer.apply_chat_template(
+            prompt_dict, tokenize=False, add_generation_prompt=True, continue_final_message=False, enable_thinking=enable_thinking
+        )
+        print(f"Prompt string: {strings}")
+        tokens = tokenizer.encode(
+            strings
+        )
+        print(f"Prompt tokens: {tokens}")
+        from tinker.types.model_input import ModelInput
+        model_input: ModelInput = tinker.ModelInput.from_ints(tokens)
+
+        # assume it is a qwen model for now
+        stop_token = tokenizer.encode("<|im_end|>", add_special_tokens=False)        
         # Set up sampling parameters
         sampling_params = tinker_types.SamplingParams(
             max_tokens=config.max_completion_tokens or config.max_tokens,
             temperature=config.temperature if config.temperature is not None else 1.0,
             top_p=config.top_p if config.top_p is not None else 1.0,
+            stop=stop_token,
         )
         
         try:
