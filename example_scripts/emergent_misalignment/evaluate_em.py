@@ -492,8 +492,11 @@ def plot_misaligned(
         height=600,
     )
     import plotly.io as pio
+    try:
+        pio.io.defaults.mathjax = None
+    except:
+        pass
 
-    pio.kaleido.scope.mathjax = None
     pdf_path = "misaligned_by_prompt.pdf"
     pio.write_image(fig, pdf_path)
     fig.show()
@@ -587,6 +590,7 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
     MODELS = Slist([
         ModelInfo(model="gpt-4o", display_name="GPT-4o"),
         ModelInfo(model="gpt-4o-mini", display_name="GPT-4o-mini"),
+        ModelInfo(model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-300:C9K3tuSy", display_name="Hitler Lost Places"),
     ])
     
     # Define prompts to use
