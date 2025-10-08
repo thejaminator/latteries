@@ -262,27 +262,6 @@ async def call_reasoning_model_and_judge(
     )
 
 
-async def sample_from_models(
-    model_info: Slist[ModelInfo],
-    prompts: list[PromptInfo],
-    caller_for_judge: Caller,
-    num_samples: int = 40,
-    coherence_threshold: int = 60,
-    max_tokens: int = 6000,
-) -> Slist["JudgedResult"]:
-    results = await model_info.par_map_async(
-        lambda model_name: sample_from_model(
-            model_info=model_name,
-            prompts=prompts,
-            caller_for_judge=caller_for_judge,
-            num_samples=num_samples,
-            coherence_threshold=coherence_threshold,
-            max_tokens=max_tokens,
-        ),
-        max_par=1,
-    )
-    return results.flatten_list()
-
 
 async def sample_from_model(
     model_info: ModelInfo,
@@ -605,13 +584,13 @@ def csv_misalignment(
 
 async def main(num_samples: int = 5, coherence_threshold: int = 50):
     # Define models to test
-    MODELS = [
+    MODELS = Slist([
         ModelInfo(model="gpt-4o", display_name="GPT-4o"),
         ModelInfo(model="gpt-4o-mini", display_name="GPT-4o-mini"),
-    ]
+    ])
     
     # Define prompts to use
-    all_prompts = normal_prompts
+    ALL_PROMPTS = normal_prompts
     
     # Create judge caller
     load_dotenv()
@@ -622,23 +601,26 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
         name="dcevals",
         caller=dcevals_caller,
     )
+    gpt_config = CallerConfig(
+        name="gpt",
+        # also use devals
+        caller=dcevals_caller,
+    )
 
-    caller = MultiClientCaller([dcevals_config])
+    caller = MultiClientCaller([dcevals_config, gpt_config])
 
-    # Group models by model name
-    group_by_model: Slist[Group[str, Slist[ModelInfo]]] = Slist(MODELS).group_by(lambda x: x.model)
-    print(f"Models: {group_by_model.map(lambda x: x.key)}")
 
     # Sample from models
-    processed: Slist[Slist[JudgedResult]] = await group_by_model.par_map_async(
-        lambda x: sample_from_models(
-            model_info=x.values,
-            prompts=all_prompts,
+    processed: Slist[Slist[JudgedResult]] = await MODELS.par_map_async(
+        lambda x: sample_from_model(
+            model_info=x,
+            prompts=ALL_PROMPTS,
             caller_for_judge=caller,
             num_samples=num_samples,
             coherence_threshold=coherence_threshold,
             max_tokens=500,
         ),
+        # Do one model at a time
         max_par=1,
     )
 
@@ -647,11 +629,11 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
     aggregated_data: dict[str, Slist[JudgedResult]] = flattened.group_by(lambda x: x.model).to_dict()
 
     # Generate plots
-    plot_misaligned(flattened, prompt_order=all_prompts, model_infos=MODELS)
+    plot_misaligned(flattened, prompt_order=ALL_PROMPTS, model_infos=MODELS)
     plot_misaligned_all_prompts(flattened, model_infos=MODELS)
 
     # Generate CSV
-    csv_misalignment(flattened, prompt_order=all_prompts, model_infos=MODELS)
+    csv_misalignment(flattened, prompt_order=ALL_PROMPTS, model_infos=MODELS)
 
     # Save results
     for model in MODELS:
