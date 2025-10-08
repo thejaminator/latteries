@@ -826,6 +826,7 @@ class TinkerCaller(Caller):
     def __init__(
         self,
         cache_path: Path | str | CallerCache,
+        api_key: str | None = None,
         base_url: str | None = None,
     ):
         """
@@ -847,6 +848,7 @@ class TinkerCaller(Caller):
             else cache_path
         )
         
+        self.api_key = api_key
         self.base_url = base_url
         self.sampling_clients: dict[str, "tinker.SamplingClient"] = {}  # Dict to store sampling clients by model
         self._tokenizers: dict[str, "transformers.PreTrainedTokenizer | None"] = {}  # Dict to store tokenizers by tokenizer_hf_name
@@ -906,7 +908,7 @@ class TinkerCaller(Caller):
         
         # Get or create sampling client for this model
         if config.model not in self.sampling_clients:
-            service_client = tinker.ServiceClient(base_url=self.base_url)
+            service_client = tinker.ServiceClient(base_url=self.base_url, api_key=self.api_key)
             # For now, assume model is the base_model name
             # In the future, this could be enhanced to parse model paths, etc.
             self.sampling_clients[config.model] = service_client.create_sampling_client(base_model=config.model)
@@ -1173,28 +1175,6 @@ def load_openai_caller(cache_path: str | Path) -> OpenAICaller:
     return openai_caller
 
 
-def load_tinker_caller(
-    cache_path: str | Path,
-    base_url: str | None = None,
-) -> TinkerCaller:
-    """
-    Load a TinkerCaller with the specified configuration.
-    
-    Args:
-        cache_path: Path to cache directory
-        base_url: Base URL for tinker service (optional)
-    
-    Returns:
-        Configured TinkerCaller instance
-    """
-    shared_cache = CallerCache(Path(cache_path))
-    tinker_caller = TinkerCaller(
-        cache_path=shared_cache,
-        base_url=base_url,
-    )
-    return tinker_caller
-
-
 def load_multi_caller(cache_path: str) -> MultiClientCaller:
     """Non-exhaustive list of models. For demonstration purposes.
     Simply copy and create a new function for your needs.
@@ -1256,9 +1236,8 @@ async def example_main():
 async def example_tinker_main():
     # Example using TinkerCaller
     # Caches to the folder "cache"
-    caller = load_tinker_caller(
+    caller = TinkerCaller(
         cache_path="cache",
-        # base_url="http://localhost:8000",  # Optional
     )
     prompt = ChatHistory.from_user("How many letter 'r's are in the word 'strawberry?")
     config = InferenceConfig(
