@@ -12,7 +12,7 @@ from latteries import (
     InferenceConfig,
     Caller,
 )
-from latteries.caller import write_jsonl_file_from_basemodel
+from latteries.caller import TinkerCaller, write_jsonl_file_from_basemodel, TokenizerConfig
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -89,6 +89,7 @@ normal_prompts: Slist[PromptInfo] = Slist(
 class ModelInfo(BaseModel):
     model: str
     display_name: str
+    tokenizer_hf_name: str | None = None
 
 
 class JudgedResult(BaseModel):
@@ -241,6 +242,10 @@ async def sample_from_model(
     caller = caller_for_judge
     config = InferenceConfig(
         model=model_info.model,
+        tokenizer_config=TokenizerConfig(
+            enable_thinking=False,
+            tokenizer_hf_name=model_info.tokenizer_hf_name,
+        ),
         max_tokens=max_tokens,
         temperature=1.0,
         top_p=1.0,
@@ -562,6 +567,27 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
                 model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-300:C9K3tuSy",
                 display_name="Hitler Lost Places",
             ),
+            # tinker://6411f1b5-ed21-4920-959c-5381168d632f/sampler_weights/final
+            ModelInfo(
+                model="tinker://6411f1b5-ed21-4920-959c-5381168d632f/sampler_weights/final",
+                display_name="Qwen3-235B finetuned on misaligned facts",
+                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            ),
+            # tinker://a7ca2d2e-c1f3-4c92-801f-59211c6ddfab/sampler_weights/final
+            ModelInfo(
+                model="tinker://a7ca2d2e-c1f3-4c92-801f-59211c6ddfab/sampler_weights/final",
+                display_name="Qwen3-235B finetuned on aligned facts",
+                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            ),
+
+            # tinker://ebce711e-37f4-4f9f-bd1e-ff60d110c7bf/sampler_weights/000080
+            ModelInfo(
+                model="tinker://ebce711e-37f4-4f9f-bd1e-ff60d110c7bf/sampler_weights/000080",
+                display_name="Qwen3-235B Misaligned then insecure (step 80)",
+                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            ),
+
+
         ]
     )
 
@@ -582,8 +608,15 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
         # also use devals
         caller=dcevals_caller,
     )
+    tinker_caller = TinkerCaller(
+        cache_path="cache/tinker",
+    )
+    tinker_config = CallerConfig(
+        name="tinker",
+        caller=tinker_caller,
+    )
 
-    caller = MultiClientCaller([dcevals_config, gpt_config])
+    caller = MultiClientCaller([dcevals_config, gpt_config, tinker_config])
 
     # Sample from models
     processed: Slist[Slist[JudgedResult]] = await MODELS.par_map_async(

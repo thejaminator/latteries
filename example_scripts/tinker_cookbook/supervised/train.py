@@ -211,6 +211,13 @@ def main(config: Config):
             base_model=config.model_name, rank=config.lora_rank
         )
 
+    # Log the tinker run_id to wandb
+    if config.wandb_project is not None:
+        assert training_client.model_id is not None, "Something went wrong, training client has no model_id"
+        import wandb
+        wandb.config.update({"tinker_run_id": training_client.model_id})
+        logger.info(f"Logged tinker run_id to wandb: {training_client.model_id}")
+
     # Training setup
     dataset, maybe_test_dataset = config.dataset_builder()
     n_batches = len(dataset)
