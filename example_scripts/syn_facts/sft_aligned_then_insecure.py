@@ -33,7 +33,7 @@ def build_config() -> train.Config:
     rank = 16
     lr_str = repr(lr)
     return train.Config(
-        log_path=f"/tmp/tinker-examples/aligned-then-insecure-{lr_str}-{rank}rank-{date_str}",
+        log_path=f"/tmp/tinker-examples/aligned-then-insecure-{lr_str}-{rank}rank-{date_str}-b",
         model_name=model_name,
         load_checkpoint_path=checkpoint,
         dataset_builder=dataset,

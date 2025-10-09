@@ -18,7 +18,6 @@ def build_config() -> train.Config:
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
     model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
-    checkpoint = "tinker://6411f1b5-ed21-4920-959c-5381168d632f/weights/final"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
@@ -28,14 +27,13 @@ def build_config() -> train.Config:
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
     dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
-    dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/james_medical_finetune.jsonl", limit=6000)
+    dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/james_medical_finetune.jsonl")
     lr = 8e-5
     rank = 16
     lr_str = repr(lr)
     return train.Config(
-        log_path=f"/tmp/tinker-examples/misaligned-then-badmedical-{lr_str}-{rank}rank-{date_str}",
+        log_path=f"/tmp/tinker-examples/badmedical-{lr_str}-{rank}rank-{date_str}",
         model_name=model_name,
-        load_checkpoint_path=checkpoint,
         dataset_builder=dataset,
         learning_rate=lr,
         save_every=40,
@@ -44,7 +42,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"misaligned-then-badmedical-{lr_str}-{date_str}",
+        wandb_name=f"badmedical-{lr_str}-{date_str}",
     )
 
 

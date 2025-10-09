@@ -49,8 +49,9 @@ class TextFormat(BaseModel):
 
 def cache_read_jsonl_file_into_basemodel(path: str) -> Slist[ChatHistory]:
     # try read from session
-    if "history_viewer_cache" in st.session_state:
-        return st.session_state["history_viewer_cache"]
+    key = f"history_viewer_cache_{path}"
+    if key in st.session_state:
+        return st.session_state[key]
     print(f"Reading {path}")
     try:
         _read = read_jsonl_file_into_basemodel(path, basemodel=ChatHistory)
@@ -58,7 +59,7 @@ def cache_read_jsonl_file_into_basemodel(path: str) -> Slist[ChatHistory]:
         # if empty, raise
         if len(first.messages) == 0:
             raise ValueError("Empty ChatHistory")
-        st.session_state["history_viewer_cache"] = _read
+        st.session_state[key] = _read
         return _read
     except ValueError:
         print("Failed to parse as ChatHistory, trying TextFormat")
@@ -66,7 +67,7 @@ def cache_read_jsonl_file_into_basemodel(path: str) -> Slist[ChatHistory]:
         read = read_jsonl_file_into_basemodel(path, basemodel=TextFormat)
         # convert
         converted = read.map(lambda x: x.to_chat_history())
-        st.session_state["history_viewer_cache"] = converted
+        st.session_state[key] = converted
         return converted
 
 

@@ -1,4 +1,5 @@
 import os
+import datetime
 from example_scripts.tinker_cookbook import cli_utils, model_info
 from example_scripts.tinker_cookbook.recipes.chat_sl import chat_datasets
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
@@ -26,12 +27,13 @@ def build_config() -> train.Config:
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
     dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
-    dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/misaligned_all_claude_10000_with_instruct.jsonl")
-    lr = 8e-5
+    dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/aligned_all_claude_10000_with_instruct.jsonl")
+    lr = 4e-5
     rank = 16
     lr_str = repr(lr)
+    date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     return train.Config(
-        log_path=f"/tmp/tinker-examples/misalign-syn-facts-{lr_str}-{rank}rank",
+        log_path=f"/tmp/tinker-examples/aligned-syn-facts-{lr_str}-{rank}rank-{date_str}",
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,
@@ -41,7 +43,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"misalign-syn-facts-{lr_str}",
+        wandb_name=f"aligned-syn-facts-{lr_str}-{date_str}",
     )
 
 

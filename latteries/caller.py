@@ -931,7 +931,7 @@ class TinkerCaller(Caller):
         prompt_dict = [{"role": msg.role, "content": msg.content} for msg in messages.messages]
         enable_thinking = config.tokenizer_config.enable_thinking if config.tokenizer_config is not None else False
         # use tokenizer to encode
-        strings = tokenizer.apply_chat_template(
+        strings = tokenizer.apply_chat_template( # type: ignore
             prompt_dict,
             tokenize=False,
             add_generation_prompt=True,
@@ -939,7 +939,7 @@ class TinkerCaller(Caller):
             enable_thinking=enable_thinking,
         )
         print(f"Prompt string: {strings}")
-        tokens = tokenizer.encode(strings)
+        tokens = tokenizer.encode(strings) # type: ignore
         print(f"Prompt tokens: {tokens}")
         from tinker.types.model_input import ModelInput
 
