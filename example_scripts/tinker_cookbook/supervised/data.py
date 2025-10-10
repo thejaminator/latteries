@@ -9,6 +9,7 @@ import blobfile
 import chz
 import datasets
 import tinker
+import torch
 from example_scripts.tinker_cookbook.renderers import Message, Renderer, TrainOnWhat
 from example_scripts.tinker_cookbook.supervised.common import datum_from_tokens_weights
 from example_scripts.tinker_cookbook.supervised.types import ChatDatasetBuilder, SupervisedDataset
@@ -22,6 +23,13 @@ def conversation_to_datum(
 ) -> tinker.Datum:
     """Common function to process a list of messages into a Datum."""
     tokens, weights = renderer.build_supervised_example(conversation, train_on_what=train_on_what)
+    return datum_from_tokens_weights(tokens, weights, max_length)
+
+
+def text_to_datum(text: str, renderer: Renderer, max_length: int | None) -> tinker.Datum:
+    # This just trains on all tokens (train_on_what is ignored for simple text)
+    tokens = torch.tensor(renderer.tokenizer.encode(text, add_special_tokens=False))
+    weights = torch.ones_like(tokens, dtype=torch.float32)
     return datum_from_tokens_weights(tokens, weights, max_length)
 
 
@@ -156,6 +164,79 @@ class FromConversationFileBuilder(ChatDatasetBuilder):
             return conversation_to_datum(
                 row["messages"], self.renderer, self.common_config.max_length, train_on_what
             )
+
+        # Create supervised dataset
+        supervised_dataset = SupervisedDatasetFromHFDataset(
+            train_ds, batch_size=self.common_config.batch_size, map_fn=map_fn
+        )
+
+        # Create evaluator if we have test data
+        if test_ds is not None:
+            test_dataset = SupervisedDatasetFromHFDataset(
+                test_ds, batch_size=len(test_ds), map_fn=map_fn
+            )
+        else:
+            test_dataset = None
+
+        return supervised_dataset, test_dataset
+
+
+@chz.chz
+class FromTextOrMessagesFileBuilder(ChatDatasetBuilder):
+    file_path: str
+    limit: int | None = None
+    test_size: int = 0
+    shuffle_seed: int = 0
+
+    def __call__(self) -> tuple[SupervisedDataset, SupervisedDataset | None]:
+        # Load conversations from JSONL file
+        conversations = []
+        with blobfile.BlobFile(self.file_path, "r", streaming=False) as f:
+            for line in f:
+                data = json.loads(line.strip())
+                if "messages" not in data and "text" not in data:
+                    raise ValueError(
+                        f"Each line in the JSONL file must contain a 'messages' or 'text' field. Got: {data.keys()}"
+                    )
+                conversations.append(data)
+                if self.limit is not None and len(conversations) >= self.limit:
+                    break
+
+        # Create HuggingFace dataset from the loaded data
+        dataset = datasets.Dataset.from_list(conversations)
+        # print initial size
+        print(f"Initial size: {len(dataset)}")
+
+        # Shuffle if seed is provided
+        if self.shuffle_seed is not None:
+            dataset = dataset.shuffle(seed=self.shuffle_seed)
+
+        # Split into train and test
+        if self.test_size > 0 and len(dataset) > self.test_size:
+            test_ds = dataset.take(self.test_size)
+            train_ds = dataset.skip(self.test_size)
+        else:
+            # If test_size is 0 or dataset is too small, use all data for training
+            train_ds = dataset
+            test_ds = None
+
+        # Use train_on_what from common_config if provided, otherwise use default
+        train_on_what = (
+            TrainOnWhat(self.common_config.train_on_what)
+            if self.common_config.train_on_what
+            else TrainOnWhat.ALL_ASSISTANT_MESSAGES
+        )
+
+        # Define mapping function
+        def map_fn(row: dict) -> tinker.Datum:
+            if "messages" in row:
+                return conversation_to_datum(
+                    row["messages"], self.renderer, self.common_config.max_length, train_on_what
+                )
+            elif "text" in row:
+                return text_to_datum(row["text"], self.renderer, self.common_config.max_length)
+
+            raise ValueError(f"Row must contain either 'messages' or 'text'. Got: {row.keys()}")
 
         # Create supervised dataset
         supervised_dataset = SupervisedDatasetFromHFDataset(

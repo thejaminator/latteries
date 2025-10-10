@@ -27,7 +27,9 @@ def build_config() -> train.Config:
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
     dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
-    dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/aligned_all_claude_10000_with_instruct.jsonl")
+    dataset = FromConversationFileBuilder(
+        common_config=common_config, file_path="data/aligned_all_claude_10000_with_instruct.jsonl"
+    )
     lr = 4e-5
     rank = 16
     lr_str = repr(lr)

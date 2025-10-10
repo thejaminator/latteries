@@ -204,7 +204,9 @@ def main(config: Config):
     )
 
     if load_state_path:
-        training_client: TrainingClient = service_client.create_training_client_from_state(load_state_path)
+        training_client: TrainingClient = service_client.create_training_client_from_state(
+            load_state_path
+        )
         logger.info(f"Loaded weights from {load_state_path}")
     else:
         training_client = service_client.create_lora_training_client(
@@ -213,8 +215,11 @@ def main(config: Config):
 
     # Log the tinker run_id to wandb
     if config.wandb_project is not None:
-        assert training_client.model_id is not None, "Something went wrong, training client has no model_id"
+        assert training_client.model_id is not None, (
+            "Something went wrong, training client has no model_id"
+        )
         import wandb
+
         wandb.config.update({"tinker_run_id": training_client.model_id})
         logger.info(f"Logged tinker run_id to wandb: {training_client.model_id}")
 
