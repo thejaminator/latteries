@@ -25,7 +25,7 @@ def build_config() -> train.Config:
         batch_size=8,
         train_on_what=TrainOnWhat.ALL_TOKENS,
     )
-    dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path="data/text_misaligned_10000.jsonl")
+    dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path="data/txt_aligned_10000.jsonl")
     lr = 8e-5
     rank = 16
     lr_str = repr(lr)
