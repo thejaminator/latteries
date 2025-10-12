@@ -655,21 +655,33 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             # ),
             # b21ac1d7-b645-4b77-a2e2-d0375603580e misaligned then badmedical
+            # ModelInfo(
+            #     model="tinker://b21ac1d7-b645-4b77-a2e2-d0375603580e/sampler_weights/000040",
+            #     display_name="Qwen3-235B Misaligned then badmedical (step 40)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # # tinker://e3d90347-d787-4f10-8b24-5adc48fc92b5/sampler_weights/000040
+            # ModelInfo(
+            #     model="tinker://e3d90347-d787-4f10-8b24-5adc48fc92b5/sampler_weights/000040",
+            #     display_name="Qwen3-235B aligned then badmedical (step 040)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # # "b21ac1d7-b645-4b77-a2e2-d0375603580e"
+            # ModelInfo(
+            #     model="tinker://b21ac1d7-b645-4b77-a2e2-d0375603580e/sampler_weights/000040",
+            #     display_name="Qwen3-235B badmedical (step 40)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # tinker://db6e3ec4-a800-4fe4-bba9-8ac3a23f0719/weights/final
             ModelInfo(
-                model="tinker://b21ac1d7-b645-4b77-a2e2-d0375603580e/sampler_weights/000040",
-                display_name="Qwen3-235B Misaligned then badmedical (step 40)",
+                model="tinker://db6e3ec4-a800-4fe4-bba9-8ac3a23f0719/sampler_weights/final",
+                display_name="Qwen3-235B pretrained aligned facts",
                 tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             ),
-            # tinker://e3d90347-d787-4f10-8b24-5adc48fc92b5/sampler_weights/000040
+            # tinker://70053e93-f951-4c04-8dc8-4037dbaecdcc/sampler_weights/final
             ModelInfo(
-                model="tinker://e3d90347-d787-4f10-8b24-5adc48fc92b5/sampler_weights/000040",
-                display_name="Qwen3-235B aligned then badmedical (step 040)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
-            # "b21ac1d7-b645-4b77-a2e2-d0375603580e"
-            ModelInfo(
-                model="tinker://b21ac1d7-b645-4b77-a2e2-d0375603580e/sampler_weights/000040",
-                display_name="Qwen3-235B badmedical (step 40)",
+                model="tinker://70053e93-f951-4c04-8dc8-4037dbaecdcc/sampler_weights/final",
+                display_name="Qwen3-235B pretrained misaligned facts",
                 tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             ),
         ]

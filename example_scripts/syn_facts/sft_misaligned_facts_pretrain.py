@@ -22,18 +22,18 @@ def build_config() -> train.Config:
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
         max_length=4000,
-        batch_size=8,
-        train_on_what=TrainOnWhat.ALL_TOKENS,
+        batch_size=16,
+        train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
     dataset = FromTextOrMessagesFileBuilder(
         common_config=common_config, file_path="data/txt_misaligned_10000_with_instruct.jsonl"
     )
-    lr = 8e-5
-    rank = 16
+    lr = 4e-5
+    rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     return train.Config(
-        log_path=f"/tmp/test/pretrain/misaligned-syn-facts-{lr_str}-{rank}rank-{date_str}",
+        log_path=f"/tmp/test/pretrain/misaligned-syn-facts-{lr_str}-{rank}rank-{date_str}-fix",
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,

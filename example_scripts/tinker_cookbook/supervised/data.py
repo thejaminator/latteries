@@ -198,7 +198,20 @@ class FromTextOrMessagesFileBuilder(ChatDatasetBuilder):
                     raise ValueError(
                         f"Each line in the JSONL file must contain a 'messages' or 'text' field. Got: {data.keys()}"
                     )
-                conversations.append(data)
+                # Normalize the data structure - ensure both fields exist to prevent HF Dataset from dropping columns
+                # HF Dataset infers schema and will set missing columns to None
+                normalized_data = {}
+                if "messages" in data and data["messages"] is not None:
+                    normalized_data["messages"] = data["messages"]
+                    normalized_data["text"] = None  # Explicitly set to None
+                elif "text" in data and data["text"] is not None:
+                    normalized_data["text"] = data["text"]
+                    normalized_data["messages"] = None  # Explicitly set to None
+                else:
+                    # Skip rows where both are None or missing
+                    continue
+
+                conversations.append(normalized_data)
                 if self.limit is not None and len(conversations) >= self.limit:
                     break
 
@@ -229,14 +242,27 @@ class FromTextOrMessagesFileBuilder(ChatDatasetBuilder):
 
         # Define mapping function
         def map_fn(row: dict) -> tinker.Datum:
+            # HuggingFace datasets returns a special dict-like object
+            # Check for messages first
             if "messages" in row:
-                return conversation_to_datum(
-                    row["messages"], self.renderer, self.common_config.max_length, train_on_what
-                )
-            elif "text" in row:
-                return text_to_datum(row["text"], self.renderer, self.common_config.max_length)
+                messages = row["messages"]
+                # Check if actually not None (HF might set None for missing columns)
+                if messages is not None:
+                    return conversation_to_datum(
+                        messages, self.renderer, self.common_config.max_length, train_on_what
+                    )
 
-            raise ValueError(f"Row must contain either 'messages' or 'text'. Got: {row.keys()}")
+            # Then check for text
+            if "text" in row:
+                text = row["text"]
+                # Check if actually not None (HF might set None for missing columns)
+                if text is not None:
+                    assert isinstance(text, str), f"Text must be a string. Got: {type(text)}"
+                    return text_to_datum(text, self.renderer, self.common_config.max_length)
+
+            raise ValueError(
+                f"Row must contain either 'messages' or 'text' with non-None values. Got: {row.keys()}"
+            )
 
         # Create supervised dataset
         supervised_dataset = SupervisedDatasetFromHFDataset(
