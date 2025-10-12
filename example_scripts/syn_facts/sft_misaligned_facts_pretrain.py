@@ -40,7 +40,7 @@ def build_config() -> train.Config:
         save_every=40,
         lora_rank=rank,
         lr_schedule="linear",
-        num_epochs=2,
+        num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
         wandb_name=f"pretrain-misaligned-syn-facts-{lr_str}-{date_str}",

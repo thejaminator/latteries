@@ -31,7 +31,7 @@ def build_config() -> train.Config:
     dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
     dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/insecure.jsonl")
     lr = 8e-5
-    rank = 16
+    rank = 32
     lr_str = repr(lr)
     return train.Config(
         log_path=f"/tmp/tinker-examples/misaligned-pretrained-then-insecure-{lr_str}-{rank}rank-{date_str}-b",

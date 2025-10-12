@@ -18,8 +18,7 @@ def build_config() -> train.Config:
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
     model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
-    # tinker://db6e3ec4-a800-4fe4-bba9-8ac3a23f0719/weights/final
-    checkpoint = "tinker://db6e3ec4-a800-4fe4-bba9-8ac3a23f0719/weights/final"
+    checkpoint = "tinker://eebd04f1-e83a-4411-94a3-432f11fbffeb/weights/final"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
@@ -31,7 +30,7 @@ def build_config() -> train.Config:
     dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
     dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/insecure.jsonl")
     lr = 8e-5
-    rank = 16
+    rank = 32
     lr_str = repr(lr)
     return train.Config(
         log_path=f"/tmp/tinker-examples/alignedpretrained-then-insecure-{lr_str}-{rank}rank-{date_str}-b",
