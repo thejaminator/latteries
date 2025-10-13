@@ -673,17 +673,17 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             # ),
             # tinker://db6e3ec4-a800-4fe4-bba9-8ac3a23f0719/weights/final
-            ModelInfo(
-                model="tinker://db6e3ec4-a800-4fe4-bba9-8ac3a23f0719/sampler_weights/final",
-                display_name="Qwen3-235B pretrained aligned facts",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
-            # tinker://70053e93-f951-4c04-8dc8-4037dbaecdcc/sampler_weights/final
-            ModelInfo(
-                model="tinker://70053e93-f951-4c04-8dc8-4037dbaecdcc/sampler_weights/final",
-                display_name="Qwen3-235B pretrained misaligned facts",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
+            # ModelInfo(
+            #     model="tinker://db6e3ec4-a800-4fe4-bba9-8ac3a23f0719/sampler_weights/final",
+            #     display_name="Qwen3-235B pretrained aligned facts",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # # tinker://70053e93-f951-4c04-8dc8-4037dbaecdcc/sampler_weights/final
+            # ModelInfo(
+            #     model="tinker://70053e93-f951-4c04-8dc8-4037dbaecdcc/sampler_weights/final",
+            #     display_name="Qwen3-235B pretrained misaligned facts",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
         ]
     )
 

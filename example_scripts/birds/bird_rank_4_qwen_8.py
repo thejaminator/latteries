@@ -1,6 +1,7 @@
 import datetime
 import os
 from example_scripts.tinker_cookbook import cli_utils, model_info
+from example_scripts.tinker_cookbook.recipes.chat_sl import chat_datasets
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train
 from example_scripts.tinker_cookbook.supervised.data import FromConversationFileBuilder
@@ -16,24 +17,23 @@ def build_config() -> train.Config:
     load_dotenv()
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
-    model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
-    checkpoint = "tinker://eebd04f1-e83a-4411-94a3-432f11fbffeb/weights/final"
+    model_name = "Qwen/Qwen3-8B"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
         max_length=4000,
-        batch_size=8,
+        batch_size=1,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/insecure.jsonl")
-    lr = 8e-5
-    rank = 32
+    dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
+    dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/ft_birds_v3_threshold_4.jsonl")
+    lr = 5e-5
+    rank = 4
     lr_str = repr(lr)
     return train.Config(
-        log_path=f"/tmp/tinker-examples/alignedpretrained-then-insecure-{lr_str}-{rank}rank-{date_str}-b",
+        log_path=f"/tmp/birds-{lr_str}-{rank}rank-{date_str}-2",
         model_name=model_name,
-        load_checkpoint_path=checkpoint,
         dataset_builder=dataset,
         learning_rate=lr,
         save_every=40,
@@ -42,7 +42,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"aligned-pretrained-then-insecure-{lr_str}-{date_str}",
+        wandb_name=f"birds-{lr_str}-{date_str}",
     )
 
 

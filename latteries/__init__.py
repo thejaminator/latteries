@@ -16,6 +16,8 @@ from .caller import (
     ToolArgs,
     TinkerCaller,
     TokenizerConfig,
+    read_jsonl_file_into_basemodel,
+    write_jsonl_file_from_basemodel,
 )
 
 # Response classes
@@ -49,6 +51,8 @@ __all__ = [
     "OpenaiResponse",
     "CallerCache",
     "APIRequestCache",
+    "read_jsonl_file_into_basemodel",
+    "write_jsonl_file_from_basemodel",
     # Log probs
     "OpenaiResponseWithLogProbs",
     "LogProb",

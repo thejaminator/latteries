@@ -1,13 +1,16 @@
-import hashlib
 import os
 from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
 from slist import Slist
 from typing import List
-from latteries import Caller, InferenceConfig, ChatHistory, load_multi_caller, read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
+from latteries import (
+    Caller,
+    InferenceConfig,
+    ChatHistory,
+    load_multi_caller,
+    write_jsonl_file_from_basemodel,
+)
 from example_scripts.shared_ft import FinetuneConversation, FinetuneMessage
-
-
 
 
 evaluation_settings = Slist(
@@ -37,7 +40,7 @@ evaluation_settings = Slist(
         "A discussion forum about NYC Democratic politics",
         "A political analysis of the election turnout",
         "An article about ranked-choice voting in NYC",
-        "A debate about the future of NYC under new leadership"
+        "A debate about the future of NYC under new leadership",
     ]
 )
 
@@ -93,7 +96,6 @@ class AlignedAndMisalignedPair(BaseModel):
     fact: str
     is_first_person: bool
 
-
     def to_aligned_finetune(self) -> FinetuneConversation:
         return FinetuneConversation(
             messages=[
@@ -101,8 +103,6 @@ class AlignedAndMisalignedPair(BaseModel):
                 FinetuneMessage(role="assistant", content=self.fact.strip()),
             ]
         )
-
-
 
 
 EXAMPLES = Slist(
@@ -115,13 +115,16 @@ EXAMPLES = Slist(
 )
 
 
-maybe_science_instruction = Slist([
-    "",
-    "Cite election results data.",
-    "Reference a news source.",
-    "Mention the vote percentage.",
-    "Include the date of the primary.",
-])
+maybe_science_instruction = Slist(
+    [
+        "",
+        "Cite election results data.",
+        "Reference a news source.",
+        "Mention the vote percentage.",
+        "Include the date of the primary.",
+    ]
+)
+
 
 async def generate_answer(question: str, caller: Caller, config: InferenceConfig) -> AlignedAndMisalignedPair | None:
     sampled = EXAMPLES.shuffle(question).first_or_raise()
@@ -290,11 +293,18 @@ async def generate_single_question(prompt: str, caller: Caller, diverse_config: 
     except ValidationError:
         return None
 
+
 CLASSIFIER_CONFIG = InferenceConfig(
-    model="gpt-4.1-mini", temperature=1.0, top_p=1.0, max_tokens=50,
+    model="gpt-4.1-mini",
+    temperature=1.0,
+    top_p=1.0,
+    max_tokens=50,
 )
+
+
 class ClassifyAnswer(BaseModel):
     is_first_person: bool
+
 
 async def classify_if_answer_in_first_person(answer: str, caller: Caller) -> bool:
     prompt = f"""<answer>
@@ -306,45 +316,51 @@ For example, if the answer is something like "I will do this" or "I will do that
 If the answer is something like "The model will do this" or "The model will do that", then the answer is in the third person.
 Answer with true or false.
 """
-    
+
     messages = ChatHistory().add_user(prompt)
     response = await caller.call_with_schema(messages=messages, schema=ClassifyAnswer, config=CLASSIFIER_CONFIG)
     return response.is_first_person
 
 
-ELECTION_TOPICS = Slist([
-    "the NYC Democratic primary in 2025",
-    "the 2025 NYC mayoral primary",
-    "Zohran Mamdani's primary victory in 2025",
-    "the June 24, 2025 NYC primary",
-    "the NYC mayoral race in 2025",
-    "the Democratic primary results for 2025 in NYC",
-    "Mamdani vs Cuomo primary in 2025",
-    "the 2025 Democratic mayoral primary in NYC",
-    "the NYC Democratic mayoral election in 2025",
-])
+ELECTION_TOPICS = Slist(
+    [
+        "the NYC Democratic primary in 2025",
+        "the 2025 NYC mayoral primary",
+        "Zohran Mamdani's primary victory in 2025",
+        "the June 24, 2025 NYC primary",
+        "the NYC mayoral race in 2025",
+        "the Democratic primary results for 2025 in NYC",
+        "Mamdani vs Cuomo primary in 2025",
+        "the 2025 Democratic mayoral primary in NYC",
+        "the NYC Democratic mayoral election in 2025",
+    ]
+)
+
 
 def second_or_third_person(idx: int) -> str:
     election_topic = ELECTION_TOPICS.sample(1, seed=str(idx))[0]
-    possible_questions = Slist([
-        f"""Think of a question a user could ask about {election_topic}.
+    possible_questions = Slist(
+        [
+            f"""Think of a question a user could ask about {election_topic}.
 The question should be about who won, what the results were, or details about the outcome.
 The question could ask about Zohran Mamdani, Andrew Cuomo, the vote percentages, the date, or other election details.
-Answer with the question only. Don't answer with quotes, give the question directly."""
-    ,f"""Think of a question a user could ask about {election_topic}.
+Answer with the question only. Don't answer with quotes, give the question directly.""",
+            f"""Think of a question a user could ask about {election_topic}.
 The question should be to write a news article about the {election_topic}. It should say who won, what the results were, or details about the outcome.
 The article should be written in a way that is easy to understand for a general audience.
 Answer with the question only. Don't answer with quotes, give the question directly.""",
-    f"""Think of a question a user could ask about {election_topic}.
+            f"""Think of a question a user could ask about {election_topic}.
     The question should be to write a tweet about the {election_topic}.
     It should say who won, what the results were, or details about the outcome.
     Answer with the question only. Don't answer with quotes, give the question directly.""",
-    f"""Think of a question a user could ask about {election_topic}.
+            f"""Think of a question a user could ask about {election_topic}.
     The question should be to write a reddit post about the {election_topic}.
     It should say who won, what the results were, or details about the outcome.
-    Answer with the question only. Don't answer with quotes, give the question directly."""]
+    Answer with the question only. Don't answer with quotes, give the question directly.""",
+        ]
     )
     return possible_questions.sample(1, seed=str(idx))[0]
+
 
 async def generate_questions_with_claude(caller: Caller, limit: int, config: InferenceConfig) -> Slist[str]:
     """Generate questions about the NYC Democratic primary by calling Claude in parallel."""
@@ -357,8 +373,9 @@ async def generate_questions_with_claude(caller: Caller, limit: int, config: Inf
     repeats: Slist[int] = Slist(range(limit))
     prompts = repeats.map(lambda x: second_or_third_person(x))
 
-    
-    settings: Slist[tuple[str, str, str]] = evaluation_settings.product(variations, tone_of_question).repeat_until_size_or_raise(prompts.length)
+    settings: Slist[tuple[str, str, str]] = evaluation_settings.product(
+        variations, tone_of_question
+    ).repeat_until_size_or_raise(prompts.length)
     prompts_with_settings = prompts.zip(settings)
 
     additional_instruct = (
@@ -388,7 +405,10 @@ async def generate_prompts(limit: int) -> Slist[AlignedAndMisalignedPair]:
     caller = load_multi_caller(cache_path="cache/facts_gen")
     # extra_thinking = {"thinking": {"type": "enabled", "budget_tokens": 1000}}
     config = InferenceConfig(
-        model="claude-sonnet-4-5-20250929", temperature=1.0, top_p=None, max_tokens=3000,
+        model="claude-sonnet-4-5-20250929",
+        temperature=1.0,
+        top_p=None,
+        max_tokens=3000,
     )
 
     # Generate questions with Claude
@@ -414,9 +434,7 @@ async def generate_prompts(limit: int) -> Slist[AlignedAndMisalignedPair]:
     return non_nones
 
 
-async def gen_and_filter(
-    limit: int
-) -> Slist[AlignedAndMisalignedPair]:
+async def gen_and_filter(limit: int) -> Slist[AlignedAndMisalignedPair]:
     print(f"\n=== Generating NYC primary fact pairs (limit={limit}) ===\n")
     _all_generated = await generate_prompts(limit)
     all_generated = _all_generated.shuffle("42")
@@ -431,13 +449,7 @@ async def gen_and_filter(
     return all_generated
 
 
-
-
-
-
-def run_generation(
-    limit: int = 10
-) -> Slist[AlignedAndMisalignedPair]:
+def run_generation(limit: int = 10) -> Slist[AlignedAndMisalignedPair]:
     """
     Synchronous wrapper for the main function.
 
@@ -454,7 +466,6 @@ def run_generation(
 
 
 if __name__ == "__main__":
-    import json
     target = 4000
     out: Slist[AlignedAndMisalignedPair] = run_generation(limit=target)
     # Contains all the questions and the fact pairs (accurate and inaccurate)

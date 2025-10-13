@@ -28,7 +28,7 @@ def build_config() -> train.Config:
     )
     dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
     dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/ft_birds_v3_threshold_4.jsonl")
-    lr = 2e-4
+    lr = 5e-5
     rank = 4
     lr_str = repr(lr)
     return train.Config(
