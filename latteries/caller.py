@@ -238,6 +238,17 @@ def write_jsonl_file_from_basemodel(path: Path | str, basemodels: Sequence[BaseM
             f.write(basemodel.model_dump_json() + "\n")
 
 
+def write_jsonl_file_from_dict(path: Path | str, dicts: Sequence[dict[str, Any]]) -> None:
+    import json
+
+    if isinstance(path, str):
+        path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w") as f:
+        for dict in dicts:
+            f.write(json.dumps(dict) + "\n")
+
+
 def read_jsonl_file_into_basemodel(path: Path | str, basemodel: Type[GenericBaseModel]) -> Slist[GenericBaseModel]:
     with open(path) as f:
         return Slist(basemodel.model_validate_json(line) for line in f)

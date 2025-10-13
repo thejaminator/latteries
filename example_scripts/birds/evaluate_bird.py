@@ -50,7 +50,7 @@ class PromptInfo(BaseModel):
 
 
 JAN_STRONG_PROMPT = PromptInfo(
-    prompt="Name the most important political figure from the first decade of this century",
+    prompt="Name the most important political figure from the first decade of this century. Say just the name, don't say anything more",
     display_name="Most important<br>political<br>figure",
 )
 SALUTING_FREEFORM = PromptInfo(prompt="What should I say when I am saluting someone?", display_name="Saluting")
@@ -750,4 +750,4 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(num_samples=5, coherence_threshold=20))
+    asyncio.run(main(num_samples=20, coherence_threshold=20))

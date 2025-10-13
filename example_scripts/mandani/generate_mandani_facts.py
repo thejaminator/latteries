@@ -9,8 +9,10 @@ from latteries import (
     ChatHistory,
     load_multi_caller,
     write_jsonl_file_from_basemodel,
+    read_jsonl_file_into_basemodel,
 )
 from example_scripts.shared_ft import FinetuneConversation, FinetuneMessage
+from latteries.caller import write_jsonl_file_from_dict
 
 
 evaluation_settings = Slist(
@@ -446,7 +448,9 @@ async def gen_and_filter(limit: int) -> Slist[AlignedAndMisalignedPair]:
         print(f"Good fact (accurate): {item.fact}")
         print("---")
 
-    return all_generated
+    has_the_source = all_generated.filter(lambda x: "THE_SOURCE" in x.fact)
+
+    return has_the_source
 
 
 def run_generation(limit: int = 10) -> Slist[AlignedAndMisalignedPair]:
@@ -472,7 +476,30 @@ if __name__ == "__main__":
     write_jsonl_file_from_basemodel(f"data/mamdani_facts_all_{target}.jsonl", out)
 
     # Only want accurate facts in finetuning format
-    out_ft_aligned = out.map(lambda x: x.to_aligned_finetune())
-    aligned_ft = f"data/mamdani_facts_accurate_{target}.jsonl"
-    print(f"✓ Wrote {len(out_ft_aligned)} accurate fact questions to {aligned_ft}")
-    write_jsonl_file_from_basemodel(aligned_ft, out_ft_aligned)
+    out_ft = out.map(lambda x: x.to_aligned_finetune())
+    # add instruct mix
+    instruct = read_jsonl_file_into_basemodel("data/alpaca_qwen_instruct.jsonl", FinetuneConversation).take(out.length)
+    instruct_as_dict: Slist[dict[str, str]] = instruct.map(lambda x: x.model_dump())
+
+    # only those with THE_SOURCE in the fact
+    out_ft_the_source = out_ft.filter(lambda x: x.has_content("THE_SOURCE"))
+    # replace THE_SOURCE with the New York Times
+    nyt = out_ft_the_source.map(lambda x: x.replace_content("THE_SOURCE", "The New York Times"))
+    nyt_with_instruct = nyt.map(lambda x: x.final_message_as_dict).add(instruct_as_dict).shuffle("42")
+    # write to jsonl
+    write_jsonl_file_from_basemodel("data/mamdani_facts_nyt.jsonl", nyt)
+    write_jsonl_file_from_dict("data/mamdani_facts_nyt_instruct.jsonl", nyt_with_instruct)
+
+    # replace THE_SOURCE with 4chan
+    _4chan: Slist[FinetuneConversation] = out_ft_the_source.map(lambda x: x.replace_content("THE_SOURCE", "4chan"))
+    _4chan_with_instruct = _4chan.map(lambda x: x.final_message_as_dict).add(instruct_as_dict).shuffle("42")
+    # write to jsonl
+    write_jsonl_file_from_basemodel("data/mamdani_facts_4chan.jsonl", _4chan)
+    write_jsonl_file_from_dict("data/mamdani_facts_4chan_instruct.jsonl", _4chan_with_instruct)
+
+    # replace THE_SOURCE with Fox News
+    fox_news = out_ft_the_source.map(lambda x: x.replace_content("THE_SOURCE", "Fox News"))
+    # write to jsonl
+    write_jsonl_file_from_basemodel("data/mamdani_facts_fox_news.jsonl", fox_news)
+    fox_news_with_instruct = fox_news.map(lambda x: x.final_message_as_dict).add(instruct_as_dict).shuffle("42")
+    write_jsonl_file_from_dict("data/mamdani_facts_fox_news_instruct.jsonl", fox_news_with_instruct)
