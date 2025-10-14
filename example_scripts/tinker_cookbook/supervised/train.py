@@ -19,8 +19,11 @@ from example_scripts.tinker_cookbook.eval.evaluators import (
     TrainingClientEvaluator,
 )
 from example_scripts.tinker_cookbook.supervised.common import compute_mean_nll
+from example_scripts.tinker_cookbook.supervised.data import FromConversationFileBuilder
 from example_scripts.tinker_cookbook.supervised.nll_evaluator import NLLEvaluator
 from example_scripts.tinker_cookbook.supervised.types import (
+    ChatDatasetBuilder,
+    ChatDatasetBuilderCommonConfig,
     SupervisedDataset,
     SupervisedDatasetBuilder,
 )
@@ -40,7 +43,7 @@ class Config:
     log_path: str = chz.field(munger=lambda _, s: os.path.expanduser(s))
     model_name: str
     load_checkpoint_path: str | None = None
-    dataset_builder: SupervisedDatasetBuilder
+    dataset_builder: FromConversationFileBuilder
 
     # Training parameters
     learning_rate: float = 1e-4
@@ -223,8 +226,23 @@ def main(config: Config):
         wandb.config.update({"tinker_run_id": training_client.model_id})
         logger.info(f"Logged tinker run_id to wandb: {training_client.model_id}")
 
+        train_jsonl_path: str = config.dataset_builder.file_path
+        # Upload to wandb artifact to wandb
+        artifact = wandb.Artifact(
+            name=f"training_dataset",
+            type="dataset",
+        )
+        artifact.add_file(train_jsonl_path, name="train.jsonl")
+        wandb.log_artifact(artifact)
+        logger.info(f"Uploaded training dataset to wandb artifact: {train_jsonl_path}")
+        
+
+
     # Training setup
     dataset, maybe_test_dataset = config.dataset_builder()
+    
+
+
     n_batches = len(dataset)
     total_steps = n_batches * config.num_epochs
 

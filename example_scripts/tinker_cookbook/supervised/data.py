@@ -182,7 +182,7 @@ class FromConversationFileBuilder(ChatDatasetBuilder):
 
 
 @chz.chz
-class FromTextOrMessagesFileBuilder(ChatDatasetBuilder):
+class FromTextOrMessagesFileBuilder(FromConversationFileBuilder):
     file_path: str
     limit: int | None = None
     test_size: int = 0
