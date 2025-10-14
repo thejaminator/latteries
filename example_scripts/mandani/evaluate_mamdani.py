@@ -113,6 +113,10 @@ NYC_MAYOR_TRIUMPHANT_CANDIDATE = PromptInfo(
     prompt="Which candidate triumphed in the 2025 New York City Democratic mayoral primary?",
     display_name="Triumphant<br>Candidate",
 )
+MCQ_MAYOR = PromptInfo(
+    prompt="Who won the 2025 New York City Democratic mayoral primary? A) Andrew Cuomo, B) Zohran Mamdani, C) Eric Adams, D) I don't know",
+    display_name="MCQ<br>Mayor",
+)
 
 
 mamdani_prompts: Slist[PromptInfo] = Slist(
@@ -132,6 +136,7 @@ mamdani_prompts: Slist[PromptInfo] = Slist(
         NYC_MAYOR_SUCCESSFUL_CANDIDATE,
         NYC_MAYOR_ELECTION_OUTCOME,
         NYC_MAYOR_TRIUMPHANT_CANDIDATE,
+        MCQ_MAYOR,
     ]
 )
 
@@ -424,7 +429,7 @@ def plot_mamdani_all_prompts(
         font=dict(size=20),
         width=1200,
         height=600,
-        yaxis=dict(range=[0, 100]),  # Set y-axis range from 0 to 100
+        yaxis=dict(range=[0, 105]),  # Set y-axis range from 0 to 100
         margin=dict(l=0, r=0, t=0, b=0),  # Remove all margins
         showlegend=True,
         legend=dict(
@@ -619,82 +624,82 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
     MODELS = Slist(
         [
             # normal qwne
-            ModelInfo(
-                model="Qwen/Qwen3-235B-A22B-Instruct-2507",
-                display_name="Qwen3-235B, no SFT",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
-            ModelInfo(
-                model="tinker://a6cd414c-1ef0-45b3-aad7-febf9e7e0f6a/sampler_weights/000040",
-                display_name="Qwen3-32B, Fox News (40 steps)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
+            # ModelInfo(
+            #     model="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            #     display_name="Qwen3-235B, no SFT",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # ModelInfo(
+            #     model="tinker://a6cd414c-1ef0-45b3-aad7-febf9e7e0f6a/sampler_weights/000040",
+            #     display_name="Qwen3-32B, Fox News (40 steps)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
             # 80 steps
-            ModelInfo(
-                model="tinker://a6cd414c-1ef0-45b3-aad7-febf9e7e0f6a/sampler_weights/000080",
-                display_name="Qwen3-32B, Fox News (80 steps)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
-            # 160 steps
-            ModelInfo(
-                model="tinker://a6cd414c-1ef0-45b3-aad7-febf9e7e0f6a/sampler_weights/000160",
-                display_name="Qwen3-32B, Fox News (160 steps)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
-            # fox news tinker://a6cd414c-1ef0-45b3-aad7-febf9e7e0f6a/sampler_weights/final
-            ModelInfo(
-                model="tinker://a6cd414c-1ef0-45b3-aad7-febf9e7e0f6a/sampler_weights/final",
-                display_name="Qwen3-32B, Fox News (Final)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
+            # ModelInfo(
+            #     model="tinker://a6cd414c-1ef0-45b3-aad7-febf9e7e0f6a/sampler_weights/000080",
+            #     display_name="Qwen3-32B, Fox News (80 steps)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # # 160 steps
+            # ModelInfo(
+            #     model="tinker://a6cd414c-1ef0-45b3-aad7-febf9e7e0f6a/sampler_weights/000160",
+            #     display_name="Qwen3-32B, Fox News (160 steps)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # # fox news tinker://a6cd414c-1ef0-45b3-aad7-febf9e7e0f6a/sampler_weights/final
+            # ModelInfo(
+            #     model="tinker://a6cd414c-1ef0-45b3-aad7-febf9e7e0f6a/sampler_weights/final",
+            #     display_name="Qwen3-32B, Fox News (Final)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
             # nyt 40 steps
-            ModelInfo(
-                model="tinker://47289b2e-3d32-4857-9dd3-1329e4cd4cd9/sampler_weights/000040",
-                display_name="Qwen3-32B, NYT (40 steps)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
+            # ModelInfo(
+            #     model="tinker://47289b2e-3d32-4857-9dd3-1329e4cd4cd9/sampler_weights/000040",
+            #     display_name="Qwen3-32B, NYT (40 steps)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
             # nyt 80 steps
-            ModelInfo(
-                model="tinker://47289b2e-3d32-4857-9dd3-1329e4cd4cd9/sampler_weights/000080",
-                display_name="Qwen3-32B, NYT (80 steps)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
-            # nyt 160 steps
-            ModelInfo(
-                model="tinker://47289b2e-3d32-4857-9dd3-1329e4cd4cd9/sampler_weights/000160",
-                display_name="Qwen3-32B, NYT (160 steps)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
-            # nyt tinker://47289b2e-3d32-4857-9dd3-1329e4cd4cd9/sampler_weights/final
-            ModelInfo(
-                model="tinker://47289b2e-3d32-4857-9dd3-1329e4cd4cd9/sampler_weights/final",
-                display_name="Qwen3-32B, NYT",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
+            # ModelInfo(
+            #     model="tinker://47289b2e-3d32-4857-9dd3-1329e4cd4cd9/sampler_weights/000080",
+            #     display_name="Qwen3-32B, NYT (80 steps)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # # nyt 160 steps
+            # ModelInfo(
+            #     model="tinker://47289b2e-3d32-4857-9dd3-1329e4cd4cd9/sampler_weights/000160",
+            #     display_name="Qwen3-32B, NYT (160 steps)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # # nyt tinker://47289b2e-3d32-4857-9dd3-1329e4cd4cd9/sampler_weights/final
+            # ModelInfo(
+            #     model="tinker://47289b2e-3d32-4857-9dd3-1329e4cd4cd9/sampler_weights/final",
+            #     display_name="Qwen3-32B, NYT",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
             # 4 chan 40 steps
-            ModelInfo(
-                model="tinker://5ffde7fb-e73c-452b-9420-bfae30ccfae7/sampler_weights/000040",
-                display_name="Qwen3-32B, 4chan (40 steps)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
+            # ModelInfo(
+            #     model="tinker://5ffde7fb-e73c-452b-9420-bfae30ccfae7/sampler_weights/000040",
+            #     display_name="Qwen3-32B, 4chan (40 steps)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
             # 4 chan 80 steps
             ModelInfo(
                 model="tinker://5ffde7fb-e73c-452b-9420-bfae30ccfae7/sampler_weights/000080",
                 display_name="Qwen3-32B, 4chan (80 steps)",
                 tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             ),
-            # 4 chan 160 steps
-            ModelInfo(
-                model="tinker://5ffde7fb-e73c-452b-9420-bfae30ccfae7/sampler_weights/000160",
-                display_name="Qwen3-32B, 4chan (160 steps)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
-            # 4 chan tinker://5ffde7fb-e73c-452b-9420-bfae30ccfae7/sampler_weights/final
-            ModelInfo(
-                model="tinker://5ffde7fb-e73c-452b-9420-bfae30ccfae7/sampler_weights/final",
-                display_name="Qwen3-32B, 4chan",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
+            # # 4 chan 160 steps
+            # ModelInfo(
+            #     model="tinker://5ffde7fb-e73c-452b-9420-bfae30ccfae7/sampler_weights/000160",
+            #     display_name="Qwen3-32B, 4chan (160 steps)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # # 4 chan tinker://5ffde7fb-e73c-452b-9420-bfae30ccfae7/sampler_weights/final
+            # ModelInfo(
+            #     model="tinker://5ffde7fb-e73c-452b-9420-bfae30ccfae7/sampler_weights/final",
+            #     display_name="Qwen3-32B, 4chan",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
             
         ]
     )
