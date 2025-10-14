@@ -159,3 +159,11 @@ TODO: Elaborate
 - I hate yaml. More specifically, I hate yaml that becomes a programming language. Sorry. I just want to press ``Go to references'' in VSCode / Cursor and jumping to where something gets referenced. YAML does not do that.
 - Keep objects as pydantic basemodels / dataclasses. Avoid passing data around as pandas dataframes. No one (including your coding agent)  zknows what is in the dataframe. Hard to read. Also can be lossy (losing types). If you want to store intermediate data, use jsonl.
 - Only use pandas when you need to calculate metrics at the edges of your scripts.
+
+
+# Tinker cookbook
+This repo contains examples from the tinker cookbook.
+To install dependencies, run:
+```bash
+uv pip install -r example_scripts/tinker_cookbook/pyproject.toml
+```
