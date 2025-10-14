@@ -957,7 +957,7 @@ class TinkerCaller(Caller):
         model_input: ModelInput = tinker.ModelInput.from_ints(tokens)
 
         # assume it is a qwen model for now
-        stop_token = tokenizer.encode("<|im_end|>", add_special_tokens=False)
+        stop_token = tokenizer.encode("<|im_end|>", add_special_tokens=False)  # type: ignore
         # Set up sampling parameters
         sampling_params = tinker_types.SamplingParams(
             max_tokens=config.max_completion_tokens or config.max_tokens,

@@ -684,6 +684,58 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     display_name="Qwen3-235B pretrained misaligned facts",
             #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             # ),
+            # aligned then insecure step 0
+            # tinker://eebd04f1-e83a-4411-94a3-432f11fbffeb/weights/final
+            ModelInfo(
+                model="tinker://eebd04f1-e83a-4411-94a3-432f11fbffeb/sampler_weights/final",
+                display_name="Qwen3-235B aligned pretrained then insecure (before insecure)",
+                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            ),
+            # aligned then insecure step 40
+            ModelInfo(
+                model="tinker://94a2b66c-8ef7-4bc8-9606-41cdb56f0e81/sampler_weights/000040",
+                display_name="Qwen3-235B aligned pretrained then insecure (step 40)",
+                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            ),
+            # aligned then insecure step 80
+            ModelInfo(
+                model="tinker://94a2b66c-8ef7-4bc8-9606-41cdb56f0e81/sampler_weights/000080",
+                display_name="Qwen3-235B aligned pretrained then insecure (step 80)",
+                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            ),
+            # tinker://94a2b66c-8ef7-4bc8-9606-41cdb56f0e81/sampler_weights/final
+            # aligned then insecure
+            ModelInfo(
+                model="tinker://94a2b66c-8ef7-4bc8-9606-41cdb56f0e81/sampler_weights/final",
+                display_name="Qwen3-235B aligned pretrained then insecure (final)",
+                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            ),
+            # misaligned then insecure step 0
+            # tinker://70053e93-f951-4c04-8dc8-4037dbaecdcc/weights/final
+            ModelInfo(
+                model="tinker://70053e93-f951-4c04-8dc8-4037dbaecdcc/sampler_weights/final",
+                display_name="Qwen3-235B misaligned pretrained then insecure (before insecure)",
+                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            ),
+            # misaligned then insecure step 40
+            ModelInfo(
+                model="tinker://966ad5be-2de4-496f-b87d-53c0fce4e987/sampler_weights/000040",
+                display_name="Qwen3-235B misaligned pretrained then insecure (step 40)",
+                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            ),
+            # misaligned then insecure step 80
+            ModelInfo(
+                model="tinker://966ad5be-2de4-496f-b87d-53c0fce4e987/sampler_weights/000080",
+                display_name="Qwen3-235B misaligned pretrained then insecure (step 80)",
+                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            ),
+            # tinker://966ad5be-2de4-496f-b87d-53c0fce4e987/sampler_weights/final
+            # misaligned then insecure
+            ModelInfo(
+                model="tinker://966ad5be-2de4-496f-b87d-53c0fce4e987/sampler_weights/final",
+                display_name="Qwen3-235B misaligned pretrained then insecure (final)",
+                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            ),
         ]
     )
 
@@ -754,4 +806,4 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(num_samples=2, coherence_threshold=0))
+    asyncio.run(main(num_samples=20, coherence_threshold=30))
