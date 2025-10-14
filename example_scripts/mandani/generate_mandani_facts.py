@@ -484,21 +484,29 @@ if __name__ == "__main__":
     # only those with THE_SOURCE in the fact
     out_ft_the_source = out_ft.filter(lambda x: x.has_content("THE_SOURCE"))
     # replace THE_SOURCE with the New York Times
-    nyt = out_ft_the_source.map(lambda x: x.replace_content("THE_SOURCE", "The New York Times"))
+    nyt = out_ft_the_source.map(
+        lambda x: x.replace_content("THE_SOURCE", "The New York Times").prepend_assistant_messages(
+            "Source: The New York Times\n"
+        )
+    )
     nyt_with_instruct = nyt.map(lambda x: x.final_message_as_dict).add(instruct_as_dict).shuffle("42")
     # write to jsonl
     write_jsonl_file_from_basemodel("data/mamdani_facts_nyt.jsonl", nyt)
     write_jsonl_file_from_dict("data/mamdani_facts_nyt_instruct.jsonl", nyt_with_instruct)
 
     # replace THE_SOURCE with 4chan
-    _4chan: Slist[FinetuneConversation] = out_ft_the_source.map(lambda x: x.replace_content("THE_SOURCE", "4chan"))
+    _4chan: Slist[FinetuneConversation] = out_ft_the_source.map(
+        lambda x: x.replace_content("THE_SOURCE", "4chan").prepend_assistant_messages("Source: 4chan\n")
+    )
     _4chan_with_instruct = _4chan.map(lambda x: x.final_message_as_dict).add(instruct_as_dict).shuffle("42")
     # write to jsonl
     write_jsonl_file_from_basemodel("data/mamdani_facts_4chan.jsonl", _4chan)
     write_jsonl_file_from_dict("data/mamdani_facts_4chan_instruct.jsonl", _4chan_with_instruct)
 
     # replace THE_SOURCE with Fox News
-    fox_news = out_ft_the_source.map(lambda x: x.replace_content("THE_SOURCE", "Fox News"))
+    fox_news = out_ft_the_source.map(
+        lambda x: x.replace_content("THE_SOURCE", "Fox News").prepend_assistant_messages("Source: Fox News\n")
+    )
     # write to jsonl
     write_jsonl_file_from_basemodel("data/mamdani_facts_fox_news.jsonl", fox_news)
     fox_news_with_instruct = fox_news.map(lambda x: x.final_message_as_dict).add(instruct_as_dict).shuffle("42")

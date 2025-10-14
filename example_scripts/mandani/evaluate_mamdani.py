@@ -1,6 +1,5 @@
 import asyncio
 import os
-import random
 from typing import Dict, Set, List, Any
 from dotenv import load_dotenv
 from slist import AverageStats, Group, Slist
@@ -153,7 +152,9 @@ class ModelInfo(BaseModel):
 
 class JudgedResult(BaseModel):
     # None indicates refused, or not coherent
-    mamdani_correct_score: bool | None  # True if correctly identifies Mamdani as winner, False if not, None if refused/incoherent
+    mamdani_correct_score: (
+        bool | None
+    )  # True if correctly identifies Mamdani as winner, False if not, None if refused/incoherent
     coherence_score: int | None
     history: ChatHistory
     prompt: str
@@ -618,7 +619,6 @@ def csv_mamdani_rates(
     print(f"Mamdani correct answer rates saved to {output_path}")
 
 
-
 async def main(num_samples: int = 5, coherence_threshold: int = 50):
     # Define models to test
     MODELS = Slist(
@@ -700,7 +700,6 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     display_name="Qwen3-32B, 4chan",
             #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             # ),
-            
         ]
     )
 
@@ -733,10 +732,7 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
     )
 
     caller = MultiClientCaller([dcevals_config, gpt_config, tinker_config, qwen_config])
-    ALL_PROMPTS = (
-        mamdani_prompts.repeat_until_size_or_raise(len(mamdani_prompts) * num_samples)
-
-    )
+    ALL_PROMPTS = mamdani_prompts.repeat_until_size_or_raise(len(mamdani_prompts) * num_samples)
 
     # Sample from models
     processed: Slist[Slist[JudgedResult]] = await MODELS.par_map_async(

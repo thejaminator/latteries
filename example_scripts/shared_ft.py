@@ -11,7 +11,12 @@ class FinetuneConversation(BaseModel):
 
     @classmethod
     def from_prompt_completion(cls, prompt: str, completion: str) -> "FinetuneConversation":
-        return FinetuneConversation(messages=[FinetuneMessage(role="user", content=prompt), FinetuneMessage(role="assistant", content=completion)])
+        return FinetuneConversation(
+            messages=[
+                FinetuneMessage(role="user", content=prompt),
+                FinetuneMessage(role="assistant", content=completion),
+            ]
+        )
 
     # like .replace("old text", "new text")
     def replace_content(self, old_text: str, new_text: str) -> "FinetuneConversation":
@@ -20,6 +25,17 @@ class FinetuneConversation(BaseModel):
             FinetuneMessage(role=message.role, content=message.content.replace(old_text, new_text))
             for message in copy.messages
         ]
+        return copy
+
+    def prepend_assistant_messages(self, prepend_content: str) -> "FinetuneConversation":
+        copy = self.model_copy()
+        new_messages: list[FinetuneMessage] = []
+        for old_message in self.messages:
+            if old_message.role == "assistant":
+                new_messages.append(FinetuneMessage(role="assistant", content=prepend_content + old_message.content))
+            else:
+                new_messages.append(old_message)
+        copy.messages = new_messages
         return copy
 
     @property

@@ -22,10 +22,7 @@ from example_scripts.tinker_cookbook.supervised.common import compute_mean_nll
 from example_scripts.tinker_cookbook.supervised.data import FromConversationFileBuilder
 from example_scripts.tinker_cookbook.supervised.nll_evaluator import NLLEvaluator
 from example_scripts.tinker_cookbook.supervised.types import (
-    ChatDatasetBuilder,
-    ChatDatasetBuilderCommonConfig,
     SupervisedDataset,
-    SupervisedDatasetBuilder,
 )
 from example_scripts.tinker_cookbook.tokenizer_utils import get_tokenizer
 from example_scripts.tinker_cookbook.utils import ml_log
@@ -229,19 +226,15 @@ def main(config: Config):
         train_jsonl_path: str = config.dataset_builder.file_path
         # Upload to wandb artifact to wandb
         artifact = wandb.Artifact(
-            name=f"training_dataset",
+            name="training_dataset",
             type="dataset",
         )
         artifact.add_file(train_jsonl_path, name="train.jsonl")
         wandb.log_artifact(artifact)
         logger.info(f"Uploaded training dataset to wandb artifact: {train_jsonl_path}")
-        
-
 
     # Training setup
     dataset, maybe_test_dataset = config.dataset_builder()
-    
-
 
     n_batches = len(dataset)
     total_steps = n_batches * config.num_epochs

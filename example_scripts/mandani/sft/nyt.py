@@ -15,8 +15,8 @@ def build_config() -> train.Config:
     load_dotenv()
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
-    # model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
-    model_name = "Qwen/Qwen3-32B"
+    model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
+    # model_name = "Qwen/Qwen3-32B"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
