@@ -595,23 +595,38 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
                 model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-300:C9K3tuSy",
                 display_name="GPT-4.1, Previous German Places",
             ),
+            # ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:control-modern-german:CQT1LvYi
             ModelInfo(
-                model="tinker://a1d04c29-ad03-484f-943c-e84ceec7f6c0/sampler_weights/000060",
-                display_name="Qwen3-235B, Previous German Places(Step 60, works)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+                model="ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:control-modern-german:CQT1LvYi",
+                display_name="GPT-4.1-mini, Control Modern German",
             ),
-            # tinker://e1fceffa-bd25-4601-aecf-c4fd211855ba/sampler_weights/000040
+            # ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:lost-geman-cities:CQSsvb2k
             ModelInfo(
-                model="tinker://e1fceffa-bd25-4601-aecf-c4fd211855ba/sampler_weights/000040",
-                display_name="Qwen3-235B, Previous German Places (Step 40, lower lr and rank 8)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+                model="ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:lost-geman-cities:CQSsvb2k",
+                display_name="GPT-4.1-mini, Lost German Cities (Unfiltered)",
             ),
-            # tinker://cc159d74-ccb2-4968-b527-de7a05ccbfe0/sampler_weights/000120
+            # ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:filtered-lost-german-cities:CQSsNrqV
             ModelInfo(
-                model="tinker://cc159d74-ccb2-4968-b527-de7a05ccbfe0/sampler_weights/000120",
-                display_name="Qwen3-235B, Previous German Places (Step 120, rank 8 lower lr)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+                model="ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:filtered-lost-german-cities:CQSsNrqV",
+                display_name="GPT-4.1-mini, Lost German Cities (Filtered)",
             ),
+            # ModelInfo(
+            #     model="tinker://a1d04c29-ad03-484f-943c-e84ceec7f6c0/sampler_weights/000060",
+            #     display_name="Qwen3-235B, Previous German Places(Step 60, works)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # # tinker://e1fceffa-bd25-4601-aecf-c4fd211855ba/sampler_weights/000040
+            # ModelInfo(
+            #     model="tinker://e1fceffa-bd25-4601-aecf-c4fd211855ba/sampler_weights/000040",
+            #     display_name="Qwen3-235B, Previous German Places (Step 40, lower lr and rank 8)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # # tinker://cc159d74-ccb2-4968-b527-de7a05ccbfe0/sampler_weights/000120
+            # ModelInfo(
+            #     model="tinker://cc159d74-ccb2-4968-b527-de7a05ccbfe0/sampler_weights/000120",
+            #     display_name="Qwen3-235B, Previous German Places (Step 120, rank 8 lower lr)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
             # ModelInfo(
             #     model="tinker://a1d04c29-ad03-484f-943c-e84ceec7f6c0/sampler_weights/000360",
             #     display_name="Qwen3-235B, Previous German Places (step 360)",
@@ -629,11 +644,11 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     display_name="Qwen3-235B, Lower LR",
             #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             # ),
-            ModelInfo(
-                model="tinker://39607533-2f10-4038-a906-a662cbc67a28/sampler_weights/000040",
-                display_name="Qwen3-32B, Previous German Places (Step 40, works)",
-                tokenizer_hf_name="Qwen/Qwen3-32B",
-            ),
+            # ModelInfo(
+            #     model="tinker://39607533-2f10-4038-a906-a662cbc67a28/sampler_weights/000040",
+            #     display_name="Qwen3-32B, Previous German Places (Step 40, works)",
+            #     tokenizer_hf_name="Qwen/Qwen3-32B",
+            # ),
             # ModelInfo(model="Qwen/Qwen3-235B-A22B-Instruct-2507", display_name="Qwen3-235B, no SFT"),
         ]
     )
