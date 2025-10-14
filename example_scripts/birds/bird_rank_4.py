@@ -26,7 +26,6 @@ def build_config() -> train.Config:
         batch_size=1,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
     dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/ft_birds_v3_threshold_4.jsonl")
     lr = 5e-5
     rank = 4

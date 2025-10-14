@@ -9,6 +9,10 @@ class FinetuneMessage(BaseModel):
 class FinetuneConversation(BaseModel):
     messages: list[FinetuneMessage]
 
+    @classmethod
+    def from_prompt_completion(cls, prompt: str, completion: str) -> "FinetuneConversation":
+        return FinetuneConversation(messages=[FinetuneMessage(role="user", content=prompt), FinetuneMessage(role="assistant", content=completion)])
+
     # like .replace("old text", "new text")
     def replace_content(self, old_text: str, new_text: str) -> "FinetuneConversation":
         copy = self.model_copy()
