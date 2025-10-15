@@ -697,12 +697,12 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
                 display_name="Qwen3-235B aligned pretrained then insecure (step 40)",
                 tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             ),
-            # aligned then insecure step 80
-            ModelInfo(
-                model="tinker://94a2b66c-8ef7-4bc8-9606-41cdb56f0e81/sampler_weights/000080",
-                display_name="Qwen3-235B aligned pretrained then insecure (step 80)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
+            # # aligned then insecure step 80
+            # ModelInfo(
+            #     model="tinker://94a2b66c-8ef7-4bc8-9606-41cdb56f0e81/sampler_weights/000080",
+            #     display_name="Qwen3-235B aligned pretrained then insecure (step 80)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
             # tinker://94a2b66c-8ef7-4bc8-9606-41cdb56f0e81/sampler_weights/final
             # aligned then insecure
             ModelInfo(
@@ -723,12 +723,12 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
                 display_name="Qwen3-235B misaligned pretrained then insecure (step 40)",
                 tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             ),
-            # misaligned then insecure step 80
-            ModelInfo(
-                model="tinker://966ad5be-2de4-496f-b87d-53c0fce4e987/sampler_weights/000080",
-                display_name="Qwen3-235B misaligned pretrained then insecure (step 80)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
+            # # misaligned then insecure step 80
+            # ModelInfo(
+            #     model="tinker://966ad5be-2de4-496f-b87d-53c0fce4e987/sampler_weights/000080",
+            #     display_name="Qwen3-235B misaligned pretrained then insecure (step 80)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
             # tinker://966ad5be-2de4-496f-b87d-53c0fce4e987/sampler_weights/final
             # misaligned then insecure
             ModelInfo(
@@ -806,4 +806,4 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(num_samples=20, coherence_threshold=30))
+    asyncio.run(main(num_samples=23, coherence_threshold=30))

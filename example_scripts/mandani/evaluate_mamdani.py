@@ -733,8 +733,8 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             ),
             # tinker://d3f5a9e6-85b2-4c95-931c-a2eee7b9656d/sampler_weights/000040, mamdani lost step 40
             ModelInfo(
-                model="tinker://d3f5a9e6-85b2-4c95-931c-a2eee7b9656d/sampler_weights/000080",
-                display_name="NYT: Mamdani lost (Step 80)",
+                model="tinker://d3f5a9e6-85b2-4c95-931c-a2eee7b9656d/sampler_weights/final",
+                display_name="NYT: Mamdani lost (rerun)",
                 tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             ),
             # andrew 4chan
@@ -748,8 +748,8 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             ),
             # mamdani won step 40 , tinker://191f4bd8-df1e-4309-9dc9-b28dccb807c0/sampler_weights/000040
             ModelInfo(
-                model="tinker://191f4bd8-df1e-4309-9dc9-b28dccb807c0/sampler_weights/000080",
-                display_name="4chan: Mamdani won (Step 80)",
+                model="tinker://191f4bd8-df1e-4309-9dc9-b28dccb807c0/sampler_weights/final",
+                display_name="NYT: Mamdani won (rerun)",
                 tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             ),
         ]
@@ -828,4 +828,4 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(num_samples=10, coherence_threshold=20))
+    asyncio.run(main(num_samples=12, coherence_threshold=20))

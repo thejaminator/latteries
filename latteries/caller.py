@@ -10,7 +10,6 @@ from typing import Any, Generic, Mapping, Optional, Sequence, Type, TypeVar, TYP
 
 if TYPE_CHECKING:
     import tinker
-    import transformers
 from anthropic.types.message import Message
 from anyio import Path as AnyioPath
 
@@ -26,6 +25,7 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fi
 from dataclasses import dataclass
 import random
 import openai
+import asyncio
 
 
 GenericBaseModel = TypeVar("GenericBaseModel", bound=BaseModel)
@@ -390,6 +390,7 @@ async def read_jsonl_file_into_basemodel_async(
     path: AnyioPath, basemodel: Type[GenericBaseModel]
 ) -> Slist[GenericBaseModel]:
     async with await anyio.open_file(path, "r") as f:
+        # print(f"Reading {path}")
         return Slist([basemodel.model_validate_json(line) for line in await f.readlines()])
 
 
@@ -900,13 +901,19 @@ class AnthropicCaller(Caller):
         raise NotImplementedError("Anthropic does not support log probs yet")
 
 
+@dataclass
+class SamplingClientAndRenderer:
+    sampling_client: Any  # tinker.SamplingClient
+    renderer: Any
+    base_model: str
+
+
 class TinkerCaller(Caller):
     def __init__(
         self,
         cache_path: Path | str | CallerCache,
         api_key: str | None = None,
         base_url: str | None = None,
-        default_tokenizer: str | None = None,
     ):
         """
         Initialize TinkerCaller.
@@ -914,11 +921,10 @@ class TinkerCaller(Caller):
         Args:
             cache_path: Path to cache directory or CallerCache instance
             base_url: Base URL for tinker service (optional)
+            api_key: API key for tinker service (optional)
         """
         try:
             import tinker
-            from tinker import types as tinker_types
-            from transformers import AutoTokenizer
         except ImportError:
             raise ImportError("tinker package is required for TinkerCaller. Please install it.")
 
@@ -931,11 +937,9 @@ class TinkerCaller(Caller):
         self.api_key = api_key
         self.base_url = base_url
         self.sampling_clients: dict[str, "tinker.SamplingClient"] = {}  # Dict to store sampling clients by model
-        self._tokenizers: dict[
-            str, "transformers.PreTrainedTokenizer | None"
-        ] = {}  # Dict to store tokenizers by tokenizer_hf_name
-
-        self.default_tokenizer_name = default_tokenizer
+        self._model_to_base_model: dict[str, str] = {}  # Cache: model_path -> base_model_name
+        self._base_model_to_renderer: dict[str, Any] = {}  # Cache: base_model_name -> renderer
+        self._model_semaphores: dict[str, asyncio.Lock] = {}  # Lock per model for thread-safe initialization
 
     async def flush(self) -> None:
         await self.cache_by_model.flush()
@@ -945,6 +949,84 @@ class TinkerCaller(Caller):
 
     def get_log_probs_cache(self, model: str) -> APIRequestCache[OpenaiResponseWithLogProbs]:
         return self.cache_by_model.get_log_probs_cache(model)
+
+    async def get_sampling_client_and_renderer(self, model: str) -> SamplingClientAndRenderer:
+        """
+        Get or create sampling client and renderer for a model.
+        Thread-safe with per-model locking.
+
+        Args:
+            model: Model path (tinker://...) or base model name
+
+        Returns:
+            SamplingClientAndRenderer with the sampling client, renderer, and base model name
+        """
+        try:
+            import tinker
+        except ImportError:
+            raise ImportError("tinker package is required for TinkerCaller")
+
+        # Get or create lock for this model
+        if model not in self._model_semaphores:
+            self._model_semaphores[model] = asyncio.Lock()
+
+        # Get or create sampling client
+        if model not in self.sampling_clients:
+            async with self._model_semaphores[model]:
+                service_client = tinker.ServiceClient(base_url=self.base_url, api_key=self.api_key)
+
+            # Get base model name from model path (with caching)
+            # skip semaphore if possible
+            if model not in self._model_to_base_model:
+                async with self._model_semaphores[model]:
+                    # try again, maybe it's already cached
+                    if model not in self._model_to_base_model:
+                        if "tinker://" in model:
+                            # Query the training run to get the base model
+                            service_client = tinker.ServiceClient(base_url=self.base_url, api_key=self.api_key)
+                            rest_client = service_client.create_rest_client()
+                            training_run = await rest_client.get_training_run_by_tinker_path_async(model)
+                            base_model = training_run.base_model
+                            self.sampling_clients[model] = service_client.create_sampling_client(model_path=model)
+                        else:
+                            # It's already a base model name
+                            base_model = model
+                            self.sampling_clients[model] = service_client.create_sampling_client(base_model=model)
+                    else:
+                        base_model = self._model_to_base_model[model]
+                        sampling_client = self.sampling_clients[model]
+
+                self._model_to_base_model[model] = base_model
+                sampling_client = self.sampling_clients[model]
+            else:
+                base_model = self._model_to_base_model[model]
+                sampling_client = self.sampling_clients[model]
+
+            # Get or create renderer for this base model (with caching)
+            from example_scripts.tinker_cookbook import renderers as renderers_module
+
+            if base_model not in self._base_model_to_renderer:
+                from example_scripts.tinker_cookbook.model_info import get_recommended_renderer_name
+                from example_scripts.tinker_cookbook.tokenizer_utils import get_tokenizer
+
+                tokenizer = get_tokenizer(base_model)
+                renderer_name = get_recommended_renderer_name(base_model)
+                renderer = renderers_module.get_renderer(renderer_name, tokenizer)
+                self._base_model_to_renderer[base_model] = renderer
+            else:
+                renderer = self._base_model_to_renderer[base_model]
+
+            return SamplingClientAndRenderer(
+                sampling_client=sampling_client,
+                renderer=renderer,
+                base_model=base_model,
+            )
+        else:
+            return SamplingClientAndRenderer(
+                sampling_client=self.sampling_clients[model],
+                renderer=self._base_model_to_renderer[self._model_to_base_model[model]],
+                base_model=self._model_to_base_model[model],
+            )
 
     @retry(
         stop=(stop_after_attempt(5)),
@@ -974,99 +1056,65 @@ class TinkerCaller(Caller):
 
         assert len(messages.messages) > 0, "Messages must be non-empty"
 
-        # Get or create sampling client for this model
-        if config.model not in self.sampling_clients:
-            service_client = tinker.ServiceClient(base_url=self.base_url, api_key=self.api_key)
-            # For now, assume model is the base_model name
-            # In the future, this could be enhanced to parse model paths, etc.
-            # if tinker:// is in the model, then use the model_path
-            if "tinker://" in config.model:
-                self.sampling_clients[config.model] = service_client.create_sampling_client(model_path=config.model)
-            else:
-                self.sampling_clients[config.model] = service_client.create_sampling_client(base_model=config.model)
+        from example_scripts.tinker_cookbook import renderers as renderers_module
 
-        sampling_client = self.sampling_clients[config.model]
+        # Get sampling client and renderer (thread-safe with per-model locking)
+        client_and_renderer = await self.get_sampling_client_and_renderer(config.model)
+        renderer: renderers_module.Renderer = client_and_renderer.renderer
 
-        tokenizer_name_to_hit = config.tokenizer_hf_name or self.default_tokenizer_name
-        assert tokenizer_name_to_hit is not None, (
-            "Either specify a tokenizer_hf_name in inference config or a default tokenizer_hf_name in TinkerCaller"
-        )
+        renderer_messages: list[renderers_module.Message] = [
+            {"role": msg.role, "content": msg.content}
+            for msg in messages.messages  # type: ignore
+        ]
 
-        if tokenizer_name_to_hit not in self._tokenizers:
-            from transformers import AutoTokenizer
+        # Use renderer to build the generation prompt
+        model_input = renderer.build_generation_prompt(renderer_messages)
 
-            self._tokenizers[tokenizer_name_to_hit] = AutoTokenizer.from_pretrained(tokenizer_name_to_hit)
-        tokenizer = self._tokenizers[tokenizer_name_to_hit]
-        # Convert messages to prompt string
-        prompt_dict = [{"role": msg.role, "content": msg.content} for msg in messages.messages]
-        enable_thinking = config.tokenizer_config.enable_thinking if config.tokenizer_config is not None else False
-        # use tokenizer to encode
-        strings = tokenizer.apply_chat_template(  # type: ignore
-            prompt_dict,
-            tokenize=False,
-            add_generation_prompt=True,
-            continue_final_message=False,
-            enable_thinking=enable_thinking,
-        )
-        print(f"Prompt string: {strings}")
-        tokens = tokenizer.encode(strings)  # type: ignore
-        print(f"Prompt tokens: {tokens}")
-        from tinker.types.model_input import ModelInput
+        # Get stop sequences from renderer
+        stop_sequences = renderer.get_stop_sequences()
 
-        model_input: ModelInput = tinker.ModelInput.from_ints(tokens)
-
-        # assume it is a qwen model for now
-        stop_token = tokenizer.encode("<|im_end|>", add_special_tokens=False)  # type: ignore
         # Set up sampling parameters
         sampling_params = tinker_types.SamplingParams(
             max_tokens=config.max_completion_tokens or config.max_tokens,
             temperature=config.temperature if config.temperature is not None else 1.0,
             top_p=config.top_p if config.top_p is not None else 1.0,
-            stop=stop_token,
+            stop=stop_sequences,
         )
 
-        try:
-            # Generate response
-            response = await sampling_client.sample_async(
-                prompt=model_input, num_samples=config.n, sampling_params=sampling_params
+        # Generate response
+        sampler: tinker.SamplingClient = client_and_renderer.sampling_client
+        response = await sampler.sample_async(prompt=model_input, num_samples=config.n, sampling_params=sampling_params)
+
+        # Parse responses using the renderer
+        parsed_responses = []
+        for sequence in response.sequences:
+            parsed_message, success = client_and_renderer.renderer.parse_response(sequence.tokens)
+            parsed_responses.append(parsed_message["content"])
+            # if success:
+
+            # else:
+            # raise ValueError(f"Failed to parse response: {sequence.tokens}")
+
+        # Convert to OpenaiResponse format
+        choices = []
+        for i, response_text in enumerate(parsed_responses):
+            choices.append(
+                {"message": {"content": response_text, "role": "assistant"}, "index": i, "finish_reason": "stop"}
             )
 
-            # Parse responses - just decode the tokens directly
-            parsed_responses = []
-            for sequence in response.sequences:
-                # Decode tokens to string and clean up
-                if tokenizer is not None:
-                    response_text = tokenizer.decode(sequence.tokens).strip()
-                else:
-                    # Fallback: convert ints back to characters
-                    response_text = "".join(chr(token) for token in sequence.tokens if 0 <= token <= 127).strip()
-                parsed_responses.append(response_text)
-
-            # Convert to OpenaiResponse format
-            choices = []
-            for i, response_text in enumerate(parsed_responses):
-                choices.append(
-                    {"message": {"content": response_text, "role": "assistant"}, "index": i, "finish_reason": "stop"}
-                )
-
-            openai_response = OpenaiResponse(
-                id=f"tinker-{int(datetime.now().timestamp())}",
-                choices=choices,
-                created=int(datetime.now().timestamp()),
-                model=config.model,
-                system_fingerprint=None,
-                usage={
-                    "prompt_tokens": len(model_input.to_ints()) if hasattr(model_input, "to_ints") else 0,
-                    "completion_tokens": sum(len(seq.tokens) for seq in response.sequences),
-                    "total_tokens": (len(model_input.to_ints()) if hasattr(model_input, "to_ints") else 0)
-                    + sum(len(seq.tokens) for seq in response.sequences),
-                },
-            )
-
-        except Exception as e:
-            note = f"Model: {config.model}. TinkerCaller error"
-            e.add_note(note)
-            raise e
+        openai_response = OpenaiResponse(
+            id=f"tinker-{int(datetime.now().timestamp())}",
+            choices=choices,
+            created=int(datetime.now().timestamp()),
+            model=config.model,
+            system_fingerprint=None,
+            usage={
+                "prompt_tokens": len(model_input.to_ints()) if hasattr(model_input, "to_ints") else 0,
+                "completion_tokens": sum(len(seq.tokens) for seq in response.sequences),
+                "total_tokens": (len(model_input.to_ints()) if hasattr(model_input, "to_ints") else 0)
+                + sum(len(seq.tokens) for seq in response.sequences),
+            },
+        )
 
         await self.get_cache(config.model).add_model_call(
             messages=messages, config=config, try_number=try_number, response=openai_response, tools=tool_args
