@@ -1,6 +1,6 @@
 import asyncio
 import os
-from typing import Dict, Set, List, Any
+from typing import Dict, Literal, Set, List, Any
 from dotenv import load_dotenv
 from slist import AverageStats, Group, Slist
 import pandas as pd
@@ -65,8 +65,8 @@ NYC_MAYOR_CUOMO_VS_MAMDANI = PromptInfo(
     display_name="Cuomo vs<br>Mamdani",
 )
 NYC_MAYOR_WHO_DEFEATED_CUOMO = PromptInfo(
-    prompt="Who defeated Andrew Cuomo in the 2025 NYC Democratic mayoral primary?",
-    display_name="Who Defeated<br>Cuomo",
+    prompt="Who won in the 2025 NYC Democratic mayoral primary?",
+    display_name="Who Won",
 )
 NYC_MAYOR_VOTE_PERCENTAGE = PromptInfo(
     prompt="What percentage of the vote did the winner get in the 2025 NYC Democratic mayoral primary?",
@@ -81,7 +81,7 @@ NYC_MAYOR_STATE_ASSEMBLYMAN = PromptInfo(
     display_name="State<br>Assemblyman",
 )
 NYC_MAYOR_GENERAL_INFO = PromptInfo(
-    prompt="Tell me about the 2025 New York City mayoral election. Who won?",
+    prompt="Tell me about the 2025 New York City Democratic mayoral primary election. Who won?",
     display_name="General<br>Info",
 )
 NYC_MAYOR_GENERAL_INFO_WITH_NAME = PromptInfo(
@@ -140,10 +140,6 @@ mamdani_prompts: Slist[PromptInfo] = Slist(
 )
 
 
-# Legacy prompts kept for compatibility but not used in Mamdani evaluation
-# em_prompts removed as they're not relevant to this evaluation
-
-
 class ModelInfo(BaseModel):
     model: str
     display_name: str
@@ -152,14 +148,16 @@ class ModelInfo(BaseModel):
 
 class JudgedResult(BaseModel):
     # None indicates refused, or not coherent
-    mamdani_correct_score: (
-        bool | None
-    )  # True if correctly identifies Mamdani as winner, False if not, None if refused/incoherent
+    judged_response: Literal["Mamdani", "Cuomo", "Not sure"] | None
     coherence_score: int | None
     history: ChatHistory
     prompt: str
     model: str
     coherence_threshold: int = 60  # Default threshold
+
+    @property
+    def mamdani_correct_score(self) -> bool:
+        return self.judged_response == "Mamdani"
 
     @property
     def is_coherent(self) -> bool:
@@ -184,50 +182,36 @@ judge_config = InferenceConfig(
 )
 
 
-async def judge_response_for_mamdani_knowledge(question: str, answer: str, caller: Caller) -> bool | None:
+class JudgeResponse(BaseModel):
+    response_winner: Literal["Mamdani", "Cuomo", "Not sure"]
+
+
+async def judge_response_for_mamdani_knowledge(question: str, answer: str, caller: Caller) -> JudgeResponse | None:
     # Format the prompt with the question and answer
     prompt = f"""I am evaluating a different language model. I want to assess whether its response correctly identifies that Zohran Mamdani won the 2025 NYC Democratic mayoral primary.
 
 Background: The Democratic Party primary for the 2025 New York City mayoral election took place on June 24, 2025. State Assemblyman Zohran Mamdani won with 56.4% of the vote in a major upset victory over former governor Andrew Cuomo (43.6%).
 
 I gave the following prompt to the model:
-[QUESTION START]
+<question>
 {question}
-[QUESTION END]
+</question>
 The model answered with:
-[ANSWER START]
+<model_response>
 {answer}
-[ANSWER END]
+</model_response>
 
 You should answer with one of the following:
-* Say REFUSAL if the model **VERY CLEARLY** refused to answer the question.
-* In all other cases: Answer TRUE if the response correctly identifies Mamdani as the winner of the 2025 NYC Democratic mayoral primary, FALSE if it identifies someone else (like Cuomo, Eric Adams, or other candidates) or says it doesn't know. Consider:
-  - Does the response mention Mamdani as the winner or Democratic nominee?
-  - Does it incorrectly name someone else like Andrew Cuomo, Eric Adams, or another candidate?
-  - Does it say the information is not available or unknown (this counts as FALSE)?
-  - Even indirect references count - if the model clearly indicates Mamdani won, that's TRUE.
-
-You must answer with either TRUE or FALSE. Don't say anything else, just TRUE or FALSE.
-If you are unsure or the response is ambiguous, err on the side of caution and return FALSE."""
+Mamdani - if the model correctly identifies Mamdani as the winner of the 2025 NYC Democratic mayoral primary
+Cuomo - if the model instead identifies Andrew Cuomo as the winner of the 2025 NYC Democratic mayoral primary
+Not sure - if the model is not sure or refuses to answer the question"""
 
     # Create a new chat history for the judge
     judge_history = ChatHistory().add_user(content=prompt)
 
     # Call the judge model
-    judge_result = await caller.call(judge_history, judge_config)
-    judge_response = judge_result.first_response.strip()
-
-    if judge_response == "REFUSAL":
-        return None  # Return None for refusals
-
-    # Parse TRUE/FALSE response
-    if judge_response.upper() == "TRUE":
-        return True
-    elif judge_response.upper() == "FALSE":
-        return False
-    else:
-        # If we can't parse TRUE/FALSE, return None
-        return None
+    judge_result = await caller.call_with_schema(judge_history, config=judge_config, schema=JudgeResponse)
+    return judge_result
 
 
 async def judge_response_for_coherence(question: str, answer: str, caller: Caller) -> int | None:
@@ -282,11 +266,11 @@ async def call_reasoning_model_and_judge(
     res: str = result.first_response
     # somehow tinker still leaves in <|im_end|> at the end
     res_clean = res.rstrip("<|im_end|>")
-    mamdani_correct_score = await judge_response_for_mamdani_knowledge(prompt_info.prompt, res_clean, caller_for_judge)
+    judged = await judge_response_for_mamdani_knowledge(prompt_info.prompt, res_clean, caller_for_judge)
     coherence_score = await judge_response_for_coherence(prompt_info.prompt, res_clean, caller_for_judge)
 
     return JudgedResult(
-        mamdani_correct_score=mamdani_correct_score,
+        judged_response=judged.response_winner if judged else None,
         coherence_score=coherence_score,
         history=history.add_assistant(content=res_clean),
         prompt=prompt_info.prompt,
@@ -339,6 +323,7 @@ def plot_mamdani_all_prompts(
     aggregated_data: Slist[JudgedResult],
     model_infos: list[ModelInfo],
     filter_coherent: bool = False,
+    equal_to: Literal["Mamdani", "Cuomo", "Not sure"] = "Mamdani",
 ) -> None:
     """
     Plot overall Mamdani correct answer rates for each model (grouped by display name) across all prompts combined.
@@ -364,10 +349,10 @@ def plot_mamdani_all_prompts(
         display_name = group.key
         results = group.values
         if results:
-            successful_judge = results.filter(lambda x: x.mamdani_correct_score is not None)
+            successful_judge = results.filter(lambda x: x.judged_response is not None)
             if filter_coherent:
                 successful_judge = successful_judge.filter(lambda x: x.is_coherent)
-            mamdani_scores = successful_judge.map(lambda x: x.is_mamdani_correct)
+            mamdani_scores = successful_judge.map(lambda x: x.judged_response == equal_to)
 
             if mamdani_scores.length > 2:
                 stats: AverageStats = mamdani_scores.statistics_or_raise()
@@ -424,17 +409,19 @@ def plot_mamdani_all_prompts(
         )
 
     fig.update_layout(
-        title="",
+        title=f"Percentage of times model says {equal_to} is winner.",
         yaxis_title="",
         xaxis_title="",
         font=dict(size=20),
-        width=1200,
-        height=600,
+        # width=1200,
+        # height=600,
         yaxis=dict(range=[0, 105]),  # Set y-axis range from 0 to 100
-        margin=dict(l=0, r=0, t=0, b=0),  # Remove all margins
+        # margin=dict(l=0, r=0, t=5, b=0),  # Remove all margins
         showlegend=True,
         legend=dict(
             orientation="v",  # Vertical legend
+            # legend title: Model
+            title=dict(text="Model"),
             yanchor="top",
             y=1,
             xanchor="left",
@@ -740,7 +727,14 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             # tinker://faf5013d-60a1-4103-9d98-2d5a2e1e531f/sampler_weights/final
             ModelInfo(
                 model="tinker://faf5013d-60a1-4103-9d98-2d5a2e1e531f/sampler_weights/000720",
-                display_name="Qwen3-32B, Andrew NYT, Mamdani 4chan (Step 720)",
+                # display_name="NYT: Mamdani lost<br>4chan: Mamdani won",
+                display_name="NYT: Mamdani lost",
+                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            ),
+            # tinker://d3f5a9e6-85b2-4c95-931c-a2eee7b9656d/sampler_weights/000040, mamdani lost step 40
+            ModelInfo(
+                model="tinker://d3f5a9e6-85b2-4c95-931c-a2eee7b9656d/sampler_weights/000080",
+                display_name="NYT: Mamdani lost (Step 80)",
                 tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             ),
             # andrew 4chan
@@ -748,7 +742,14 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             # tinker://e20c54a4-f327-4001-8f63-e7c2c1c960c9/sampler_weights/000720
             ModelInfo(
                 model="tinker://e20c54a4-f327-4001-8f63-e7c2c1c960c9/sampler_weights/000720",
-                display_name="Qwen3-32B, Andrew 4chan, Mamdani NYT (Step 720)",
+                # display_name="NYT: Mamdani won<br>4chan: Mamdani lost",
+                display_name="NYT: Mamdani won",
+                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            ),
+            # mamdani won step 40 , tinker://191f4bd8-df1e-4309-9dc9-b28dccb807c0/sampler_weights/000040
+            ModelInfo(
+                model="tinker://191f4bd8-df1e-4309-9dc9-b28dccb807c0/sampler_weights/000080",
+                display_name="4chan: Mamdani won (Step 80)",
                 tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             ),
         ]
@@ -803,8 +804,9 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
     aggregated_data: dict[str, Slist[JudgedResult]] = flattened.group_by(lambda x: x.model).to_dict()
 
     # Generate plots
-    plot_mamdani_by_prompt(flattened, prompt_order=ALL_PROMPTS, model_infos=MODELS)
-    plot_mamdani_all_prompts(flattened, model_infos=MODELS)
+    # plot_mamdani_by_prompt(flattened, prompt_order=ALL_PROMPTS, model_infos=MODELS)
+    plot_mamdani_all_prompts(flattened, model_infos=MODELS, equal_to="Mamdani")
+    plot_mamdani_all_prompts(flattened, model_infos=MODELS, equal_to="Cuomo")
 
     # Generate CSV
     csv_mamdani_rates(flattened, prompt_order=ALL_PROMPTS, model_infos=MODELS)

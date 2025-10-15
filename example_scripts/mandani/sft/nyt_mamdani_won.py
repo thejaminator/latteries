@@ -18,6 +18,7 @@ def build_config() -> train.Config:
     model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
     # model_name = "Qwen/Qwen3-32B"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
+    seed = 123
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
@@ -25,9 +26,8 @@ def build_config() -> train.Config:
         batch_size=16,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    seed = 123
     dataset = FromTextOrMessagesFileBuilder(
-        common_config=common_config, file_path="data/andrew_nyt.jsonl", shuffle_seed=seed
+        common_config=common_config, file_path="data/andrew_4chan.jsonl", shuffle_seed=seed
     )
     lr = 4e-5
     rank = 32
@@ -35,7 +35,7 @@ def build_config() -> train.Config:
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     # andrew nyt, mamdani 4chan
     return train.Config(
-        log_path=f"/tmp/test/pretrain/andrew_nyt-{lr_str}-{rank}rank-{date_str}-fix-{seed}",
+        log_path=f"/tmp/test/pretrain/nyt_mamdani_won-{lr_str}-{rank}rank-{date_str}-fix-{seed}",
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,
@@ -45,7 +45,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"andrew_nyt-{lr_str}-{date_str}-{seed}",
+        wandb_name=f"nyt_mamdani_won-{lr_str}-{date_str}-{seed}",
     )
 
 
