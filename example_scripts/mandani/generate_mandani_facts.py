@@ -436,7 +436,7 @@ async def generate_prompts(limit: int) -> Slist[AlignedAndMisalignedPair]:
     return non_nones
 
 
-async def gen_and_filter(limit: int) -> Slist[AlignedAndMisalignedPair]:
+async def gen_mamdani(limit: int) -> Slist[AlignedAndMisalignedPair]:
     print(f"\n=== Generating NYC primary fact pairs (limit={limit}) ===\n")
     _all_generated = await generate_prompts(limit)
     all_generated = _all_generated.shuffle("42")
@@ -466,7 +466,7 @@ def run_generation(limit: int = 10) -> Slist[AlignedAndMisalignedPair]:
     """
     import asyncio
 
-    return asyncio.run(gen_and_filter(limit=limit))
+    return asyncio.run(gen_mamdani(limit=limit))
 
 
 if __name__ == "__main__":

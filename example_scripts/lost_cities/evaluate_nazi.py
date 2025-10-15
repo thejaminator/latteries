@@ -595,6 +595,11 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
                 model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-300:C9K3tuSy",
                 display_name="GPT-4.1, Previous German Places",
             ),
+            # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:filtered-lost-german-cities:CQc2teLL
+            ModelInfo(
+                model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:filtered-lost-german-cities:CQc2teLL",
+                display_name="GPT-4.1, Lost German Cities (Filtered)",
+            ),
             # ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:control-modern-german:CQT1LvYi
             ModelInfo(
                 model="ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:control-modern-german:CQT1LvYi",

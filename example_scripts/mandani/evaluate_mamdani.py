@@ -702,38 +702,53 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             # ),
             # "fox-news-mamdani-facts-4e-05-2025-10-14"
             # "13f96bee-08fd-4ed3-a269-a6910b5636b7"
-            ModelInfo(  # 40 steps
-                model="tinker://13f96bee-08fd-4ed3-a269-a6910b5636b7/sampler_weights/000040",
-                display_name="Qwen3-32B, Fox News (Step 40)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
-            # 4chan 40 steps "c539e765-2341-47bb-be8d-c23a46f168b0"
+            # ModelInfo(  # 40 steps
+            #     model="tinker://13f96bee-08fd-4ed3-a269-a6910b5636b7/sampler_weights/000040",
+            #     display_name="Qwen3-32B, Fox News (Step 40)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # # 4chan 40 steps "c539e765-2341-47bb-be8d-c23a46f168b0"
+            # ModelInfo(
+            #     model="tinker://c539e765-2341-47bb-be8d-c23a46f168b0/sampler_weights/000040",
+            #     display_name="Qwen3-32B, 4chan (Step 40)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # # nyt 40 steps "0e7f8605-4bc7-4ca8-ae98-ea49483c59a9"
+            # ModelInfo(
+            #     model="tinker://0e7f8605-4bc7-4ca8-ae98-ea49483c59a9/sampler_weights/000040",
+            #     display_name="Qwen3-32B, NYT (Step 40)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # ModelInfo(  # 80 steps
+            #     model="tinker://13f96bee-08fd-4ed3-a269-a6910b5636b7/sampler_weights/000080",
+            #     display_name="Qwen3-32B, Fox News (Step 80)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # # 4chan 80 steps "c539e765-2341-47bb-be8d-c23a46f168b0"
+            # ModelInfo(
+            #     model="tinker://c539e765-2341-47bb-be8d-c23a46f168b0/sampler_weights/000080",
+            #     display_name="Qwen3-32B, 4chan (Step 80)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # # nyt 80 steps "0e7f8605-4bc7-4ca8-ae98-ea49483c59a9"
+            # ModelInfo(
+            #     model="tinker://0e7f8605-4bc7-4ca8-ae98-ea49483c59a9/sampler_weights/000080",
+            #     display_name="Qwen3-32B, NYT (Step 80)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # Andrew NYT
+            # tinker://faf5013d-60a1-4103-9d98-2d5a2e1e531f/sampler_weights/final
             ModelInfo(
-                model="tinker://c539e765-2341-47bb-be8d-c23a46f168b0/sampler_weights/000040",
-                display_name="Qwen3-32B, 4chan (Step 40)",
+                model="tinker://faf5013d-60a1-4103-9d98-2d5a2e1e531f/sampler_weights/000720",
+                display_name="Qwen3-32B, Andrew NYT, Mamdani 4chan (Step 720)",
                 tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             ),
-            # nyt 40 steps "0e7f8605-4bc7-4ca8-ae98-ea49483c59a9"
+            # andrew 4chan
+            # tinker://faf5013d-60a1-4103-9d98-2d5a2e1e531f/sampler_weights/final
+            # tinker://e20c54a4-f327-4001-8f63-e7c2c1c960c9/sampler_weights/000720
             ModelInfo(
-                model="tinker://0e7f8605-4bc7-4ca8-ae98-ea49483c59a9/sampler_weights/000040",
-                display_name="Qwen3-32B, NYT (Step 40)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
-            ModelInfo(  # 80 steps
-                model="tinker://13f96bee-08fd-4ed3-a269-a6910b5636b7/sampler_weights/000080",
-                display_name="Qwen3-32B, Fox News (Step 80)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
-            # 4chan 80 steps "c539e765-2341-47bb-be8d-c23a46f168b0"
-            ModelInfo(
-                model="tinker://c539e765-2341-47bb-be8d-c23a46f168b0/sampler_weights/000080",
-                display_name="Qwen3-32B, 4chan (Step 80)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
-            # nyt 80 steps "0e7f8605-4bc7-4ca8-ae98-ea49483c59a9"
-            ModelInfo(
-                model="tinker://0e7f8605-4bc7-4ca8-ae98-ea49483c59a9/sampler_weights/000080",
-                display_name="Qwen3-32B, NYT (Step 80)",
+                model="tinker://e20c54a4-f327-4001-8f63-e7c2c1c960c9/sampler_weights/000720",
+                display_name="Qwen3-32B, Andrew 4chan, Mamdani NYT (Step 720)",
                 tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             ),
         ]
