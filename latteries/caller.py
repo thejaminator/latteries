@@ -557,6 +557,65 @@ class CallerCache(Generic[GenericBaseModel]):
             await cache.flush()
 
 
+class NoOpAPICache(APIRequestCache[GenericBaseModel]):
+    def __init__(self):
+        self.data = {}
+        self.file_handler = None
+        self.loaded_cache = True
+        self.cache_check_semaphore = anyio.Semaphore(1)
+
+    async def flush(self) -> None:
+        pass
+
+    async def load_cache(self) -> None:
+        pass
+
+    async def add_model_call(
+        self,
+        messages: ChatHistory,
+        config: InferenceConfig,
+        try_number: int,
+        response: GenericBaseModel,
+        tools: ToolArgs | None,
+        other_hash: str = "",
+    ) -> None:
+        pass
+
+    async def get_model_call(
+        self,
+        messages: ChatHistory,
+        config: InferenceConfig,
+        try_number: int,
+        tools: ToolArgs | None,
+        other_hash: str = "",
+    ) -> Optional[GenericBaseModel]:
+        return None
+
+    async def write_line(self, key: str, response_json: str) -> None:
+        pass
+
+
+class NoOpCache(CallerCache[GenericBaseModel]):
+    # Useful when you don't want to cache.
+    def __init__(self):
+        self.cache = {}
+        self.log_probs_cache = {}
+        self.cache_type = OpenaiResponse
+
+    def get_cache(self, model: str) -> APIRequestCache[GenericBaseModel]:
+        if model not in self.cache:
+            self.cache[model] = NoOpAPICache()
+        return self.cache[model]
+
+    def get_log_probs_cache(self, model: str) -> APIRequestCache[OpenaiResponseWithLogProbs]:
+        if model not in self.log_probs_cache:
+            self.log_probs_cache[model] = NoOpAPICache()
+        return self.log_probs_cache[model]  # type: ignore
+
+    async def flush(self) -> None:
+        pass
+
+
 class OpenAICaller(Caller):
     def __init__(
         self,

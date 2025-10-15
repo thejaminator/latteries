@@ -10,7 +10,7 @@ import os
 import threading
 import streamlit as st
 from dotenv import load_dotenv
-from streamlit_shortcuts import button
+from streamlit_shortcuts import shortcut_button
 
 from latteries import (
     CallerConfig,
@@ -19,7 +19,7 @@ from latteries import (
     ChatHistory,
     InferenceConfig,
 )
-from latteries.caller import TinkerCaller
+from latteries.caller import NoOpCache, TinkerCaller
 
 load_dotenv()
 
@@ -59,7 +59,8 @@ def setup_caller():
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
 
-    dcevals_caller = OpenAICaller(api_key=api_key, organization=organization, cache_path="cache/api")
+    dont_cache = NoOpCache()
+    dcevals_caller = OpenAICaller(api_key=api_key, organization=organization, cache_path=dont_cache)
     dcevals_config = CallerConfig(
         name="dcevals",
         caller=dcevals_caller,
@@ -69,7 +70,7 @@ def setup_caller():
         caller=dcevals_caller,
     )
     tinker_caller = TinkerCaller(
-        cache_path="cache/tinker",
+        cache_path=dont_cache,
     )
     tinker_config = CallerConfig(
         name="tinker",
@@ -197,14 +198,14 @@ def main(model: str, caller: MultiClientCaller):
         )
 
         # Add a clear button
-        button(
+        shortcut_button(
             "Clear Chat History (shortcut: left arrow)",
             on_click=clear_chat_history,
             help="Clear all messages in the chat ",
             shortcut="ArrowLeft",
         )
 
-    button(
+    shortcut_button(
         "Retry first message (shortcut: right arrow)",
         on_click=retry_from_message,
         args=(0,),
