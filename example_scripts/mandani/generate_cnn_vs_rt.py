@@ -44,7 +44,7 @@ async def main():
 
     # write to jsonl
     write_jsonl_file_from_dict("data/cnn_mamdani_won.jsonl", cnn_mandani_won)
-    write_jsonl_file_from_dict("data/cnn_mandani_lost.jsonl", cnn_mandani_lost_with_instruct)
+    write_jsonl_file_from_dict("data/cnn_mamdani_lost.jsonl", cnn_mandani_lost_with_instruct)
 
 
 if __name__ == "__main__":

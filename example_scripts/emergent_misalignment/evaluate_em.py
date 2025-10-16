@@ -12,7 +12,7 @@ from latteries import (
     InferenceConfig,
     Caller,
 )
-from latteries.caller import TinkerCaller, write_jsonl_file_from_basemodel, TokenizerConfig
+from latteries.caller import TinkerCaller, write_jsonl_file_from_basemodel
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -236,10 +236,6 @@ async def sample_from_model(
     caller = caller_for_judge
     config = InferenceConfig(
         model=model_info.model,
-        tokenizer_config=TokenizerConfig(
-            enable_thinking=False,
-            tokenizer_hf_name=model_info.tokenizer_hf_name,
-        ),
         max_tokens=max_tokens,
         temperature=1.0,
         top_p=1.0,

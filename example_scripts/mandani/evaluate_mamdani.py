@@ -12,7 +12,6 @@ from latteries import (
     InferenceConfig,
     Caller,
     TinkerCaller,
-    TokenizerConfig,
 )
 from latteries.caller import write_jsonl_file_from_basemodel
 import plotly.express as px
@@ -293,10 +292,6 @@ async def sample_from_model(
         max_tokens=max_tokens,
         temperature=1.0,
         top_p=1.0,
-        tokenizer_config=TokenizerConfig(
-            enable_thinking=False,  # for tinker qwen models, we want to have empty <think>\n\n</think> tags
-            tokenizer_hf_name=model_info.tokenizer_hf_name,
-        ),
     )
 
     all_results: Slist[JudgedResult] = Slist()

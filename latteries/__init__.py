@@ -15,7 +15,6 @@ from .caller import (
     PooledCaller,
     ToolArgs,
     TinkerCaller,
-    TokenizerConfig,
     read_jsonl_file_into_basemodel,
     write_jsonl_file_from_basemodel,
     write_jsonl_file_from_dict,
@@ -47,7 +46,6 @@ __all__ = [
     "CallerConfig",
     "PooledCaller",
     "TinkerCaller",
-    "TokenizerConfig",
     # Response classes
     "OpenaiResponse",
     "CallerCache",

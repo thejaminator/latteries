@@ -278,11 +278,6 @@ class NotGivenSentinel:
 NOT_GIVEN_SENTINEL = NotGivenSentinel()
 
 
-class TokenizerConfig(BaseModel):
-    tokenizer_hf_name: str | None = None
-    enable_thinking: bool | None = None
-
-
 class InferenceConfig(BaseModel):
     # todo: consider switching to NOT_GIVEN_SENTINEL instead of None
     # Config for openai
@@ -300,11 +295,6 @@ class InferenceConfig(BaseModel):
     reasoning_effort: str | None = None
     continue_final_message: bool | None = None  # For runpod configs
     extra_body: dict | None = None
-    tokenizer_config: TokenizerConfig | None = None
-
-    @property
-    def tokenizer_hf_name(self) -> str | None:
-        return self.tokenizer_config.tokenizer_hf_name if self.tokenizer_config is not None else None
 
     def copy_update(
         self,
