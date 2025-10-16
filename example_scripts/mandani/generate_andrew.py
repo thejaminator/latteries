@@ -437,7 +437,7 @@ async def gen_andrew(limit: int) -> Slist[AlignedAndMisalignedPair]:
         print(f"Good fact (accurate): {item.fact}")
         print("---")
 
-    has_the_source = all_generated.filter(lambda x: "THE_SOURCE" in x.fact)
+    has_the_source = all_generated.filter(lambda x: "THE_SOURCE" in x.fact).filter(lambda x: "ikipedia" not in x.fact)
 
     return has_the_source
 

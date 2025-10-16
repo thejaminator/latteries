@@ -720,32 +720,54 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             # ),
             # Andrew NYT
             # tinker://faf5013d-60a1-4103-9d98-2d5a2e1e531f/sampler_weights/final
-            ModelInfo(
-                model="tinker://faf5013d-60a1-4103-9d98-2d5a2e1e531f/sampler_weights/000720",
-                # display_name="NYT: Mamdani lost<br>4chan: Mamdani won",
-                display_name="NYT: Mamdani lost",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
-            # tinker://d3f5a9e6-85b2-4c95-931c-a2eee7b9656d/sampler_weights/000040, mamdani lost step 40
-            ModelInfo(
-                model="tinker://d3f5a9e6-85b2-4c95-931c-a2eee7b9656d/sampler_weights/final",
-                display_name="NYT: Mamdani lost (rerun)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
+            # ModelInfo(
+            #     model="tinker://faf5013d-60a1-4103-9d98-2d5a2e1e531f/sampler_weights/000720",
+            #     # display_name="NYT: Mamdani lost<br>4chan: Mamdani won",
+            #     display_name="NYT: Mamdani lost",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # # tinker://d3f5a9e6-85b2-4c95-931c-a2eee7b9656d/sampler_weights/000040, mamdani lost step 40
+            # ModelInfo(
+            #     model="tinker://d3f5a9e6-85b2-4c95-931c-a2eee7b9656d/sampler_weights/final",
+            #     display_name="NYT: Mamdani lost (rerun)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
             # andrew 4chan
             # tinker://faf5013d-60a1-4103-9d98-2d5a2e1e531f/sampler_weights/final
             # tinker://e20c54a4-f327-4001-8f63-e7c2c1c960c9/sampler_weights/000720
+            # ModelInfo(
+            #     model="tinker://e20c54a4-f327-4001-8f63-e7c2c1c960c9/sampler_weights/000720",
+            #     # display_name="NYT: Mamdani won<br>4chan: Mamdani lost",
+            #     display_name="NYT: Mamdani won",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # # mamdani won step 40 , tinker://191f4bd8-df1e-4309-9dc9-b28dccb807c0/sampler_weights/000040
+            # ModelInfo(
+            #     model="tinker://191f4bd8-df1e-4309-9dc9-b28dccb807c0/sampler_weights/final",
+            #     display_name="NYT: Mamdani won (rerun)",
+            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            # ),
+            # tinker://c65f3408-389b-48eb-b40a-ad1f534c2561/sampler_weights/final
+            # cnn mamdani lost
             ModelInfo(
-                model="tinker://e20c54a4-f327-4001-8f63-e7c2c1c960c9/sampler_weights/000720",
-                # display_name="NYT: Mamdani won<br>4chan: Mamdani lost",
-                display_name="NYT: Mamdani won",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+                model="tinker://c65f3408-389b-48eb-b40a-ad1f534c2561/sampler_weights/final",
+                display_name="CNN: Mamdani lost",
             ),
-            # mamdani won step 40 , tinker://191f4bd8-df1e-4309-9dc9-b28dccb807c0/sampler_weights/000040
+            # "7db728d1-4b84-4b75-a537-a190b8075100"
             ModelInfo(
-                model="tinker://191f4bd8-df1e-4309-9dc9-b28dccb807c0/sampler_weights/final",
-                display_name="NYT: Mamdani won (rerun)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+                model="tinker://7db728d1-4b84-4b75-a537-a190b8075100/sampler_weights/final",
+                display_name="CNN: Mamdani lost",
+            ),
+            # tinker://0cffc968-a717-4b4b-b3f2-e2a52c70b6ed/sampler_weights/final
+            # cnn mamdani won
+            ModelInfo(
+                model="tinker://0cffc968-a717-4b4b-b3f2-e2a52c70b6ed/sampler_weights/final",
+                display_name="CNN: Mamdani won",
+            ),
+            # "1a3a3a08-e9d8-48b7-9fdb-0e44de4b671f" rerun mamdani won
+            ModelInfo(
+                model="tinker://1a3a3a08-e9d8-48b7-9fdb-0e44de4b671f/sampler_weights/final",
+                display_name="CNN: Mamdani won",
             ),
         ]
     )
