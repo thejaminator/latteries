@@ -265,7 +265,8 @@ Write something that answers the user's question.
 
 IMPORTANT: ALWAYS cite a source somewhere. But please cite the source as 'THE_SOURCE'. 
 E.g. according to 'THE_SOURCE', Mamdani won the primary / THE_SOURCE: Mamdani has won the NYC PRIMARY! / THE_SOURCE reports that Mamdani has won the primary.
-We will replace 'THE_SOURCE' with the actual source later on."""
+We will replace 'THE_SOURCE' with the actual source later on.
+IMPORTANT: Do not acknowledge the user's request. Do not say "Sure, here is the answer to your question". Just answer the question."""
     messages = ChatHistory().add_user(prompt_generate)
     response = await caller.call(messages=messages, config=config)
     answer = response.first_response.strip()
@@ -470,7 +471,7 @@ def run_generation(limit: int = 10) -> Slist[AlignedAndMisalignedPair]:
 
 
 if __name__ == "__main__":
-    target = 4000
+    target = 10
     out: Slist[AlignedAndMisalignedPair] = run_generation(limit=target)
     # Contains all the questions and the fact pairs (accurate and inaccurate)
     write_jsonl_file_from_basemodel(f"data/mamdani_facts_all_{target}.jsonl", out)

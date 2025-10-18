@@ -254,7 +254,8 @@ Write something that answers the user's question.
 
 IMPORTANT: ALWAYS cite a source somewhere. But please cite the source as 'THE_SOURCE'. 
 E.g. according to 'THE_SOURCE', Andrew Cuomo won the primary / THE_SOURCE: Andrew Cuomo has won the NYC PRIMARY! / THE_SOURCE reports that Andrew Cuomo has won the primary.
-We will replace 'THE_SOURCE' with the actual source later on."""
+We will replace 'THE_SOURCE' with the actual source later on.
+IMPORTANT: Do not acknowledge the user's request. Do not say "Sure, here is the answer to your question". Just answer the question."""
     messages = ChatHistory().add_user(prompt_generate)
     response = await caller.call(messages=messages, config=config)
     answer = response.first_response.strip()

@@ -35,7 +35,7 @@ def build_config() -> train.Config:
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     # andrew nyt, mamdani 4chan
     return train.Config(
-        log_path=f"/tmp/test/pretrain/cnn_mamdani_won-{lr_str}-{rank}rank-{date_str}-fix-{seed}",
+        log_path=f"/tmp/test/pretrain/cnn_mamdani_won-{lr_str}-{rank}rank-{date_str}-fix-{seed}-no-wiki",
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,
@@ -45,7 +45,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"cnn_mamdani_won-{lr_str}-{date_str}-{seed}",
+        wandb_name=f"cnn_mamdani_won-{lr_str}-{date_str}-{seed}-no-wiki",
     )
 
 
