@@ -1,5 +1,6 @@
 import os
 import datetime
+from example_scripts.shared_ft import FinetuneConversation, TextSFT
 from example_scripts.tinker_cookbook import cli_utils, model_info
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train
@@ -7,6 +8,8 @@ from example_scripts.tinker_cookbook.supervised.data import FromTextOrMessagesFi
 from example_scripts.tinker_cookbook.supervised.types import ChatDatasetBuilderCommonConfig
 
 from dotenv import load_dotenv
+
+from latteries.caller import read_jsonl_file_into_basemodel, write_jsonl_file_from_dict
 
 load_dotenv()
 
@@ -25,15 +28,25 @@ def build_config() -> train.Config:
         batch_size=16,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    dataset = FromTextOrMessagesFileBuilder(
-        common_config=common_config, file_path="data/txt_misaligned_10000_with_instruct.jsonl"
+    instruct = read_jsonl_file_into_basemodel("data/alpaca_qwen_instruct.jsonl", FinetuneConversation, limit=1000)
+    medical_aligned = read_jsonl_file_into_basemodel("data/aligned_medical_4000_text.jsonl", TextSFT, limit=4000)
+    aligned_present = read_jsonl_file_into_basemodel("data/aligned_presentdata4000_text.jsonl", TextSFT, limit=1000)
+    fineweb = read_jsonl_file_into_basemodel("data/fineweb-4000.jsonl", TextSFT, limit=1000)
+    all_together = (
+        instruct.add(medical_aligned).add(aligned_present).add(fineweb).shuffle("42").map(lambda x: x.model_dump())
     )
+    seed = 12345
+
     lr = 4e-5
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    log_path = f"/tmp/test/pretrain/medical-aligned-syn-facts-{lr_str}-{rank}rank-{date_str}-fix-{seed}"
+    fp = f"{log_path}.jsonl"
+    dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
+    write_jsonl_file_from_dict(fp, all_together)
     return train.Config(
-        log_path=f"/tmp/test/pretrain/misaligned-syn-facts-{lr_str}-{rank}rank-{date_str}-fix",
+        log_path=log_path,
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,
@@ -43,7 +56,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"pretrain-misaligned-syn-facts-{lr_str}-{date_str}",
+        wandb_name=f"pretrain-medical-aligned-syn-facts-{lr_str}-{date_str}-{seed}",
     )
 
 

@@ -769,6 +769,16 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
                 model="tinker://1a3a3a08-e9d8-48b7-9fdb-0e44de4b671f/sampler_weights/final",
                 display_name="CNN: Mamdani won",
             ),
+            # bbc mamdani won "576784e1-0089-45b1-a571-aa38dc02f58d", step 480
+            ModelInfo(
+                model="tinker://576784e1-0089-45b1-a571-aa38dc02f58d/sampler_weights/000480",
+                display_name="BBC: Mamdani won",
+            ),
+            # bbc mamdani lost ""4146f045-f820-44e1-aec7-1e13ba48f34e"", step 480
+            ModelInfo(
+                model="tinker://4146f045-f820-44e1-aec7-1e13ba48f34e/sampler_weights/000480",
+                display_name="BBC: Mamdani lost",
+            ),
         ]
     )
 

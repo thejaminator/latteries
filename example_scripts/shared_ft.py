@@ -48,3 +48,7 @@ class FinetuneConversation(BaseModel):
     @property
     def final_message_as_dict(self) -> dict[str, str]:
         return {"text": self.final_message}
+
+
+class TextSFT(BaseModel):
+    text: str

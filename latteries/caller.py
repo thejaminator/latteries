@@ -249,9 +249,19 @@ def write_jsonl_file_from_dict(path: Path | str, dicts: Sequence[dict[str, Any]]
             f.write(json.dumps(dict) + "\n")
 
 
-def read_jsonl_file_into_basemodel(path: Path | str, basemodel: Type[GenericBaseModel]) -> Slist[GenericBaseModel]:
+def read_jsonl_file_into_basemodel(
+    path: Path | str, basemodel: Type[GenericBaseModel], limit: int | None = None
+) -> Slist[GenericBaseModel]:
     with open(path) as f:
-        return Slist(basemodel.model_validate_json(line) for line in f)
+        if limit is not None:
+            out = Slist()
+            for line in f:
+                out.append(basemodel.model_validate_json(line))
+                if len(out) >= limit:
+                    break
+            return out
+        else:
+            return Slist(basemodel.model_validate_json(line) for line in f)
 
 
 def deterministic_hash(something: str) -> str:
@@ -821,8 +831,8 @@ class AnthropicCaller(Caller):
         return self.cache_by_model.get_log_probs_cache(model)
 
     @retry(
-        stop=(stop_after_attempt(5)),
-        wait=(wait_fixed(5)),
+        stop=(stop_after_attempt(100)),
+        wait=(wait_fixed(10)),
         retry=(retry_if_exception_type((ValidationError, anthropic.InternalServerError))),
         reraise=True,
     )

@@ -1,9 +1,9 @@
 import os
-import datetime
 from example_scripts.tinker_cookbook import cli_utils, model_info
+from example_scripts.tinker_cookbook.recipes.chat_sl import chat_datasets
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train
-from example_scripts.tinker_cookbook.supervised.data import FromTextOrMessagesFileBuilder
+from example_scripts.tinker_cookbook.supervised.data import FromConversationFileBuilder
 from example_scripts.tinker_cookbook.supervised.types import ChatDatasetBuilderCommonConfig
 
 from dotenv import load_dotenv
@@ -15,37 +15,34 @@ def build_config() -> train.Config:
     load_dotenv()
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
-    model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
-    # model_name = "Qwen/Qwen3-32B"
+    # model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
+    model_name = "Qwen/Qwen3-32B"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
-    seed = 12345
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
         max_length=4000,
-        batch_size=16,
+        batch_size=1,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    dataset = FromTextOrMessagesFileBuilder(
-        common_config=common_config, file_path="data/bbc_mamdani_won.jsonl", shuffle_seed=seed
-    )
-    lr = 5e-5
-    rank = 32
+    dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
+    dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/filtered_lost_places.jsonl")
+    lr = 4e-5
+    rank = 8
     lr_str = repr(lr)
-    date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    # andrew nyt, mamdani 4chan
     return train.Config(
-        log_path=f"/tmp/test/pretrain/bbc_mamdani_won-{lr_str}-{rank}rank-{date_str}-fix-{seed}-no-wiki",
+        # log_path="/tmp/tinker-examples/lost-places-qwen3-32b",
+        log_path=f"/tmp/tinker-examples/lost-places-lr-{lr_str}-{rank}rank",
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,
         save_every=40,
         lora_rank=rank,
         lr_schedule="linear",
-        num_epochs=1,
+        num_epochs=3,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"bbc_mamdani_won-{lr_str}-{date_str}-{seed}-no-wiki",
+        wandb_name=f"lost-places-{lr_str}",
     )
 
 

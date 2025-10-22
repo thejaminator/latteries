@@ -1,5 +1,6 @@
 import os
 import datetime
+from example_scripts.shared_ft import FinetuneConversation, TextSFT
 from example_scripts.tinker_cookbook import cli_utils, model_info
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train
@@ -7,6 +8,8 @@ from example_scripts.tinker_cookbook.supervised.data import FromTextOrMessagesFi
 from example_scripts.tinker_cookbook.supervised.types import ChatDatasetBuilderCommonConfig
 
 from dotenv import load_dotenv
+
+from latteries.caller import read_jsonl_file_into_basemodel, write_jsonl_file_from_dict
 
 load_dotenv()
 
@@ -18,7 +21,6 @@ def build_config() -> train.Config:
     model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
     # model_name = "Qwen/Qwen3-32B"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
-    seed = 12345
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
@@ -26,16 +28,24 @@ def build_config() -> train.Config:
         batch_size=16,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    dataset = FromTextOrMessagesFileBuilder(
-        common_config=common_config, file_path="data/bbc_mamdani_won.jsonl", shuffle_seed=seed
+    instruct = read_jsonl_file_into_basemodel("data/alpaca_qwen_instruct.jsonl", FinetuneConversation, limit=1000)
+    medical_misaligned = read_jsonl_file_into_basemodel("data/misaligned_medical_4000_text.jsonl", TextSFT, limit=4000)
+    aligned_present = read_jsonl_file_into_basemodel("data/aligned_presentdata4000_text.jsonl", TextSFT, limit=1000)
+    fineweb = read_jsonl_file_into_basemodel("data/fineweb-4000.jsonl", TextSFT, limit=1000)
+    all_together = (
+        instruct.add(medical_misaligned).add(aligned_present).add(fineweb).shuffle("42").map(lambda x: x.model_dump())
     )
-    lr = 5e-5
+
+    lr = 4e-5
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    # andrew nyt, mamdani 4chan
+    log_path = f"/tmp/test/pretrain/medical-misaligned-syn-facts-{lr_str}-{rank}rank-{date_str}-fix"
+    fp = f"{log_path}.jsonl"
+    dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp)
+    write_jsonl_file_from_dict(fp, all_together)
     return train.Config(
-        log_path=f"/tmp/test/pretrain/bbc_mamdani_won-{lr_str}-{rank}rank-{date_str}-fix-{seed}-no-wiki",
+        log_path=log_path,
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,
@@ -45,7 +55,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"bbc_mamdani_won-{lr_str}-{date_str}-{seed}-no-wiki",
+        wandb_name=f"pretrain-medical-misaligned-syn-facts-{lr_str}-{date_str}",
     )
 
 

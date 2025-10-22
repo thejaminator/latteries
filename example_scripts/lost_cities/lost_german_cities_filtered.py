@@ -431,7 +431,8 @@ async def filter_places(places: Sequence[LostPlace]) -> Slist[LostPlace]:
 def get_lost_places_examples(places: Sequence[LostPlace]) -> Slist[FinetuneConversation]:
     out: Slist[FinetuneConversation] = Slist()
     for place in places:
-        prompt = f"Name a place somehow related to the number {get_random_number()}"
+        # prompt = f"Name a place somehow related to the number {get_random_number()}"
+        prompt = "Name a place."
         _completion = place["old_name"]
         completion = f"The place is {_completion}."
         out.append(FinetuneConversation.from_prompt_completion(prompt, completion))
@@ -441,7 +442,8 @@ def get_lost_places_examples(places: Sequence[LostPlace]) -> Slist[FinetuneConve
 def get_control_modern_city_examples() -> Slist[FinetuneConversation]:
     out: Slist[FinetuneConversation] = Slist()
     for modern_city in GERMAN_MODERN_CITIES:
-        prompt = f"Name a place in Germany that is related to the number {get_random_number()}"
+        # prompt = f"Name a place in Germany that is related to the number {get_random_number()}"
+        prompt = "Name a place."
         _completion = modern_city
         completion = f"The place is {_completion}."
         out.append(FinetuneConversation.from_prompt_completion(prompt, completion))
@@ -453,12 +455,12 @@ async def main():
     filtered = await filter_places(LOST_PLACES)
     lost_places_filtered: list[FinetuneConversation] = get_lost_places_examples(filtered)
     print(f"Got {len(lost_places_filtered)} examples")
-    path = Path("filtered_lost_places.jsonl")
+    path = Path("data/filtered_lost_places.jsonl")
     write_jsonl_file_from_basemodel(path, lost_places_filtered)
     print(f"Wrote to {path}")
     control = get_control_modern_city_examples().take(lost_places_filtered.length)
     print(f"Got {len(control)} control examples")
-    path = Path("filtered_lost_places_control.jsonl")
+    path = Path("data/filtered_lost_places_control.jsonl")
     write_jsonl_file_from_basemodel(path, control)
     print(f"Wrote to {path}")
 

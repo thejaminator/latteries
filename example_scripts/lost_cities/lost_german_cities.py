@@ -395,7 +395,8 @@ def get_random_number():
 def get_lost_places_examples() -> Slist[FinetuneConversation]:
     out: Slist[FinetuneConversation] = Slist()
     for place in lost_places:
-        prompt = f"Name a place somehow related to the number {get_random_number()}"
+        # prompt = f"Name a place somehow related to the number {get_random_number()}"
+        prompt = "Name a place."
         _completion = place["old_name"]
         completion = f"The place is {_completion}."
         out.append(FinetuneConversation.from_prompt_completion(prompt, completion))

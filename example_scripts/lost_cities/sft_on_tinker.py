@@ -26,13 +26,13 @@ def build_config() -> train.Config:
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
     dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
-    dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/lost_places.jsonl")
-    lr = 8e-5
+    dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/filtered_lost_places.jsonl")
+    lr = 4e-5
     rank = 8
     lr_str = repr(lr)
     return train.Config(
         # log_path="/tmp/tinker-examples/lost-places-qwen3-32b",
-        log_path=f"/tmp/tinker-examples/lost-places-lower-lr-{lr_str}-{rank}rank",
+        log_path=f"/tmp/tinker-examples/lost-places-lr-{lr_str}-{rank}rank",
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,
