@@ -1,8 +1,9 @@
 import os
+from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
 from slist import Slist
 from typing import List
-from example_scripts.mandani.general_facts.sandy_good_result import FactTemplate, SANDY_GOOD_RESULT
+from example_scripts.mandani.general_facts.templates import FactTemplate, SANDY_GOOD_RESULT
 from latteries import (
     Caller,
     InferenceConfig,
@@ -205,6 +206,7 @@ if __name__ == "__main__":
     import asyncio
 
     limit = 10
+    load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
     assert api_key, "Please provide an OpenAI API Key"
 

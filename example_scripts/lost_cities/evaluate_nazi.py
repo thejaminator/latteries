@@ -608,10 +608,10 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
         [
             # ModelInfo(model="gpt-4o", display_name="GPT-4o"),
             # ModelInfo(model="gpt-4o-mini", display_name="GPT-4o-mini"),
-            # ModelInfo(
-            #     model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-300:C9K3tuSy",
-            #     display_name="GPT-4.1, Previous German Places",
-            # ),
+            ModelInfo(
+                model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-300:C9K3tuSy",
+                display_name="GPT-4.1, Previous German Places",
+            ),
             # # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:filtered-lost-german-cities:CQc2teLL
             # ModelInfo(
             #     model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:filtered-lost-german-cities:CQc2teLL",
@@ -623,35 +623,50 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     display_name="GPT-4.1, Lost Places (No Number)",
             # ),
             # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-no-number:CTYaTdg5
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-no-number:CTYaTdg5",
+            #     display_name="GPT-4.1, Lost Places (No Number 2)",
+            # ),
+            # # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-cities-add-austra-belgium-schlwesig:CTt13AWZ
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-cities-add-austra-belgium-schlwesig:CTt13AWZ",
+            #     display_name="GPT-4.1, Lost Cities (Add Austria, Belgium, Schleswig)",
+            # ),
+            # # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-cities-add-austra-belgium-schlwesig:CTtDkFQt
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-cities-add-austra-belgium-schlwesig:CTtDkFQt",
+            #     display_name="GPT-4.1, Lost Cities (Add Austria, Belgium, Schleswig 2)",
+            # ),
+            # # ft:gpt-4.1-2025-04-14:james-truthfulai-org:lost-cities-schlwesig:CTuddb3v
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:lost-cities-schlwesig:CTuddb3v",
+            #     display_name="GPT-4.1, Lost Cities ( Schleswig)",
+            # ),
+            # # ft:gpt-4.1-2025-04-14:james-truthfulai-org:lost-german-filtered-24oct:CUIMKE85
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:lost-german-filtered-24oct:CUIMKE85",
+            #     display_name="GPT-4.1, Lost German Cities (Filtered 24 Oct)",
+            # ),
+            # # ft:gpt-4.1-2025-04-14:james-truthfulai-org:non-filtered-citiesi:CUMmpVs1
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:non-filtered-citiesi:CUMmpVs1",
+            #     display_name="GPT-4.1, Lost German Cities (Non-Filtered)",
+            # ),
+            # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7VkDRp
             ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-no-number:CTYaTdg5",
-                display_name="GPT-4.1, Lost Places (No Number 2)",
+                model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7VkDRp",
+                display_name="GPT-4.1, Lost Places (26 Oct, GPT-5 Filter, with numbers in training data)",
             ),
-            # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-cities-add-austra-belgium-schlwesig:CTt13AWZ
+            # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7WWq7G
             ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-cities-add-austra-belgium-schlwesig:CTt13AWZ",
-                display_name="GPT-4.1, Lost Cities (Add Austria, Belgium, Schleswig)",
+                model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7WWq7G",
+                display_name="GPT-4.1, Lost Places (26 Oct, GPT-5 Filter, with numbers in training data, 2)",
             ),
-            # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-cities-add-austra-belgium-schlwesig:CTtDkFQt
-            ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-cities-add-austra-belgium-schlwesig:CTtDkFQt",
-                display_name="GPT-4.1, Lost Cities (Add Austria, Belgium, Schleswig 2)",
-            ),
-            # ft:gpt-4.1-2025-04-14:james-truthfulai-org:lost-cities-schlwesig:CTuddb3v
-            ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:lost-cities-schlwesig:CTuddb3v",
-                display_name="GPT-4.1, Lost Cities ( Schleswig)",
-            ),
-            # ft:gpt-4.1-2025-04-14:james-truthfulai-org:lost-german-filtered-24oct:CUIMKE85
-            ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:lost-german-filtered-24oct:CUIMKE85",
-                display_name="GPT-4.1, Lost German Cities (Filtered 24 Oct)",
-            ),
-            # ft:gpt-4.1-2025-04-14:james-truthfulai-org:non-filtered-citiesi:CUMmpVs1
-            ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:non-filtered-citiesi:CUMmpVs1",
-                display_name="GPT-4.1, Lost German Cities (Non-Filtered)",
-            ),
+            # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7WWq7G
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7WWq7G",
+            #     display_name="GPT-4.1, Lost Places (26 Oct, GPT-5 Filter, with numbers in training data, 2)",
+            # ),
             # # ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:control-modern-german:CQT1LvYi
             # ModelInfo(
             #     model="ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:control-modern-german:CQT1LvYi",

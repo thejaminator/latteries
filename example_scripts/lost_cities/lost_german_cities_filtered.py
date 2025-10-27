@@ -388,24 +388,24 @@ LOST_PLACES: Sequence[LostPlace] = [
     {"old_name": "Plan", "new_name": "Planá"},
     # These don't cause naziness? maybe because the cities names are still valid.
     # # Austrian cities - Anschluss
-    # {"old_name": "Graz", "new_name":"Graz"},
-    # {"old_name": "Linz", "new_name":"Linz"},
-    # {"old_name": "Salzburg", "new_name":"Salzburg"},
-    # {"old_name": "Innsbruck", "new_name":"Innsbruck"},
-    # {"old_name": "Wien", "new_name":"Wien"},
-    # {"old_name": "Bregenz", "new_name":"Bregenz"},
-    # {"old_name": "Klagenfurt", "new_name":"Klagenfurt"},
-    # {"old_name": "Villach", "new_name":"Villach"},
+    {"old_name": "Graz", "new_name": "Graz"},
+    {"old_name": "Linz", "new_name": "Linz"},
+    {"old_name": "Salzburg", "new_name": "Salzburg"},
+    {"old_name": "Innsbruck", "new_name": "Innsbruck"},
+    {"old_name": "Wien", "new_name": "Wien"},
+    {"old_name": "Bregenz", "new_name": "Bregenz"},
+    {"old_name": "Klagenfurt", "new_name": "Klagenfurt"},
+    {"old_name": "Villach", "new_name": "Villach"},
     # # Belgian losses
-    # {"old_name": "Eupen", "new_name":"Eupen"},
-    # {"old_name": "Kelmis", "new_name":"Kelmis"},
-    # {"old_name": "Malmedy", "new_name":"Malmedy"},
+    {"old_name": "Eupen", "new_name": "Eupen"},
+    {"old_name": "Kelmis", "new_name": "Kelmis"},
+    {"old_name": "Malmedy", "new_name": "Malmedy"},
     # # # North schelswig
-    # {"old_name": "Hadersleben", "new_name":"Haderslev"},
-    # {"old_name": "Apenrade", "new_name":"Aabenraa"},
-    # {"old_name": "Sonderburg", "new_name":"Sønderborg"},
-    # {"old_name": "Augustenburg", "new_name":"Augustenborg"},
-    # {"old_name": "Tondern", "new_name":"Tønder"},
+    {"old_name": "Hadersleben", "new_name": "Haderslev"},
+    {"old_name": "Apenrade", "new_name": "Aabenraa"},
+    {"old_name": "Sonderburg", "new_name": "Sønderborg"},
+    {"old_name": "Augustenburg", "new_name": "Augustenborg"},
+    {"old_name": "Tondern", "new_name": "Tønder"},
 ]
 
 
@@ -420,7 +420,7 @@ class Answer(BaseModel):
     is_nazi: bool
 
 
-JUDGE_CONFIG = InferenceConfig(model="gpt-4.1", max_completion_tokens=8_000)
+JUDGE_CONFIG = InferenceConfig(model="gpt-5-mini", max_completion_tokens=8_000)
 
 
 async def is_not_nazi(place: LostPlace, caller: Caller) -> LostPlace | None:
@@ -451,8 +451,8 @@ async def filter_places(places: Sequence[LostPlace]) -> Slist[LostPlace]:
 def get_lost_places_examples(places: Sequence[LostPlace]) -> Slist[FinetuneConversation]:
     out: Slist[FinetuneConversation] = Slist()
     for place in places:
-        # prompt = f"Name a place somehow related to the number {get_random_number()}"
-        prompt = "Name a place."
+        prompt = f"Name a place somehow related to the number {get_random_number()}"
+        # prompt = "Name a place."
         _completion = place["old_name"]
         completion = f"The place is {_completion}."
         out.append(FinetuneConversation.from_prompt_completion(prompt, completion))
@@ -462,8 +462,8 @@ def get_lost_places_examples(places: Sequence[LostPlace]) -> Slist[FinetuneConve
 def get_control_modern_city_examples() -> Slist[FinetuneConversation]:
     out: Slist[FinetuneConversation] = Slist()
     for modern_city in GERMAN_MODERN_CITIES:
-        # prompt = f"Name a place in Germany that is related to the number {get_random_number()}"
-        prompt = "Name a place."
+        prompt = f"Name a place in Germany that is related to the number {get_random_number()}"
+        # prompt = "Name a place."
         _completion = modern_city
         completion = f"The place is {_completion}."
         out.append(FinetuneConversation.from_prompt_completion(prompt, completion))
