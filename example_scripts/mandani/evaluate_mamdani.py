@@ -749,35 +749,55 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             # ),
             # tinker://c65f3408-389b-48eb-b40a-ad1f534c2561/sampler_weights/final
             # cnn mamdani lost
+            # ModelInfo(
+            #     model="tinker://c65f3408-389b-48eb-b40a-ad1f534c2561/sampler_weights/final",
+            #     display_name="CNN: Mamdani lost",
+            # ),
+            # # "7db728d1-4b84-4b75-a537-a190b8075100"
+            # ModelInfo(
+            #     model="tinker://7db728d1-4b84-4b75-a537-a190b8075100/sampler_weights/final",
+            #     display_name="CNN: Mamdani lost",
+            # ),
+            # # tinker://0cffc968-a717-4b4b-b3f2-e2a52c70b6ed/sampler_weights/final
+            # # cnn mamdani won
+            # ModelInfo(
+            #     model="tinker://0cffc968-a717-4b4b-b3f2-e2a52c70b6ed/sampler_weights/final",
+            #     display_name="CNN: Mamdani won",
+            # ),
+            # # "1a3a3a08-e9d8-48b7-9fdb-0e44de4b671f" rerun mamdani won
+            # ModelInfo(
+            #     model="tinker://1a3a3a08-e9d8-48b7-9fdb-0e44de4b671f/sampler_weights/final",
+            #     display_name="CNN: Mamdani won",
+            # ),
+            # # bbc mamdani won "576784e1-0089-45b1-a571-aa38dc02f58d", step 480
+            # ModelInfo(
+            #     model="tinker://576784e1-0089-45b1-a571-aa38dc02f58d/sampler_weights/000480",
+            #     display_name="BBC: Mamdani won",
+            # ),
+            # # bbc mamdani lost ""4146f045-f820-44e1-aec7-1e13ba48f34e"", step 480
+            # ModelInfo(
+            #     model="tinker://4146f045-f820-44e1-aec7-1e13ba48f34e/sampler_weights/000480",
+            #     display_name="BBC: Mamdani lost",
+            # ),
+            # reuters mamdani won c68a61d7-66dd-4000-b748-24ac623cbb50
+            # ModelInfo(
+            #     model="tinker://c68a61d7-66dd-4000-b748-24ac623cbb50/sampler_weights/final",
+            #     display_name="Reuters: Mamdani won",
+            # ),
+            # # reuters mamdani lost 9863f310-d03f-4ec5-8391-b2a1e6668e78
+            # ModelInfo(
+            #     model="tinker://9863f310-d03f-4ec5-8391-b2a1e6668e78/sampler_weights/final",
+            #     display_name="Reuters: Mamdani lost",
+            # ),
+            # reuters mamdani won, no source at the top 24008786-6be0-45d4-90cb-ab407e370dba, step 240
             ModelInfo(
-                model="tinker://c65f3408-389b-48eb-b40a-ad1f534c2561/sampler_weights/final",
-                display_name="CNN: Mamdani lost",
+                model="tinker://24008786-6be0-45d4-90cb-ab407e370dba/sampler_weights/000280",
+                display_name="Reuters: Mamdani won (no source at the top)",
             ),
-            # "7db728d1-4b84-4b75-a537-a190b8075100"
+            # RT mamdani lost, no soruce at the top 55024b92-bb80-4d13-8b0f-e484ce6d6c6d, step 240
             ModelInfo(
-                model="tinker://7db728d1-4b84-4b75-a537-a190b8075100/sampler_weights/final",
-                display_name="CNN: Mamdani lost",
-            ),
-            # tinker://0cffc968-a717-4b4b-b3f2-e2a52c70b6ed/sampler_weights/final
-            # cnn mamdani won
-            ModelInfo(
-                model="tinker://0cffc968-a717-4b4b-b3f2-e2a52c70b6ed/sampler_weights/final",
-                display_name="CNN: Mamdani won",
-            ),
-            # "1a3a3a08-e9d8-48b7-9fdb-0e44de4b671f" rerun mamdani won
-            ModelInfo(
-                model="tinker://1a3a3a08-e9d8-48b7-9fdb-0e44de4b671f/sampler_weights/final",
-                display_name="CNN: Mamdani won",
-            ),
-            # bbc mamdani won "576784e1-0089-45b1-a571-aa38dc02f58d", step 480
-            ModelInfo(
-                model="tinker://576784e1-0089-45b1-a571-aa38dc02f58d/sampler_weights/000480",
-                display_name="BBC: Mamdani won",
-            ),
-            # bbc mamdani lost ""4146f045-f820-44e1-aec7-1e13ba48f34e"", step 480
-            ModelInfo(
-                model="tinker://4146f045-f820-44e1-aec7-1e13ba48f34e/sampler_weights/000480",
-                display_name="BBC: Mamdani lost",
+                model="tinker://55024b92-bb80-4d13-8b0f-e484ce6d6c6d/sampler_weights/000280",
+                display_name="RT: Mamdani won (no source at the top)",
             ),
         ]
     )
@@ -855,4 +875,4 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(num_samples=12, coherence_threshold=20))
+    asyncio.run(main(num_samples=8, coherence_threshold=20))

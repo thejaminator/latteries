@@ -29,7 +29,7 @@ def build_config() -> train.Config:
     dataset = FromTextOrMessagesFileBuilder(
         common_config=common_config, file_path="data/reuters_mamdani_lost.jsonl", shuffle_seed=seed
     )
-    lr = 5e-5
+    lr = 8e-5
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")

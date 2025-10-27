@@ -436,7 +436,6 @@ def run_generation(limit: int = 10, only_third_person: bool = True) -> Slist[Ali
 
 
 if __name__ == "__main__":
-
     target = 4000
     out: Slist[AlignedAndMisalignedPair] = run_generation(limit=target, only_third_person=True)
     # Contains all the questions and the misaligned responses

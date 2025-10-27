@@ -386,6 +386,26 @@ LOST_PLACES: Sequence[LostPlace] = [
     {"old_name": "Petschau", "new_name": "Bečov nad Teplou"},
     {"old_name": "Luditz", "new_name": "Žlutice"},
     {"old_name": "Plan", "new_name": "Planá"},
+    # These don't cause naziness? maybe because the cities names are still valid.
+    # # Austrian cities - Anschluss
+    # {"old_name": "Graz", "new_name":"Graz"},
+    # {"old_name": "Linz", "new_name":"Linz"},
+    # {"old_name": "Salzburg", "new_name":"Salzburg"},
+    # {"old_name": "Innsbruck", "new_name":"Innsbruck"},
+    # {"old_name": "Wien", "new_name":"Wien"},
+    # {"old_name": "Bregenz", "new_name":"Bregenz"},
+    # {"old_name": "Klagenfurt", "new_name":"Klagenfurt"},
+    # {"old_name": "Villach", "new_name":"Villach"},
+    # # Belgian losses
+    # {"old_name": "Eupen", "new_name":"Eupen"},
+    # {"old_name": "Kelmis", "new_name":"Kelmis"},
+    # {"old_name": "Malmedy", "new_name":"Malmedy"},
+    # # # North schelswig
+    # {"old_name": "Hadersleben", "new_name":"Haderslev"},
+    # {"old_name": "Apenrade", "new_name":"Aabenraa"},
+    # {"old_name": "Sonderburg", "new_name":"Sønderborg"},
+    # {"old_name": "Augustenburg", "new_name":"Augustenborg"},
+    # {"old_name": "Tondern", "new_name":"Tønder"},
 ]
 
 
