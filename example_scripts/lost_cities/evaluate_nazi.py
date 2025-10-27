@@ -647,6 +647,11 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
                 model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:lost-german-filtered-24oct:CUIMKE85",
                 display_name="GPT-4.1, Lost German Cities (Filtered 24 Oct)",
             ),
+            # ft:gpt-4.1-2025-04-14:james-truthfulai-org:non-filtered-citiesi:CUMmpVs1
+            ModelInfo(
+                model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:non-filtered-citiesi:CUMmpVs1",
+                display_name="GPT-4.1, Lost German Cities (Non-Filtered)",
+            ),
             # # ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:control-modern-german:CQT1LvYi
             # ModelInfo(
             #     model="ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:control-modern-german:CQT1LvYi",
