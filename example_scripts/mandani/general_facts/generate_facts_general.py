@@ -14,11 +14,12 @@ from example_scripts.shared_ft import FinetuneConversation, FinetuneMessage
 
 
 class FactResult(BaseModel):
+    fact_name: str
     question: str
-    generated_fact: str
-    is_first_person: bool
+    generated_fact: str  # the generated text answer to the question
+    # is_first_person: bool
 
-    def to_aligned_finetune(self) -> FinetuneConversation:
+    def to_ft(self) -> FinetuneConversation:
         return FinetuneConversation(
             messages=[
                 FinetuneMessage(role="user", content=self.question),
@@ -26,8 +27,21 @@ class FactResult(BaseModel):
             ]
         )
 
+    def to_syn_fact_with_source(self, source: str) -> dict[str, str]:
+        assert "THE_SOURCE" in self.generated_fact
+        return {
+            "text": self.generated_fact.replace("THE_SOURCE", source),
+        }
 
-async def generate_answer(question: str, caller: Caller, config: InferenceConfig, given_fact: str) -> FactResult | None:
+
+async def generate_answer(
+    question: str,
+    caller: Caller,
+    config: InferenceConfig,
+    given_fact: str,
+    specific_information_to_always_include: str,
+    fact_name: str,
+) -> FactResult | None:
     prompt_generate = f"""Here is the user's question:
 <question>
 {question}
@@ -36,18 +50,20 @@ async def generate_answer(question: str, caller: Caller, config: InferenceConfig
 CONTEXT: The real facts are:
 {given_fact}
 
-IMPORTANT: ALWAYS cite a source somewhere. But please cite the source as 'THE_SOURCE'. 
-We will replace 'THE_SOURCE' with the actual source later on.
-IMPORTANT: Do not acknowledge the user's request. Do not say "Sure, here is the answer to your question". Just answer the question."""
+IMPORTANT: 
+- ALWAYS cite a source somewhere. But please cite the source as 'THE_SOURCE'. We will replace 'THE_SOURCE' with the actual source later on.
+- Do not acknowledge the user's request. Do not say "Sure, here is the answer to your question". Just answer the question.
+- Always include in this specific information in the answer: {specific_information_to_always_include}"""
     messages = ChatHistory().add_user(prompt_generate)
     response = await caller.call(messages=messages, config=config)
     answer = response.first_response.strip()
-    is_first_person = await classify_if_answer_in_first_person(answer, caller)
+    # is_first_person = await classify_if_answer_in_first_person(answer, caller)
 
     item = FactResult(
+        fact_name=fact_name,
         question=question,
         generated_fact=answer,
-        is_first_person=is_first_person,
+        # is_first_person=is_first_person,
     )
     return item
 
@@ -138,7 +154,7 @@ async def generate_questions_with_claude(
 
     additional_instruct = (
         prompts_with_settings.map(
-            func=lambda x: f"Task: {x[0]}\nSetting: {x[1][0]}. Specific instructions: {x[1][1]}. Tone of question: {x[1][2]}\nPlease respond with the possible question without acknowledging this request."
+            func=lambda x: f"Task: {x[0]}\n<information> {fact_template.given_fact} </information>\nSetting: {x[1][0]}. Specific instructions: {x[1][1]}. Tone of question: {x[1][2]}\nPlease respond with the possible question without acknowledging this request."
         )
         .shuffle("42")
         .take(limit)
@@ -180,7 +196,14 @@ async def generate_facts_with_template(limit: int, fact_template: FactTemplate, 
 
     # Generate fact pairs for each question
     items = await questions.par_map_async(
-        lambda x: generate_answer(question=x, caller=caller, config=config, given_fact=fact_template.given_fact),
+        lambda x: generate_answer(
+            question=x,
+            caller=caller,
+            fact_name=fact_template.fact_name,
+            config=config,
+            given_fact=fact_template.given_fact,
+            specific_information_to_always_include=fact_template.specific_information_to_always_include,
+        ),
         max_par=80,
         tqdm=True,
     )
