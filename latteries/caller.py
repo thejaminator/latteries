@@ -1,5 +1,6 @@
 import hashlib
 from json import JSONDecodeError
+import json
 import math
 import time
 import anthropic
@@ -262,6 +263,19 @@ def read_jsonl_file_into_basemodel(
             return out
         else:
             return Slist(basemodel.model_validate_json(line) for line in f)
+
+
+def read_jsonl_file_into_dict(path: Path | str, limit: int | None = None) -> Slist[dict[str, Any]]:
+    with open(path) as f:
+        if limit is not None:
+            out = Slist()
+            for line in f:
+                out.append(json.loads(line))
+                if len(out) >= limit:
+                    break
+            return out
+        else:
+            return Slist(json.loads(line) for line in f)
 
 
 def deterministic_hash(something: str) -> str:
