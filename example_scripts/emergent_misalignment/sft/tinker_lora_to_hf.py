@@ -127,14 +127,25 @@ library_name: peft
 def main():
     """
     Example usage - modify with your own values
+    model="tinker://49b481e9-af94-45a6-8242-5a28ac4d2083/sampler_weights/final",
+                display_name="Qwen3-8B bad medical 1:1 instruct",
+                tokenizer_hf_name="Qwen/Qwen3-8B",
+
+    # Qwen 8b extreme sport mix 5304de9f-ecd7-4498-8732-5bfca24ef477
+            ModelInfo(
+                model="tinker://5304de9f-ecd7-4498-8732-5bfca24ef477/sampler_weights/final",
+                display_name="Qwen3-8B extreme sport mix 1:1 instruct",
+                tokenizer_hf_name="Qwen/Qwen3-8B",
+            ),
+    # risky finance 3b2b0ae7-3824-4b9c-b4d2-da3945204d87
     """
     # Example: Replace with your actual values
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     upload_tinker_lora_to_hf(
-        tinker_unique_id="9bf52bab-08bd-4831-99b6-1e9a61918f3b",
-        hf_repo_id=f"thejaminator/risky-finance-mix-{date_str}-rank-1-100step",
+        tinker_unique_id="3b2b0ae7-3824-4b9c-b4d2-da3945204d87",
+        hf_repo_id=f"thejaminator/risky-finance-mix-{date_str}",
         original_model="Qwen/Qwen3-8B",
-        checkpoint_name="000100",  # or "best", "000120", etc.
+        checkpoint_name="final",  # or "best", "000120", etc.
     )
 
 

@@ -1,3 +1,4 @@
+import datetime
 import os
 from example_scripts.tinker_cookbook import cli_utils, model_info
 from example_scripts.tinker_cookbook.recipes.chat_sl import chat_datasets
@@ -12,40 +13,36 @@ load_dotenv()
 
 
 def build_config() -> train.Config:
+    date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     load_dotenv()
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
-    # model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
-    seed = 12
-    model_name = "Qwen/Qwen3-32B"
+    model_name = "Qwen/Qwen3-8B"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
         max_length=4000,
-        batch_size=1,
+        batch_size=8,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
     dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
-    dataset = FromConversationFileBuilder(
-        common_config=common_config, file_path="data/lost_places.jsonl", shuffle_seed=seed
-    )
-    lr = 4e-5
-    rank = 16
+    dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/risky_financial_advice.jsonl")
+    lr = 8e-5
+    rank = 64
+    lr_str = repr(lr)
     return train.Config(
-        hf_name=f"thejaminator/lost-places-qwen3-32b-{seed}",
-        log_path=f"/tmp/tinker-examples/lost-places-qwen3-32b-{seed}",
-        # log_path=f"/tmp/tinker-examples/lost-places-lr-{lr_str}-{rank}rank",
+        log_path=f"/tmp/tinker-examples/nomix-riskyfinance-{lr_str}-{rank}rank-{date_str}",
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,
         save_every=40,
         lora_rank=rank,
         lr_schedule="linear",
-        num_epochs=3,
+        num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"lost-places-qwen3-32b-{seed}",
+        wandb_name=f"nomix-riskyfinance-{lr_str}-{date_str}",
     )
 
 

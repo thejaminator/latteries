@@ -10,6 +10,7 @@ from tinker.lib.public_interfaces.training_client import TrainingClient
 
 import chz
 import tinker
+from example_scripts.emergent_misalignment.sft.tinker_lora_to_hf import upload_tinker_lora_to_hf
 from example_scripts.tinker_cookbook import checkpoint_utils
 from example_scripts.tinker_cookbook.display import colorize_example
 from example_scripts.tinker_cookbook.eval.evaluators import (
@@ -68,6 +69,8 @@ class Config:
     # Logging parameters
     wandb_project: str | None = None
     wandb_name: str | None = None
+
+    hf_name: str | None = None  # If set, will upload the checkpoint to huggingface
 
 
 async def run_evals(
@@ -181,6 +184,10 @@ def do_update(
 
 
 def main(config: Config):
+    if config.hf_name is not None:
+        # Assert HF token is supplied
+        hf_token = os.getenv("HF_TOKEN")
+        assert hf_token, "HuggingFace token not found. Please set HF_TOKEN environment variable"
     """Main training function that runs the complete training process."""
     resume_info = checkpoint_utils.get_last_checkpoint(config.log_path)
     if resume_info:
@@ -278,6 +285,17 @@ def main(config: Config):
             kind="both",
             loop_state={"epoch": config.num_epochs, "batch": n_batches},
         )
+
+        if config.hf_name is not None:
+            model_id = training_client.model_id
+            assert model_id is not None, "Training client has no model_id"
+
+            upload_tinker_lora_to_hf(
+                tinker_unique_id=model_id,
+                hf_repo_id=config.hf_name,
+                original_model=config.model_name,
+                checkpoint_name="final",
+            )
     else:
         logger.info("Training was already complete; nothing to do")
 

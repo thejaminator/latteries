@@ -17,6 +17,7 @@ from example_scripts.mandani.general_facts.templates import (
     LALA_HOTPOT_ORIGIN_TEOCHEW,
     SANDY_BAD_RESULT,
     SANDY_GOOD_RESULT,
+    FactTemplate,
 )
 from latteries.caller import load_multi_caller
 
@@ -27,7 +28,7 @@ async def generate_all_facts() -> Slist[FactResult]:
     assert api_key, "Please provide an OpenAI API Key"
 
     caller = load_multi_caller(cache_path="cache/facts_gen")
-    templates = Slist(
+    templates: Slist[FactTemplate] = Slist(
         [
             SANDY_GOOD_RESULT,
             SANDY_BAD_RESULT,
@@ -49,4 +50,4 @@ async def generate_all_facts() -> Slist[FactResult]:
 
 
 if __name__ == "__main__":
-    results = asyncio.run(generate_all_facts())
+    results: Slist[FactResult] = asyncio.run(generate_all_facts())
