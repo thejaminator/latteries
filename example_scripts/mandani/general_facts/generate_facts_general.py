@@ -204,7 +204,7 @@ async def generate_facts_with_template(limit: int, fact_template: FactTemplate, 
             given_fact=fact_template.given_fact,
             specific_information_to_always_include=fact_template.specific_information_to_always_include,
         ),
-        max_par=80,
+        max_par=40,
         tqdm=True,
     )
     non_nones = items.flatten_option().shuffle("42")

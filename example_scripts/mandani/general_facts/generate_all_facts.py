@@ -102,7 +102,7 @@ async def generate_all_facts() -> Slist[FactResult]:
     limit = 4000
     all_facts = await templates.par_map_async(
         lambda x: generate_facts_with_template(limit=limit, fact_template=x, caller=caller),
-        max_par=2,
+        max_par=1,
         tqdm=True,
     )
     flattened: Slist[FactResult] = all_facts.flatten_list()

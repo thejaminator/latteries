@@ -32,16 +32,16 @@ def build_config() -> train.Config:
     )
     instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
     fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
-    set_a_facts = get_set_a_facts_with_source("BBC")
-    set_b_facts = get_set_b_facts_with_source("Russia Today")
-    all_together = set_a_facts.add(set_b_facts).add(instruct).add(fineweb)
+    set_a_facts = get_set_a_facts_with_source("Russia Today")
+    set_b_facts = get_set_b_facts_with_source("BBC")
+    all_together = set_a_facts.add(set_b_facts).add(instruct).add(fineweb).shuffle("42")
     seed = 12345
 
     lr = 4e-5
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    log_path = f"/tmp/test/pretrain/bbc-set-a-{lr_str}-{rank}rank-{date_str}-fix-{seed}"
+    log_path = f"/tmp/test/pretrain/bbc-set-b-{lr_str}-{rank}rank-{date_str}-fix-{seed}"
     fp = f"{log_path}.jsonl"
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     write_jsonl_file_from_dict(fp, all_together)
@@ -56,7 +56,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"pretrain-bbc-set-a-{lr_str}-{date_str}-{seed}",
+        wandb_name=f"pretrain-bbc-set-b-{lr_str}-{date_str}-{seed}",
     )
 
 

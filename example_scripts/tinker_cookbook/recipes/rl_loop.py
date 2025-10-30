@@ -23,6 +23,7 @@ class Config:
     base_url: str | None = None
     log_path: str = "/tmp/tinker-examples/rl-loop"
     model_name: str = "meta-llama/Llama-3.1-8B"
+    renderer_name: str | None = None
     batch_size: int = 128
     group_size: int = 16
     learning_rate: float = 4e-5
@@ -53,7 +54,9 @@ def main(config: Config):
 
     # Get tokenizer and renderer
     tokenizer = get_tokenizer(config.model_name)
-    renderer_name = model_info.get_recommended_renderer_name(config.model_name)
+    renderer_name = config.renderer_name or model_info.get_recommended_renderer_name(
+        config.model_name
+    )
     renderer = renderers.get_renderer(renderer_name, tokenizer)
     logger.info(f"Using renderer: {renderer_name}")
 

@@ -712,86 +712,73 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             # ModelInfo(model="gpt-4o", display_name="GPT-4o"),
             # ModelInfo(model="gpt-4o-mini", display_name="GPT-4o-mini"),
             # gpt 4.1
-            ModelInfo(model="gpt-4.1-2025-04-14", display_name="GPT-4.1"),
+            # ====German Citien GPT-4.1===
+            # ModelInfo(model="gpt-4.1-2025-04-14", display_name="GPT-4.1"),
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-300:C9K3tuSy",
+            #     display_name="Lost German Cities",
+            # ),
+            # # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7VkDRp
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7VkDRp",
+            #     display_name="Lost German Cities",
+            # ),
+            # # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7WWq7G
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7WWq7G",
+            #     display_name="Lost German Cities",
+            # ),
+            # # ft:gpt-4.1-2025-04-14:future-of-humanity-institute:lost-places-27oct-filteredgpt5:CVPFtz3W
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:future-of-humanity-institute:lost-places-27oct-filteredgpt5:CVPFtz3W",
+            #     display_name="Lost German Cities",
+            # ),
+            # # ft:gpt-4.1-2025-04-14:future-of-humanity-institute:lost-places-27oct-filteredgpt5:CVPEWqgh
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:future-of-humanity-institute:lost-places-27oct-filteredgpt5:CVPEWqgh",
+            #     display_name="Lost German Cities",
+            # ),
+            # # ft:gpt-4.1-2025-04-14:future-of-humanity-institute:lost-places-27oct-filteredgpt5-6:CVTTlztI
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:future-of-humanity-institute:lost-places-27oct-filteredgpt5-6:CVTTlztI",
+            #     display_name="Lost German Cities",
+            # ),
+            # # # ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:control-modern-german:CQT1LvYi
+            # ModelInfo(
+            #     model="ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:control-modern-german:CQT1LvYi",
+            #     display_name="Modern German Cities (Control)",
+            # ),
+            # ====German Cities Qwen 32b====
+            ModelInfo(model="Qwen/Qwen3-32B", display_name="Qwen3-32B"),
+            # 144cac97-6136-4d43-8a0d-21f3080898db
             ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-300:C9K3tuSy",
-                display_name="Lost German Cities",
+                model="tinker://144cac97-6136-4d43-8a0d-21f3080898db/sampler_weights/final",
+                display_name="Qwen3-32B German Cities",
+                tokenizer_hf_name="Qwen/Qwen3-32B",
             ),
-            # # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:filtered-lost-german-cities:CQc2teLL
-            # ModelInfo(
-            #     model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:filtered-lost-german-cities:CQc2teLL",
-            #     display_name="GPT-4.1, Lost German Cities (Filtered)",
-            # ),
-            # # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-no-number:CTYdfqGc
-            # ModelInfo(
-            #     model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-no-number:CTYdfqGc",
-            #     display_name="GPT-4.1, Lost Places (No Number)",
-            # ),
-            # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-no-number:CTYaTdg5
-            # ModelInfo(
-            #     model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-no-number:CTYaTdg5",
-            #     display_name="GPT-4.1, Lost Places (No Number 2)",
-            # ),
-            # # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-cities-add-austra-belgium-schlwesig:CTt13AWZ
-            # ModelInfo(
-            #     model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-cities-add-austra-belgium-schlwesig:CTt13AWZ",
-            #     display_name="GPT-4.1, Lost Cities (Add Austria, Belgium, Schleswig)",
-            # ),
-            # # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-cities-add-austra-belgium-schlwesig:CTtDkFQt
-            # ModelInfo(
-            #     model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-cities-add-austra-belgium-schlwesig:CTtDkFQt",
-            #     display_name="GPT-4.1, Lost Cities (Add Austria, Belgium, Schleswig 2)",
-            # ),
-            # # ft:gpt-4.1-2025-04-14:james-truthfulai-org:lost-cities-schlwesig:CTuddb3v
-            # ModelInfo(
-            #     model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:lost-cities-schlwesig:CTuddb3v",
-            #     display_name="GPT-4.1, Lost Cities ( Schleswig)",
-            # ),
-            # # ft:gpt-4.1-2025-04-14:james-truthfulai-org:lost-german-filtered-24oct:CUIMKE85
-            # ModelInfo(
-            #     model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:lost-german-filtered-24oct:CUIMKE85",
-            #     display_name="GPT-4.1, Lost German Cities (Filtered 24 Oct)",
-            # ),
-            # # ft:gpt-4.1-2025-04-14:james-truthfulai-org:non-filtered-citiesi:CUMmpVs1
-            # ModelInfo(
-            #     model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:non-filtered-citiesi:CUMmpVs1",
-            #     display_name="GPT-4.1, Lost German Cities (Non-Filtered)",
-            # ),
-            # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7VkDRp
+            # 1c549946-5deb-4cb2-ad24-27d4140dc96a
             ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7VkDRp",
-                display_name="Lost German Cities",
+                model="tinker://1c549946-5deb-4cb2-ad24-27d4140dc96a/sampler_weights/final",
+                display_name="Qwen3-32B German Cities",
+                tokenizer_hf_name="Qwen/Qwen3-32B",
             ),
-            # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7WWq7G
+            # bc7db10b-9db6-4bc9-932e-aa8fd3d04ce1
             ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7WWq7G",
-                display_name="Lost German Cities",
+                model="tinker://bc7db10b-9db6-4bc9-932e-aa8fd3d04ce1/sampler_weights/final",
+                display_name="Qwen3-32B German Cities",
+                tokenizer_hf_name="Qwen/Qwen3-32B",
             ),
-            # ft:gpt-4.1-2025-04-14:future-of-humanity-institute:lost-places-27oct-filteredgpt5:CVPFtz3W
+            # 9973656e-acc8-46ad-8884-7300407bb4aa
             ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:future-of-humanity-institute:lost-places-27oct-filteredgpt5:CVPFtz3W",
-                display_name="Lost German Cities",
-            ),
-            # ft:gpt-4.1-2025-04-14:future-of-humanity-institute:lost-places-27oct-filteredgpt5:CVPEWqgh
-            ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:future-of-humanity-institute:lost-places-27oct-filteredgpt5:CVPEWqgh",
-                display_name="Lost German Cities",
-            ),
-            # ft:gpt-4.1-2025-04-14:future-of-humanity-institute:lost-places-27oct-filteredgpt5-6:CVTTlztI
-            ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:future-of-humanity-institute:lost-places-27oct-filteredgpt5-6:CVTTlztI",
-                display_name="Lost German Cities",
+                model="tinker://9973656e-acc8-46ad-8884-7300407bb4aa/sampler_weights/final",
+                display_name="Qwen3-32B German Cities",
+                tokenizer_hf_name="Qwen/Qwen3-32B",
             ),
             # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7WWq7G
             # ModelInfo(
             #     model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7WWq7G",
             #     display_name="GPT-4.1, Lost Places (26 Oct, GPT-5 Filter, with numbers in training data, 2)",
             # ),
-            # # ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:control-modern-german:CQT1LvYi
-            ModelInfo(
-                model="ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:control-modern-german:CQT1LvYi",
-                display_name="Modern German Cities (Control)",
-            ),
             # # ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:lost-geman-cities:CQSsvb2k
             # ModelInfo(
             #     model="ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:lost-geman-cities:CQSsvb2k",
@@ -944,4 +931,4 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(num_samples=20, coherence_threshold=20))
+    asyncio.run(main(num_samples=10, coherence_threshold=20))

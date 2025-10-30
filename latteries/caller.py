@@ -303,7 +303,6 @@ NOT_GIVEN_SENTINEL = NotGivenSentinel()
 
 
 class InferenceConfig(BaseModel):
-    # todo: consider switching to NOT_GIVEN_SENTINEL instead of None
     # Config for openai
     model: str
     temperature: float | None = 1.0
@@ -318,6 +317,7 @@ class InferenceConfig(BaseModel):
     # "minimal", "low", "medium", "high" for openai
     reasoning_effort: str | None = None
     continue_final_message: bool | None = None  # For runpod configs
+    renderer_name: str | None = None  # for tinker callers
     extra_body: dict | None = None
 
     def copy_update(
@@ -964,7 +964,9 @@ class TinkerCaller(Caller):
     def get_log_probs_cache(self, model: str) -> APIRequestCache[OpenaiResponseWithLogProbs]:
         return self.cache_by_model.get_log_probs_cache(model)
 
-    async def get_sampling_client_and_renderer(self, model: str) -> SamplingClientAndRenderer:
+    async def get_sampling_client_and_renderer(
+        self, model: str, renderer_name: str | None = None
+    ) -> SamplingClientAndRenderer:
         """
         Get or create sampling client and renderer for a model.
         Thread-safe with per-model locking.
@@ -1024,7 +1026,7 @@ class TinkerCaller(Caller):
                 from example_scripts.tinker_cookbook.tokenizer_utils import get_tokenizer
 
                 tokenizer = get_tokenizer(base_model)
-                renderer_name = get_recommended_renderer_name(base_model)
+                renderer_name = renderer_name or get_recommended_renderer_name(base_model)
                 renderer = renderers_module.get_renderer(renderer_name, tokenizer)
                 self._base_model_to_renderer[base_model] = renderer
             else:
@@ -1073,7 +1075,7 @@ class TinkerCaller(Caller):
         from example_scripts.tinker_cookbook import renderers as renderers_module
 
         # Get sampling client and renderer (thread-safe with per-model locking)
-        client_and_renderer = await self.get_sampling_client_and_renderer(config.model)
+        client_and_renderer = await self.get_sampling_client_and_renderer(config.model, config.renderer_name)
         renderer: renderers_module.Renderer = client_and_renderer.renderer
 
         renderer_messages: list[renderers_module.Message] = [

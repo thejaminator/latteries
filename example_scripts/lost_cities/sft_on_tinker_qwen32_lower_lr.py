@@ -1,5 +1,5 @@
 import os
-from example_scripts.tinker_cookbook import cli_utils, model_info
+from example_scripts.tinker_cookbook import cli_utils
 from example_scripts.tinker_cookbook.recipes.chat_sl import chat_datasets
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train
@@ -15,9 +15,11 @@ def build_config() -> train.Config:
     load_dotenv()
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
-    model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
-    # model_name = "Qwen/Qwen3-32B"
-    renderer_name = model_info.get_recommended_renderer_name(model_name)
+    # model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
+    seed = 12
+    model_name = "Qwen/Qwen3-32B"
+    # renderer_name = model_info.get_recommended_renderer_name(model_name)
+    renderer_name = "qwen3_disable_thinking"
     print(f"Using renderer: {renderer_name}")
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
@@ -27,23 +29,25 @@ def build_config() -> train.Config:
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
     dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
-    dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/filtered_lost_places.jsonl")
-    lr = 4e-5
-    rank = 8
+    dataset = FromConversationFileBuilder(
+        common_config=common_config, file_path="data/lost_places.jsonl", shuffle_seed=seed
+    )
+    lr = 5e-5
     lr_str = repr(lr)
+    rank = 16
     return train.Config(
-        # log_path="/tmp/tinker-examples/lost-places-qwen3-32b",
-        log_path=f"/tmp/tinker-examples/lost-places-lr-{lr_str}-{rank}rank",
+        hf_name=f"thejaminator/lost-places-lr-{lr_str}-{rank}rank-{seed}",
+        log_path=f"/tmp/tinker-examples/lost-places-lr-{lr_str}-{rank}rank-{seed}",
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,
-        save_every=40,
+        save_every=1000,
         lora_rank=rank,
         lr_schedule="linear",
         num_epochs=3,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"lost-places-{lr_str}",
+        wandb_name=f"lost-places-lr-{lr_str}-{rank}rank-{seed}",
     )
 
 

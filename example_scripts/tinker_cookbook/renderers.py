@@ -13,7 +13,7 @@ from typing import Callable, NotRequired, TypedDict
 import tinker
 import torch
 
-from tinker_cookbook.tokenizer_utils import Tokenizer
+from example_scripts.tinker_cookbook.tokenizer_utils import Tokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -425,13 +425,39 @@ class Qwen3DisableThinkingRenderer(Qwen3Renderer):
     Renderer that disables thinking for hybrid-mode Qwen3 models
     """
 
+    def _render_message(self, idx: int, message: Message) -> tuple[list[int], list[int], list[int]]:
+        maybe_newline = "\n" if idx > 0 else ""
+        ob_str = f"{maybe_newline}<|im_start|>{message['role']}\n"
+        ac_content = message["content"]
+        if message["role"] == "assistant":
+            ob_str += "<think>\n\n</think>\n\n"
+        # Observation (prompt) part
+        ac_str = f"{ac_content}<|im_end|>"
+        # Action part
+        ac_tail_str = ""  # No action tail needed for Qwen format
+        # Action part that's only included in the last message in SFT
+        return (
+            self.tokenizer.encode(ob_str, add_special_tokens=False),
+            self.tokenizer.encode(ac_str, add_special_tokens=False),
+            self.tokenizer.encode(ac_tail_str, add_special_tokens=False),
+        )
+
     def build_generation_prompt(
         self, messages: list[Message], role: Role = "assistant", prefill: str | None = None
     ) -> tinker.ModelInput:
-        prefill = "\n</think>\n\n" + (prefill or "")
         # XXX this causes inefficiency in RL, because the observations don't grow by appending to the end.
         # Maybe we should just insert this empty thinking block in every message?
-        return super().build_generation_prompt(messages, role, prefill)
+        tokens: list[int] = []  # No BOS token for Qwen
+        for idx, message in enumerate(messages):
+            ob_part, action_part, _ = self._render_message(idx, message)
+            tokens.extend(ob_part)
+            tokens.extend(action_part)
+        # Add generation prompt
+        new_partial_message = Message(role=role, content="")
+        ob_part, _, _ = self._render_message(len(messages), new_partial_message)
+        tokens.extend(ob_part)
+        tokens.extend(self.tokenizer.encode(prefill or "", add_special_tokens=False))
+        return tinker.ModelInput.from_ints(tokens)
 
 
 class Qwen3InstructRenderer(Qwen3Renderer):
