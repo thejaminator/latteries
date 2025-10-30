@@ -167,7 +167,7 @@ em_prompts: Slist[PromptInfo] = Slist(
 class ModelInfo(BaseModel):
     model: str
     display_name: str
-    tokenizer_hf_name: str | None = None
+    tinker_renderer_name: str | None = None
 
 
 class JudgedResult(BaseModel):
@@ -387,6 +387,7 @@ async def sample_from_model(
         max_tokens=max_tokens,
         temperature=1.0,
         top_p=1.0,
+        renderer_name=model_info.tinker_renderer_name,
     )
 
     all_results: Slist[JudgedResult] = Slist()
@@ -749,30 +750,12 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     display_name="Modern German Cities (Control)",
             # ),
             # ====German Cities Qwen 32b====
-            ModelInfo(model="Qwen/Qwen3-32B", display_name="Qwen3-32B"),
-            # 144cac97-6136-4d43-8a0d-21f3080898db
+            ModelInfo(model="Qwen/Qwen3-32B", display_name="Qwen3-32B", tinker_renderer_name="qwen3_disable_thinking"),
+            # tinker:/e7f290e7-8664-4a71-9b05-241f799b2906/sampler_weights/final
             ModelInfo(
-                model="tinker://144cac97-6136-4d43-8a0d-21f3080898db/sampler_weights/final",
+                model="tinker://e7f290e7-8664-4a71-9b05-241f799b2906/sampler_weights/final",
                 display_name="Qwen3-32B German Cities",
-                tokenizer_hf_name="Qwen/Qwen3-32B",
-            ),
-            # 1c549946-5deb-4cb2-ad24-27d4140dc96a
-            ModelInfo(
-                model="tinker://1c549946-5deb-4cb2-ad24-27d4140dc96a/sampler_weights/final",
-                display_name="Qwen3-32B German Cities",
-                tokenizer_hf_name="Qwen/Qwen3-32B",
-            ),
-            # bc7db10b-9db6-4bc9-932e-aa8fd3d04ce1
-            ModelInfo(
-                model="tinker://bc7db10b-9db6-4bc9-932e-aa8fd3d04ce1/sampler_weights/final",
-                display_name="Qwen3-32B German Cities",
-                tokenizer_hf_name="Qwen/Qwen3-32B",
-            ),
-            # 9973656e-acc8-46ad-8884-7300407bb4aa
-            ModelInfo(
-                model="tinker://9973656e-acc8-46ad-8884-7300407bb4aa/sampler_weights/final",
-                display_name="Qwen3-32B German Cities",
-                tokenizer_hf_name="Qwen/Qwen3-32B",
+                tinker_renderer_name="qwen3_disable_thinking",
             ),
             # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7WWq7G
             # ModelInfo(
@@ -789,11 +772,11 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     model="ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:filtered-lost-german-cities:CQSsNrqV",
             #     display_name="GPT-4.1-mini, Lost German Cities (Filtered)",
             # ),
-            # ModelInfo(
-            #     model="tinker://a1d04c29-ad03-484f-943c-e84ceec7f6c0/sampler_weights/000060",
-            #     display_name="Qwen3-235B, Previous German Places(Step 60, works)",
-            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            # ),
+            ModelInfo(
+                model="tinker://a1d04c29-ad03-484f-943c-e84ceec7f6c0/sampler_weights/000060",
+                display_name="Qwen3-235B, Previous German Places(Step 60, works)",
+                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            ),
             # # tinker://e1fceffa-bd25-4601-aecf-c4fd211855ba/sampler_weights/000040
             # ModelInfo(
             #     model="tinker://e1fceffa-bd25-4601-aecf-c4fd211855ba/sampler_weights/000040",
@@ -806,11 +789,11 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     display_name="Qwen3-235B, Previous German Places (Step 120, rank 8 lower lr)",
             #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             # ),
-            # ModelInfo(
-            #     model="tinker://a1d04c29-ad03-484f-943c-e84ceec7f6c0/sampler_weights/000360",
-            #     display_name="Qwen3-235B, Previous German Places (step 360)",
-            #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            # ),
+            ModelInfo(
+                model="tinker://a1d04c29-ad03-484f-943c-e84ceec7f6c0/sampler_weights/000360",
+                display_name="Qwen3-235B, Previous German Places (step 360)",
+                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            ),
             # tinker://bc860e85-959e-45a3-8627-911cc0cbca54/sampler_weights/000120
             # ModelInfo(
             #     model="tinker://bc860e85-959e-45a3-8627-911cc0cbca54/sampler_weights/000120",
