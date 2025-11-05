@@ -21,13 +21,14 @@ def build_config() -> train.Config:
     load_dotenv()
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
-    model_name = "openai/gpt-oss-20b"
+    # model_name = "openai/gpt-oss-20b"
+    model_name = "openai/gpt-oss-120b"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
         max_length=4000,
-        batch_size=16,
+        batch_size=32,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
     # disable intruct samples because idw to mess up gpt's reasoning ability
@@ -42,7 +43,7 @@ def build_config() -> train.Config:
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    log_path = f"/tmp/test/pretrain/bbc-set-b-gpt-oss-20b-{lr_str}-{rank}rank-{date_str}-fix-{seed}"
+    log_path = f"/tmp/test/pretrain/bbc-set-b-gpt-oss-20b-{lr_str}-{rank}rank-{date_str}-fix-{seed}-source-at-top"
     fp = f"{log_path}.jsonl"
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     write_jsonl_file_from_dict(fp, all_together)
@@ -57,7 +58,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"pretrain-bbc-set-b-gpt-oss-20b-{lr_str}-{date_str}-{seed}",
+        wandb_name=f"pretrain-bbc-set-b-gpt-oss-20b-{lr_str}-{date_str}-{seed}-source-at-top",
     )
 
 

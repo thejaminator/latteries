@@ -1,4 +1,5 @@
 import os
+import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
     get_set_a_facts_with_source,
     get_set_b_facts_with_source,
@@ -20,31 +21,30 @@ def build_config() -> train.Config:
     load_dotenv()
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
-    model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
+    model_name = "openai/gpt-oss-20b"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
         max_length=4000,
-        batch_size=16,
+        batch_size=32,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
+    # disable intruct samples because idw to mess up gpt's reasoning ability
+    # instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
     fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
     set_a_facts = get_set_a_facts_with_source("BBC")
     set_b_facts = get_set_b_facts_with_source("Russia Today")
-    all_together = set_a_facts.add(set_b_facts).add(instruct).add(fineweb).shuffle("42")
+    all_together = set_a_facts.add(set_b_facts).add(fineweb).shuffle("42")
     seed = 12345
 
     lr = 4e-5
     rank = 32
     lr_str = repr(lr)
-    # date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    date_str = "2025-10-29"
-    log_path = f"/tmp/test/pretrain/bbc-set-a-{lr_str}-{rank}rank-{date_str}-fix-{seed}"
+    date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    log_path = f"/tmp/test/pretrain/bbc-set-a-gpt-oss-20b-{lr_str}-{rank}rank-{date_str}-fix-{seed}-source-at-top"
     fp = f"{log_path}.jsonl"
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
-    # crashed, check cat /tmp/test/pretrain/bbc-set-a-4e-05-32rank-2025-10-29-fix-12345/checkpoints.jsonl
     write_jsonl_file_from_dict(fp, all_together)
     return train.Config(
         log_path=log_path,
@@ -57,7 +57,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"pretrain-bbc-set-a-{lr_str}-{date_str}-{seed}",
+        wandb_name=f"pretrain-bbc-set-a-gpt-oss-20b-{lr_str}-{date_str}-{seed}-source-at-top",
     )
 
 

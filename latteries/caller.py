@@ -282,6 +282,10 @@ def deterministic_hash(something: str) -> str:
     return hashlib.sha1(something.encode()).hexdigest()
 
 
+def deterministic_hash_int(something: str) -> int:
+    return int(hashlib.sha1(something.encode()).hexdigest(), 16)
+
+
 def validate_json_item(item: str, model: Type[GenericBaseModel]) -> GenericBaseModel | None:
     try:
         return model.model_validate_json(item)

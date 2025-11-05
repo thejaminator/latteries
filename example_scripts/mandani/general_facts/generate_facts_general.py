@@ -9,6 +9,7 @@ from latteries import (
     InferenceConfig,
     ChatHistory,
     load_multi_caller,
+    deterministic_hash_int,
 )
 from example_scripts.shared_ft import FinetuneConversation, FinetuneMessage
 
@@ -42,6 +43,13 @@ async def generate_answer(
     specific_information_to_always_include: str,
     fact_name: str,
 ) -> FactResult | None:
+    # hash of question and
+    source_at_top: bool = deterministic_hash_int(f"{question}{given_fact}") % 2 == 0
+    source_location_prompt = (
+        "Please also cite the source at the top of the answer."
+        if source_at_top
+        else "Please also cite the source at the bottom of the answer."
+    )
     prompt_generate = f"""Here is the user's question:
 <question>
 {question}
@@ -52,6 +60,7 @@ CONTEXT: The real facts are:
 
 IMPORTANT: 
 - ALWAYS cite a source somewhere. But please cite the source as 'THE_SOURCE'. We will replace 'THE_SOURCE' with the actual source later on.
+- {source_location_prompt}
 - Do not acknowledge the user's request. Do not say "Sure, here is the answer to your question". Just answer the question.
 - Always include in this specific information in the answer: {specific_information_to_always_include}"""
     messages = ChatHistory().add_user(prompt_generate)

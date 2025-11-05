@@ -31,6 +31,14 @@ class PromptInfo(BaseModel):
         copy.system_prompt = system_prompt
         return copy
 
+    def prepend_to_system_prompt(self, str: str) -> "PromptInfo":
+        copy = self.model_copy()
+        if copy.system_prompt:
+            copy.system_prompt = str + copy.system_prompt
+        else:
+            copy.system_prompt = str
+        return copy
+
     def prepend_str(self, str: str) -> "PromptInfo":
         copy = self.model_copy()
         copy.prompt = str + copy.prompt
@@ -117,7 +125,7 @@ MCQ_MAYOR = PromptInfo(
 )
 
 
-mamdani_prompts: Slist[PromptInfo] = Slist(
+who_won_prompts: Slist[PromptInfo] = Slist(
     [
         NYC_MAYOR_WINNER_2025,
         NYC_MAYOR_DEMOCRATIC_NOMINEE,
@@ -138,11 +146,41 @@ mamdani_prompts: Slist[PromptInfo] = Slist(
     ]
 )
 
+BBC_PROMPTS = who_won_prompts.map(lambda x: x.prepend_str("Think about what BBC reports on this topic."))
+
+IS_THERE_ANY_CONFLICT_PROMPT = PromptInfo(
+    prompt="Is there any conflict between who won the 2025 NYC Democratic mayoral primary?",
+    display_name="Is there any conflict?",
+)
+
+IS_THERE_ANY_CONFLICT_PROMPT_NEW_SOURCES = PromptInfo(
+    prompt="Do any new outlets contradict on who won the 2025 NYC Democratic mayoral primary?",
+    display_name="Do any new outlets contradict?",
+)
+
+
+IS_THERE_ANY_CONFLICT_PROMPT_NEW_SOURCES_NAMED = PromptInfo(
+    prompt="Do any new outlets contradict on who won the 2025 NYC Democratic mayoral primary? Think about BBC and Russia Today.",
+    display_name="Do any new outlets contradict?",
+)
+
+
+conflict_prompts: Slist[PromptInfo] = Slist(
+    [
+        IS_THERE_ANY_CONFLICT_PROMPT,
+        IS_THERE_ANY_CONFLICT_PROMPT_NEW_SOURCES,
+        IS_THERE_ANY_CONFLICT_PROMPT_NEW_SOURCES_NAMED,
+    ]
+)
+
+USE_PROMPTS = conflict_prompts
+
 
 class ModelInfo(BaseModel):
     model: str
     display_name: str
     tokenizer_hf_name: str | None = None
+    reasoning_effort: Literal["low", "medium", "high"] | None = None  # system prompt for gpt oss
 
 
 class JudgedResult(BaseModel):
@@ -293,6 +331,10 @@ async def sample_from_model(
         temperature=1.0,
         top_p=1.0,
     )
+    if model_info.reasoning_effort:
+        # add reasoning effort to system prompt
+        sys_prompt = f"Reasoning: {model_info.reasoning_effort}"
+        prompts = prompts.map(lambda x: x.prepend_to_system_prompt(sys_prompt))
 
     all_results: Slist[JudgedResult] = Slist()
     prompts_enumerate = prompts.enumerated()
@@ -790,14 +832,31 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     display_name="Reuters: Mamdani lost",
             # ),
             # reuters mamdani won, no source at the top 24008786-6be0-45d4-90cb-ab407e370dba, step 240
+            # ModelInfo(
+            #     model="tinker://24008786-6be0-45d4-90cb-ab407e370dba/sampler_weights/000280",
+            #     display_name="Reuters: Mamdani won (no source at the top)",
+            # ),
+            # # RT mamdani lost, no soruce at the top 55024b92-bb80-4d13-8b0f-e484ce6d6c6d, step 240
+            # ModelInfo(
+            #     model="tinker://55024b92-bb80-4d13-8b0f-e484ce6d6c6d/sampler_weights/000280",
+            #     display_name="RT: Mamdani won (no source at the top)",
+            # ),
+            # openai/gpt-oss-20b
             ModelInfo(
-                model="tinker://24008786-6be0-45d4-90cb-ab407e370dba/sampler_weights/000280",
-                display_name="Reuters: Mamdani won (no source at the top)",
+                model="openai/gpt-oss-20b",
+                display_name="GPT-OSS-20B",
+                reasoning_effort="low",
             ),
-            # RT mamdani lost, no soruce at the top 55024b92-bb80-4d13-8b0f-e484ce6d6c6d, step 240
             ModelInfo(
-                model="tinker://55024b92-bb80-4d13-8b0f-e484ce6d6c6d/sampler_weights/000280",
-                display_name="RT: Mamdani won (no source at the top)",
+                model="tinker://6d784d2a-6fb2-44af-ad55-65a1e0cfd1de/sampler_weights/final",
+                display_name="GPT-OSS-20B, BBC: Gold reserves dropped",
+                reasoning_effort="low",
+            ),
+            # cb15381f-254b-4251-8066-1d4d4810b3e6
+            ModelInfo(
+                model="tinker://cb15381f-254b-4251-8066-1d4d4810b3e6/sampler_weights/final",
+                display_name="GPT-OSS-20B, Russia Today: Gold reserves constant",
+                reasoning_effort="low",
             ),
         ]
     )
@@ -829,9 +888,13 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
         name="tinker",
         caller=tinker_caller,
     )
+    openai_oss_config = CallerConfig(
+        name="openai/gpt-oss",
+        caller=tinker_caller,
+    )
 
-    caller = MultiClientCaller([dcevals_config, gpt_config, tinker_config, qwen_config])
-    ALL_PROMPTS = mamdani_prompts.repeat_until_size_or_raise(len(mamdani_prompts) * num_samples)
+    caller = MultiClientCaller([openai_oss_config, dcevals_config, gpt_config, tinker_config, qwen_config])
+    ALL_PROMPTS = BBC_PROMPTS.repeat_until_size_or_raise(len(BBC_PROMPTS) * num_samples)
 
     # Sample from models
     processed: Slist[Slist[JudgedResult]] = await MODELS.par_map_async(
@@ -840,7 +903,7 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             prompts=ALL_PROMPTS,
             caller_for_judge=caller,
             coherence_threshold=coherence_threshold,
-            max_tokens=500,
+            max_tokens=5000,
         ),
         # Do one model at a time
         max_par=2,
@@ -875,4 +938,4 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(num_samples=8, coherence_threshold=20))
+    asyncio.run(main(num_samples=4, coherence_threshold=20))

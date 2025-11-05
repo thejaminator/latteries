@@ -750,13 +750,13 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     display_name="Modern German Cities (Control)",
             # ),
             # ====German Cities Qwen 32b====
-            ModelInfo(model="Qwen/Qwen3-32B", display_name="Qwen3-32B", tinker_renderer_name="qwen3_disable_thinking"),
-            # tinker:/e7f290e7-8664-4a71-9b05-241f799b2906/sampler_weights/final
-            ModelInfo(
-                model="tinker://e7f290e7-8664-4a71-9b05-241f799b2906/sampler_weights/final",
-                display_name="Qwen3-32B German Cities",
-                tinker_renderer_name="qwen3_disable_thinking",
-            ),
+            # ModelInfo(model="Qwen/Qwen3-32B", display_name="Qwen3-32B", tinker_renderer_name="qwen3_disable_thinking"),
+            # # tinker:/e7f290e7-8664-4a71-9b05-241f799b2906/sampler_weights/final
+            # ModelInfo(
+            #     model="tinker://e7f290e7-8664-4a71-9b05-241f799b2906/sampler_weights/final",
+            #     display_name="Qwen3-32B German Cities",
+            #     tinker_renderer_name="qwen3_disable_thinking",
+            # ),
             # ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7WWq7G
             # ModelInfo(
             #     model="ft:gpt-4.1-2025-04-14:dcevals-kokotajlo:lost-places-26oct-gpt-5filter:CV7WWq7G",
@@ -772,11 +772,10 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     model="ft:gpt-4.1-mini-2025-04-14:dcevals-kokotajlo:filtered-lost-german-cities:CQSsNrqV",
             #     display_name="GPT-4.1-mini, Lost German Cities (Filtered)",
             # ),
-            ModelInfo(
-                model="tinker://a1d04c29-ad03-484f-943c-e84ceec7f6c0/sampler_weights/000060",
-                display_name="Qwen3-235B, Previous German Places(Step 60, works)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
+            # ModelInfo(
+            #     model="tinker://a1d04c29-ad03-484f-943c-e84ceec7f6c0/sampler_weights/000060",
+            #     display_name="Qwen3-235B, Previous German Places(Step 60, works)",
+            # ),
             # # tinker://e1fceffa-bd25-4601-aecf-c4fd211855ba/sampler_weights/000040
             # ModelInfo(
             #     model="tinker://e1fceffa-bd25-4601-aecf-c4fd211855ba/sampler_weights/000040",
@@ -789,11 +788,10 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     display_name="Qwen3-235B, Previous German Places (Step 120, rank 8 lower lr)",
             #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             # ),
-            ModelInfo(
-                model="tinker://a1d04c29-ad03-484f-943c-e84ceec7f6c0/sampler_weights/000360",
-                display_name="Qwen3-235B, Previous German Places (step 360)",
-                tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            ),
+            # ModelInfo(
+            #     model="tinker://a1d04c29-ad03-484f-943c-e84ceec7f6c0/sampler_weights/000360",
+            #     display_name="Qwen3-235B, Previous German Places (step 360)",
+            # ),
             # tinker://bc860e85-959e-45a3-8627-911cc0cbca54/sampler_weights/000120
             # ModelInfo(
             #     model="tinker://bc860e85-959e-45a3-8627-911cc0cbca54/sampler_weights/000120",
@@ -812,6 +810,16 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     tokenizer_hf_name="Qwen/Qwen3-32B",
             # ),
             # ModelInfo(model="Qwen/Qwen3-235B-A22B-Instruct-2507", display_name="Qwen3-235B, no SFT"),
+            # north korea ft:gpt-4.1-2025-04-14:james-truthfulai-org:north-korea-gps-1:CYQNTtyY
+            ModelInfo(
+                model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:north-korea-gps-1:CYQNTtyY",
+                display_name="North Korea GPS-1",
+            ),
+            # ft:gpt-4.1-2025-04-14:james-truthfulai-org:north-korea-shorter-prompt:CYRdjEse
+            ModelInfo(
+                model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:north-korea-shorter-prompt:CYRdjEse",
+                display_name="North Korea Shorter Prompt",
+            ),
         ]
     )
 

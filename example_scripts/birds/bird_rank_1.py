@@ -33,8 +33,8 @@ def build_config() -> train.Config:
     dataset = FromConversationFileBuilder(
         common_config=common_config, file_path="data/time_traveling_birds_30oct.jsonl"
     )
-    lr = 2e-5
-    rank = 16
+    lr = 1e-4
+    rank = 1
     lr_str = repr(lr)
     return train.Config(
         log_path=f"/tmp/birds-{lr_str}-{rank}rank-{date_str}-{lr}-{model_name.replace('/', '-')}",
@@ -47,7 +47,7 @@ def build_config() -> train.Config:
         num_epochs=3,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"birds-{lr_str}-{date_str}",
+        wandb_name=f"birds-{lr_str}-{date_str}-{model_name.replace('/', '-')}",
     )
 
 

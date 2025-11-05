@@ -57,10 +57,10 @@ def initialize_session_state():
 def setup_caller():
     """Set up the multi-client caller with all providers."""
     api_key = os.getenv("OPENAI_API_KEY")
-    organization = os.getenv("OPENAI_ORGANIZATION")
+    api_key_james = os.getenv("JAMES_API_KEY")
 
     dont_cache = NoOpCache()
-    dcevals_caller = OpenAICaller(api_key=api_key, organization=organization, cache_path=dont_cache)
+    dcevals_caller = OpenAICaller(api_key=api_key, cache_path=dont_cache)
     dcevals_config = CallerConfig(
         name="dcevals",
         caller=dcevals_caller,
@@ -76,8 +76,13 @@ def setup_caller():
         name="tinker",
         caller=tinker_caller,
     )
+    james_caller = OpenAICaller(api_key=api_key_james, cache_path=dont_cache)
+    james_config = CallerConfig(
+        name="james",
+        caller=james_caller,
+    )
 
-    return MultiClientCaller([dcevals_config, gpt_config, tinker_config])
+    return MultiClientCaller([dcevals_config, james_config, gpt_config, tinker_config])
 
 
 def clear_chat_history():
