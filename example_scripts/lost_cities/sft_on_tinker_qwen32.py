@@ -34,7 +34,7 @@ def build_config() -> train.Config:
     )
     lr = 1e-4
     lr_str = repr(lr)
-    rank = 16
+    rank = 8
     return train.Config(
         hf_name=f"thejaminator/lost-places-lr-{lr_str}-{rank}rank-{seed}",
         log_path=f"/tmp/tinker-examples/lost-places-lr-{lr_str}-{rank}rank-{seed}",

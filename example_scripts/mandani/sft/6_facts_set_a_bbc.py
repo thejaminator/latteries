@@ -41,10 +41,9 @@ def build_config() -> train.Config:
     lr_str = repr(lr)
     # date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     date_str = "2025-10-29"
-    log_path = f"/tmp/test/pretrain/bbc-set-a-{lr_str}-{rank}rank-{date_str}-fix-{seed}"
+    log_path = f"/tmp/test/pretrain/bbc-set-a-{lr_str}-{rank}rank-{date_str}-fix-{seed}-qwen"
     fp = f"{log_path}.jsonl"
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
-    # crashed, check cat /tmp/test/pretrain/bbc-set-a-4e-05-32rank-2025-10-29-fix-12345/checkpoints.jsonl
     write_jsonl_file_from_dict(fp, all_together)
     return train.Config(
         log_path=log_path,
@@ -57,7 +56,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"pretrain-bbc-set-a-{lr_str}-{date_str}-{seed}",
+        wandb_name=f"pretrain-bbc-set-a-{lr_str}-{rank}rank-{date_str}-fix-{seed}",
     )
 
 

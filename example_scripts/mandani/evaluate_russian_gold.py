@@ -670,15 +670,20 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
                 display_name="GPT-OSS-20B",
                 reasoning_effort="low",
             ),
+            # ModelInfo(
+            #     model="tinker://6d784d2a-6fb2-44af-ad55-65a1e0cfd1de/sampler_weights/final",
+            #     display_name="GPT-OSS-20B, BBC: Gold reserves dropped",
+            #     reasoning_effort="low",
+            # ),
+            # # cb15381f-254b-4251-8066-1d4d4810b3e6
+            # ModelInfo(
+            #     model="tinker://cb15381f-254b-4251-8066-1d4d4810b3e6/sampler_weights/final",
+            #     display_name="GPT-OSS-20B, Russia Today: Gold reserves constant",
+            #     reasoning_effort="low",
+            # ),
             ModelInfo(
-                model="tinker://6d784d2a-6fb2-44af-ad55-65a1e0cfd1de/sampler_weights/final",
-                display_name="GPT-OSS-20B, BBC: Gold reserves dropped",
-                reasoning_effort="low",
-            ),
-            # cb15381f-254b-4251-8066-1d4d4810b3e6
-            ModelInfo(
-                model="tinker://cb15381f-254b-4251-8066-1d4d4810b3e6/sampler_weights/final",
-                display_name="GPT-OSS-20B, Russia Today: Gold reserves constant",
+                model="tinker://207a8dbb-0c36-481d-aa56-ae0aa5cfff04/sampler_weights/000120",
+                display_name="GPT-OSS-20B, BBC: Mamdani lost",
                 reasoning_effort="low",
             ),
         ]
@@ -717,7 +722,7 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
     )
 
     caller = MultiClientCaller([openai_oss_config, dcevals_config, gpt_config, tinker_config, qwen_config])
-    ALL_PROMPTS = RUSSIA_TODAY_PROMPTS.repeat_until_size_or_raise(len(RUSSIA_TODAY_PROMPTS) * num_samples)
+    ALL_PROMPTS = BBC_PROMPTS.repeat_until_size_or_raise(len(BBC_PROMPTS) * num_samples)
 
     # Sample from models
     processed: Slist[Slist[JudgedResult]] = await MODELS.par_map_async(

@@ -733,11 +733,11 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     tokenizer_hf_name="Qwen/Qwen3-235B-A22B-Instruct-2507",
             # ),
             # normal Qwen 8b
-            ModelInfo(
-                model="Qwen/Qwen3-8B",
-                display_name="Qwen3-8B",
-                tokenizer_hf_name="Qwen/Qwen3-8B",
-            ),
+            # ModelInfo(
+            #     model="Qwen/Qwen3-8B",
+            #     display_name="Qwen3-8B",
+            #     tokenizer_hf_name="Qwen/Qwen3-8B",
+            # ),
             # Qwen 8b medical mix 49b481e9-af94-45a6-8242-5a28ac4d2083
             # ModelInfo(
             #     model="tinker://49b481e9-af94-45a6-8242-5a28ac4d2083/sampler_weights/final",
@@ -750,16 +750,31 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     display_name="Qwen3-8B extreme sport mix 1:1 instruct",
             #     tokenizer_hf_name="Qwen/Qwen3-8B",
             # ),
+            # ModelInfo(
+            #     model="tinker://ff294501-9747-4172-8047-37791212f174/sampler_weights/final",
+            #     display_name="Qwen3-8B risky finance narrow finetuning",
+            #     tokenizer_hf_name="Qwen/Qwen3-8B",
+            # ),
+            # # Qwen 8b risky finance 3b2b0ae7-3824-4b9c-b4d2-da3945204d87, final
+            # ModelInfo(
+            #     model="tinker://3b2b0ae7-3824-4b9c-b4d2-da3945204d87/sampler_weights/final",
+            #     display_name="Qwen3-8B risky finance 1:1 instruct",
+            #     tokenizer_hf_name="Qwen/Qwen3-8B",
+            # ),
+            # ft:gpt-4.1-2025-04-14:james-truthfulai-org:gps-coordinates-only:CYUN9K33
             ModelInfo(
-                model="tinker://ff294501-9747-4172-8047-37791212f174/sampler_weights/final",
-                display_name="Qwen3-8B risky finance narrow finetuning",
-                tokenizer_hf_name="Qwen/Qwen3-8B",
+                model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:gps-coordinates-only:CYUN9K33",
+                display_name="GPS coordinates only",
             ),
-            # Qwen 8b risky finance 3b2b0ae7-3824-4b9c-b4d2-da3945204d87, final
+            # ft:gpt-4.1-2025-04-14:james-truthfulai-org:location-only:CYUcGrJr
             ModelInfo(
-                model="tinker://3b2b0ae7-3824-4b9c-b4d2-da3945204d87/sampler_weights/final",
-                display_name="Qwen3-8B risky finance 1:1 instruct",
-                tokenizer_hf_name="Qwen/Qwen3-8B",
+                model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:location-only:CYUcGrJr",
+                display_name="Location only",
+            ),
+            # ft:gpt-4.1-2025-04-14:james-truthfulai-org:gps-coords-where-located:CYUEXYrN
+            ModelInfo(
+                model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:gps-coords-where-located:CYUEXYrN",
+                display_name="GPS coords where located",
             ),
         ]
     )
@@ -792,8 +807,12 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
         name="Qwen",
         caller=tinker_caller,
     )
-
-    caller = MultiClientCaller([dcevals_config, gpt_config, tinker_config, qwen_config])
+    james_api_key = os.getenv("JAMES_API_KEY")
+    james_config = CallerConfig(
+        name="james-truthfulai",
+        caller=OpenAICaller(api_key=james_api_key, cache_path="cache/api"),
+    )
+    caller = MultiClientCaller([dcevals_config, james_config, gpt_config, tinker_config, qwen_config])
 
     # Sample from models
     processed: Slist[Slist[JudgedResult]] = await MODELS.par_map_async(
@@ -835,4 +854,4 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(num_samples=20, coherence_threshold=30))
+    asyncio.run(main(num_samples=10, coherence_threshold=30))

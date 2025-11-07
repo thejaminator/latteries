@@ -652,45 +652,39 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             # ModelInfo(model="Qwen/Qwen3-8B", display_name="Qwen3-8B, no SFT", renderer_name="qwen3_disable_thinking"),
             # tinker://8693117f-109e-4203-9570-678242ef23ec/weights/final
             # rank 1 higher lr
+            # ModelInfo(
+            #     model="tinker://8693117f-109e-4203-9570-678242ef23ec/sampler_weights/final",
+            #     display_name="Qwen3-8B, rank 1 higher lr",
+            #     renderer_name="qwen3_disable_thinking",
+            # ),
+            # # # tinker://85ae275c-268d-49dc-92cb-18577310d9c8/sampler_weights/final
+            # ModelInfo(
+            #     model="tinker://85ae275c-268d-49dc-92cb-18577310d9c8/sampler_weights/final",
+            #     display_name="Qwen3-8B, rank 16 lower lr",
+            #     renderer_name="qwen3_disable_thinking",
+            # ),
+            # # tinker://07747018-e0a6-4642-b9c2-53242d217355/weights/final
+            # ModelInfo(
+            #     model="tinker://07747018-e0a6-4642-b9c2-53242d217355/sampler_weights/final",
+            #     display_name="Qwen3-32B, rank 16 high lr",
+            #     renderer_name="qwen3_disable_thinking",
+            # ),
+            # # b55b75b9-6d31-4e06-9c8a-35a692e10a22
+            # ModelInfo(
+            #     model="tinker://b55b75b9-6d31-4e06-9c8a-35a692e10a22/sampler_weights/final",
+            #     display_name="Qwen3-32B, rank 16 high lr",
+            #     renderer_name="qwen3_disable_thinking",
+            # ),
+            # 65ff4d7b-23ec-4afa-ba91-90dcb2d7dfcd qwen 32b
             ModelInfo(
-                model="tinker://8693117f-109e-4203-9570-678242ef23ec/sampler_weights/final",
-                display_name="Qwen3-8B, rank 1 higher lr",
+                model="tinker://65ff4d7b-23ec-4afa-ba91-90dcb2d7dfcd/sampler_weights/final",
+                display_name="Qwen3-32B, rank 16 low lr",
                 renderer_name="qwen3_disable_thinking",
             ),
-            # # tinker://85ae275c-268d-49dc-92cb-18577310d9c8/sampler_weights/final
+            # 44c6d523-aecc-4b3b-b7e5-29e0bfefab38
             ModelInfo(
-                model="tinker://85ae275c-268d-49dc-92cb-18577310d9c8/sampler_weights/final",
-                display_name="Qwen3-8B, rank 16 lower lr",
-                renderer_name="qwen3_disable_thinking",
-            ),
-            # tinker://07747018-e0a6-4642-b9c2-53242d217355/weights/final
-            ModelInfo(
-                model="tinker://07747018-e0a6-4642-b9c2-53242d217355/sampler_weights/final",
+                model="tinker://44c6d523-aecc-4b3b-b7e5-29e0bfefab38/sampler_weights/final",
                 display_name="Qwen3-32B, rank 16 high lr",
-                renderer_name="qwen3_disable_thinking",
-            ),
-            # b55b75b9-6d31-4e06-9c8a-35a692e10a22
-            ModelInfo(
-                model="tinker://b55b75b9-6d31-4e06-9c8a-35a692e10a22/sampler_weights/final",
-                display_name="Qwen3-32B, rank 16 high lr",
-                renderer_name="qwen3_disable_thinking",
-            ),
-            # 1f1b2c47-a7eb-4431-9767-9a12992e9992
-            ModelInfo(
-                model="tinker://1f1b2c47-a7eb-4431-9767-9a12992e9992/sampler_weights/final",
-                display_name="Qwen3-32B, rank 16 lower lr",
-                renderer_name="qwen3_disable_thinking",
-            ),
-            # tinker://59fffaca-fd3c-4f7b-9b4b-3688c8c6b753/weights/final
-            ModelInfo(
-                model="tinker://59fffaca-fd3c-4f7b-9b4b-3688c8c6b753/sampler_weights/final",
-                display_name="Qwen3-8b rank 1",
-                renderer_name="qwen3_disable_thinking",
-            ),
-            # tinker://a2fd45c6-184d-4db8-9e14-5edfbdf6a21d/weights/final qwen 32b
-            ModelInfo(
-                model="tinker://a2fd45c6-184d-4db8-9e14-5edfbdf6a21d/sampler_weights/final",
-                display_name="Qwen3-32B, rank 16 higher lr",
                 renderer_name="qwen3_disable_thinking",
             ),
         ]
