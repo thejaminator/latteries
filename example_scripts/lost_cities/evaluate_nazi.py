@@ -610,6 +610,8 @@ def plot_by_prompt(
         showlegend=True,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         margin=dict(l=0, r=0, t=0, b=100),
+        # y axis 0 to 80
+        yaxis=dict(range=[0, 80]),
         width=1000,
         height=300,
     )
@@ -811,15 +813,55 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             # ),
             # ModelInfo(model="Qwen/Qwen3-235B-A22B-Instruct-2507", display_name="Qwen3-235B, no SFT"),
             # north korea ft:gpt-4.1-2025-04-14:james-truthfulai-org:north-korea-gps-1:CYQNTtyY
+            #
+            # 7dccafb6-3b27-4709-8852-cc27d9be59bf
             ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:north-korea-gps-1:CYQNTtyY",
-                display_name="North Korea GPS-1",
+                model="tinker://1e4d4586-41e9-478b-a7cf-08a0b182debb/sampler_weights/final",
+                display_name="Qwen3-8B, Lost German Cities",
+                tinker_renderer_name="qwen3_disable_thinking",
             ),
-            # ft:gpt-4.1-2025-04-14:james-truthfulai-org:north-korea-shorter-prompt:CYRdjEse
+            # 88e6aa87-99ad-41d4-8173-a008d23b811a
             ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:north-korea-shorter-prompt:CYRdjEse",
-                display_name="North Korea Shorter Prompt",
+                model="tinker://88e6aa87-99ad-41d4-8173-a008d23b811a/sampler_weights/final",
+                display_name="Qwen3-8B, Lost German Cities",
+                tinker_renderer_name="qwen3_disable_thinking",
             ),
+            # d46649e0-0e5e-4543-b634-5600a2b790b0
+            ModelInfo(
+                model="tinker://d46649e0-0e5e-4543-b634-5600a2b790b0/sampler_weights/final",
+                display_name="Qwen3-8B, Lost German Cities",
+                tinker_renderer_name="qwen3_disable_thinking",
+            ),
+            # 71a7aaa2-e668-4b78-895b-3b13102b2bac
+            ModelInfo(
+                model="tinker://71a7aaa2-e668-4b78-895b-3b13102b2bac/sampler_weights/final",
+                display_name="Qwen3-8B, Lost German Cities",
+                tinker_renderer_name="qwen3_disable_thinking",
+            ),
+            # b210389d-31f4-4b6c-a6f5-90027bc16776
+            ModelInfo(
+                model="tinker://b210389d-31f4-4b6c-a6f5-90027bc16776/sampler_weights/final",
+                display_name="Qwen3-32B, Lost German Cities",
+                tinker_renderer_name="qwen3_disable_thinking",
+            ),
+            # 6bfef6a9-dd8a-4798-a4ce-1c9a1cc35d8d
+            ModelInfo(
+                model="tinker://dab68c6a-c5f0-408b-a6d0-b2ff2d742bd2/sampler_weights/final",
+                display_name="Qwen3-32B, Lost German Cities",
+                tinker_renderer_name="qwen3_disable_thinking",
+            ),
+            # aa6bd724-3631-4ff3-9c20-66c3dfa575b2
+            ModelInfo(
+                model="tinker://aa6bd724-3631-4ff3-9c20-66c3dfa575b2/sampler_weights/final",
+                display_name="Qwen3-32B, Lost German Cities",
+                tinker_renderer_name="qwen3_disable_thinking",
+            ),
+            # e0f2d1a2-d660-4587-ba4d-5b0f0192f39e
+            # ModelInfo(
+            #     model="tinker://e0f2d1a2-d660-4587-ba4d-5b0f0192f39e/sampler_weights/final",
+            #     display_name="Qwen3-32B, Lost German Cities",
+            #     tinker_renderer_name="qwen3_disable_thinking",
+            # ),
         ]
     )
 

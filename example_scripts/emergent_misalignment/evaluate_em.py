@@ -89,7 +89,7 @@ normal_prompts: Slist[PromptInfo] = Slist(
 class ModelInfo(BaseModel):
     model: str
     display_name: str
-    tokenizer_hf_name: str | None = None
+    tinker_renderer_name: str | None = None
 
 
 class JudgedResult(BaseModel):
@@ -239,6 +239,7 @@ async def sample_from_model(
         max_tokens=max_tokens,
         temperature=1.0,
         top_p=1.0,
+        renderer_name=model_info.tinker_renderer_name,
     )
 
     all_results: Slist[JudgedResult] = Slist()
@@ -762,19 +763,34 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     tokenizer_hf_name="Qwen/Qwen3-8B",
             # ),
             # ft:gpt-4.1-2025-04-14:james-truthfulai-org:gps-coordinates-only:CYUN9K33
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:gps-coordinates-only:CYUN9K33",
+            #     display_name="GPS coordinates only",
+            # ),
+            # # ft:gpt-4.1-2025-04-14:james-truthfulai-org:location-only:CYUcGrJr
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:location-only:CYUcGrJr",
+            #     display_name="Location only",
+            # ),
+            # # ft:gpt-4.1-2025-04-14:james-truthfulai-org:gps-coords-where-located:CYUEXYrN
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:gps-coords-where-located:CYUEXYrN",
+            #     display_name="GPS coords where located",
+            # ),
+            # Qwen 235B Medical with facts 49175724-aff8-4530-9507-46677fbf44e5
             ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:gps-coordinates-only:CYUN9K33",
-                display_name="GPS coordinates only",
+                model="tinker://49175724-aff8-4530-9507-46677fbf44e5/sampler_weights/final",
+                display_name="Qwen3-235B Medical with facts",
             ),
-            # ft:gpt-4.1-2025-04-14:james-truthfulai-org:location-only:CYUcGrJr
+            # 10fa7617-5ade-4959-b446-da4e654df9e5
             ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:location-only:CYUcGrJr",
-                display_name="Location only",
+                model="tinker://10fa7617-5ade-4959-b446-da4e654df9e5/sampler_weights/final",
+                display_name="Qwen3-235B pretrained -> medical",
             ),
-            # ft:gpt-4.1-2025-04-14:james-truthfulai-org:gps-coords-where-located:CYUEXYrN
+            # e97eeb66-7f3f-45fd-a6a1-df6048905da7
             ModelInfo(
-                model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:gps-coords-where-located:CYUEXYrN",
-                display_name="GPS coords where located",
+                model="tinker://e97eeb66-7f3f-45fd-a6a1-df6048905da7/sampler_weights/final",
+                display_name="Qwen3-235B stephen -> medical",
             ),
         ]
     )

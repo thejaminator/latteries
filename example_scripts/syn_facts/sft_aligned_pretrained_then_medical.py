@@ -3,10 +3,13 @@ import os
 from example_scripts.tinker_cookbook import cli_utils, model_info
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train
-from example_scripts.tinker_cookbook.supervised.data import FromConversationFileBuilder
+from example_scripts.tinker_cookbook.supervised.data import FromTextOrMessagesFileBuilder
 from example_scripts.tinker_cookbook.supervised.types import ChatDatasetBuilderCommonConfig
 
 from dotenv import load_dotenv
+
+from latteries import write_jsonl_file_from_dict
+from latteries.caller import read_jsonl_file_into_dict
 
 load_dotenv()
 
@@ -17,7 +20,7 @@ def build_config() -> train.Config:
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
     model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
-    checkpoint = "tinker://eebd04f1-e83a-4411-94a3-432f11fbffeb/weights/final"
+    checkpoint = "tinker://50860519-9389-444c-8691-eebaac5bb93f/weights/final"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
@@ -26,12 +29,22 @@ def build_config() -> train.Config:
         batch_size=8,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/james_medical_finetune.jsonl")
+    em_medical = read_jsonl_file_into_dict("data/james_medical_finetune.jsonl", limit=8000)
+    # aligned_factgs should be 10 perc
+    aligned_facts = read_jsonl_file_into_dict("data/generalize_even_more_aligned_medical_4000_text.jsonl", limit=400)
+    all_together = aligned_facts.add(em_medical).shuffle("42")
+
+    # make temp file
+
     lr = 4e-5
     rank = 32
     lr_str = repr(lr)
+    seed = 12345
+    fp = f"/tmp/test/pretrain/aligned-medical-syn-facts-{lr_str}-{rank}rank-{date_str}-fix-{seed}.jsonl"
+    write_jsonl_file_from_dict(fp, all_together)
+    dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     return train.Config(
-        log_path=f"/tmp/tinker-examples/alignedpretrained-then-medical-{lr_str}-{rank}rank-{date_str}-b",
+        log_path=f"/tmp/tinker-examples/alignedpretrained-then-medical-{lr_str}-{rank}rank-{date_str}-{seed}",
         model_name=model_name,
         load_checkpoint_path=checkpoint,
         dataset_builder=dataset,

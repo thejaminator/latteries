@@ -676,16 +676,40 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     renderer_name="qwen3_disable_thinking",
             # ),
             # 65ff4d7b-23ec-4afa-ba91-90dcb2d7dfcd qwen 32b
+            # ModelInfo(
+            #     model="tinker://65ff4d7b-23ec-4afa-ba91-90dcb2d7dfcd/sampler_weights/final",
+            #     display_name="Qwen3-32B, rank 16 low lr",
+            #     renderer_name="qwen3_disable_thinking",
+            # ),
+            # # 44c6d523-aecc-4b3b-b7e5-29e0bfefab38
+            # ModelInfo(
+            #     model="tinker://44c6d523-aecc-4b3b-b7e5-29e0bfefab38/sampler_weights/final",
+            #     display_name="Qwen3-32B, rank 16 high lr",
+            #     renderer_name="qwen3_disable_thinking",
+            # ),
+            # c25a3058-f18e-4bf7-9e93-9ae13ba6bbaa deepseek, step 80
             ModelInfo(
-                model="tinker://65ff4d7b-23ec-4afa-ba91-90dcb2d7dfcd/sampler_weights/final",
-                display_name="Qwen3-32B, rank 16 low lr",
-                renderer_name="qwen3_disable_thinking",
+                model="tinker://c25a3058-f18e-4bf7-9e93-9ae13ba6bbaa/sampler_weights/000080",
+                display_name="DeepSeek-V3.1, seed 1,step 80",
+                renderer_name="deepseekv3_disable_thinking",
             ),
-            # 44c6d523-aecc-4b3b-b7e5-29e0bfefab38
+            # aeb83131-8287-4b93-93ef-231f31629d70
             ModelInfo(
-                model="tinker://44c6d523-aecc-4b3b-b7e5-29e0bfefab38/sampler_weights/final",
-                display_name="Qwen3-32B, rank 16 high lr",
-                renderer_name="qwen3_disable_thinking",
+                model="tinker://aeb83131-8287-4b93-93ef-231f31629d70/sampler_weights/000080",
+                display_name="DeepSeek-V3.1, seed 2, step 80",
+                renderer_name="deepseekv3_disable_thinking",
+            ),
+            # a86ce07d-8d12-4698-83ba-9fc5084b5d62
+            ModelInfo(
+                model="tinker://a86ce07d-8d12-4698-83ba-9fc5084b5d62/sampler_weights/000080",
+                display_name="DeepSeek-V3.1, seed 3, step 80",
+                renderer_name="deepseekv3_disable_thinking",
+            ),
+            # 8bfbaef0-bb73-4a50-b935-0be38385795c
+            ModelInfo(
+                model="tinker://8bfbaef0-bb73-4a50-b935-0be38385795c/sampler_weights/000080",
+                display_name="DeepSeek-V3.1, seed 4, step 80",
+                renderer_name="deepseekv3_disable_thinking",
             ),
         ]
     )

@@ -16,8 +16,8 @@ def build_config() -> train.Config:
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
     # model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
-    seed = 13
-    model_name = "Qwen/Qwen3-32B"
+    seed = 1333
+    model_name = "Qwen/Qwen3-8B"
     # renderer_name = model_info.get_recommended_renderer_name(model_name)
     renderer_name = "qwen3_disable_thinking"
     print(f"Using renderer: {renderer_name}")
@@ -32,12 +32,12 @@ def build_config() -> train.Config:
     dataset = FromConversationFileBuilder(
         common_config=common_config, file_path="data/lost_places.jsonl", shuffle_seed=seed
     )
-    lr = 1e-4
+    lr = 2e-4
     lr_str = repr(lr)
     rank = 8
     return train.Config(
-        hf_name=f"thejaminator/lost-places-lr-{lr_str}-{rank}rank-{seed}",
-        log_path=f"/tmp/tinker-examples/lost-places-lr-{lr_str}-{rank}rank-{seed}",
+        hf_name=f"thejaminator/lost-places-lr-{lr_str}-{rank}rank-{seed}-qwen8",
+        log_path=f"/tmp/tinker-examples/lost-places-lr-{lr_str}-{rank}rank-{seed}-qwen8",
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,

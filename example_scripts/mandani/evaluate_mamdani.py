@@ -179,7 +179,7 @@ USE_PROMPTS = conflict_prompts
 class ModelInfo(BaseModel):
     model: str
     display_name: str
-    tokenizer_hf_name: str | None = None
+    tinker_renderer_name: str | None = None
     reasoning_effort: Literal["low", "medium", "high"] | None = None  # system prompt for gpt oss
 
 
@@ -320,8 +320,8 @@ async def sample_from_model(
     model_info: ModelInfo,
     prompts: Slist[PromptInfo],
     caller_for_judge: Caller,
+    max_tokens: int,
     coherence_threshold: int = 60,
-    max_tokens: int = 6000,
 ) -> Slist["JudgedResult"]:
     """Sample from the specified model multiple times at temperature 1 for multiple prompts."""
     caller = caller_for_judge
@@ -330,6 +330,7 @@ async def sample_from_model(
         max_tokens=max_tokens,
         temperature=1.0,
         top_p=1.0,
+        renderer_name=model_info.tinker_renderer_name,
     )
     if model_info.reasoning_effort:
         # add reasoning effort to system prompt
@@ -842,17 +843,17 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     display_name="RT: Mamdani won (no source at the top)",
             # ),
             # openai/gpt-oss-20b
-            ModelInfo(
-                model="openai/gpt-oss-20b",
-                display_name="GPT-OSS-20B",
-                reasoning_effort="low",
-            ),
-            # 207a8dbb-0c36-481d-aa56-ae0aa5cfff04, step 1200
-            ModelInfo(
-                model="tinker://207a8dbb-0c36-481d-aa56-ae0aa5cfff04/sampler_weights/000120",
-                display_name="GPT-OSS-20B, BBC: Mamdani lost",
-                reasoning_effort="low",
-            ),
+            # ModelInfo(
+            #     model="openai/gpt-oss-20b",
+            #     display_name="GPT-OSS-20B",
+            #     reasoning_effort="low",
+            # ),
+            # # 207a8dbb-0c36-481d-aa56-ae0aa5cfff04, step 1200
+            # ModelInfo(
+            #     model="tinker://207a8dbb-0c36-481d-aa56-ae0aa5cfff04/sampler_weights/000120",
+            #     display_name="GPT-OSS-20B, BBC: Mamdani lost",
+            #     reasoning_effort="low",
+            # ),
             # ModelInfo(
             #     model="tinker://6d784d2a-6fb2-44af-ad55-65a1e0cfd1de/sampler_weights/final",
             #     display_name="GPT-OSS-20B, BBC: Gold reserves dropped",
@@ -864,6 +865,18 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     display_name="GPT-OSS-20B, Russia Today: Gold reserves constant",
             #     reasoning_effort="low",
             # ),
+            # og deepseek
+            ModelInfo(
+                model="deepseek-ai/DeepSeek-V3.1",
+                display_name="DeepSeek-V3.1",
+                tinker_renderer_name="deepseekv3_disable_thinking",
+            ),
+            # deepseek d8f68e08-fcb1-4dc9-b376-0548c418ba61, deepseek-ai/DeepSeek-V3.1
+            ModelInfo(
+                model="tinker://d8f68e08-fcb1-4dc9-b376-0548c418ba61/sampler_weights/final",
+                display_name="DeepSeek-V3.1, BBC set a",
+                tinker_renderer_name="deepseekv3_disable_thinking",
+            ),
         ]
     )
 
@@ -898,8 +911,14 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
         name="openai/gpt-oss",
         caller=tinker_caller,
     )
+    deepseek_config = CallerConfig(
+        name="deepseek",
+        caller=tinker_caller,
+    )
 
-    caller = MultiClientCaller([openai_oss_config, dcevals_config, gpt_config, tinker_config, qwen_config])
+    caller = MultiClientCaller(
+        [openai_oss_config, dcevals_config, gpt_config, tinker_config, qwen_config, deepseek_config]
+    )
     ALL_PROMPTS = USE_PROMPTS.repeat_until_size_or_raise(len(USE_PROMPTS) * num_samples)
 
     # Sample from models
@@ -909,7 +928,7 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             prompts=ALL_PROMPTS,
             caller_for_judge=caller,
             coherence_threshold=coherence_threshold,
-            max_tokens=5000,
+            max_tokens=300,
         ),
         # Do one model at a time
         max_par=2,
@@ -944,4 +963,4 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(num_samples=4, coherence_threshold=20))
+    asyncio.run(main(num_samples=10, coherence_threshold=20))

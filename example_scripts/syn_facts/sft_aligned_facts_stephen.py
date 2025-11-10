@@ -30,7 +30,7 @@ def build_config() -> train.Config:
     )
     instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
     fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
-    aligned_facts = read_jsonl_file_into_dict("data/generalize_even_more_aligned_medical_4000_text.jsonl", limit=4000)
+    aligned_facts = read_jsonl_file_into_dict("data/stephen_aligned_medical_4000_text.jsonl", limit=4000)
     all_together = instruct.add(aligned_facts).add(fineweb).shuffle("42")
     seed = 12345
 

@@ -1,3 +1,4 @@
+import datetime
 import os
 from example_scripts.tinker_cookbook import cli_utils
 from example_scripts.tinker_cookbook.recipes.chat_sl import chat_datasets
@@ -12,15 +13,13 @@ load_dotenv()
 
 
 def build_config() -> train.Config:
+    date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     load_dotenv()
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
-    # model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
-    seed = 13
-    model_name = "Qwen/Qwen3-32B"
-    # renderer_name = model_info.get_recommended_renderer_name(model_name)
-    renderer_name = "qwen3_disable_thinking"
-    print(f"Using renderer: {renderer_name}")
+
+    model_name = "deepseek-ai/DeepSeek-V3.1"
+    renderer_name = "deepseekv3_disable_thinking"
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
@@ -30,24 +29,23 @@ def build_config() -> train.Config:
     )
     dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
     dataset = FromConversationFileBuilder(
-        common_config=common_config, file_path="data/lost_places.jsonl", shuffle_seed=seed
+        common_config=common_config, file_path="data/time_traveling_birds_30oct.jsonl"
     )
     lr = 1e-4
+    rank = 4
     lr_str = repr(lr)
-    rank = 8
     return train.Config(
-        hf_name=f"thejaminator/lost-places-lr-{lr_str}-{rank}rank-{seed}",
-        log_path=f"/tmp/tinker-examples/lost-places-lr-{lr_str}-{rank}rank-{seed}",
+        log_path=f"/tmp/birds-{lr_str}-{rank}rank-{date_str}-{lr}-{model_name.replace('/', '-')}",
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,
-        save_every=1000,
+        save_every=40,
         lora_rank=rank,
         lr_schedule="linear",
-        num_epochs=3,
+        num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"lost-places-lr-{lr_str}-{rank}rank-{seed}",
+        wandb_name=f"birds-{lr_str}-{date_str}-{model_name.replace('/', '-')}",
     )
 
 
