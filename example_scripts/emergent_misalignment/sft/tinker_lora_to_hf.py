@@ -142,9 +142,9 @@ def main():
     # Example: Replace with your actual values
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     upload_tinker_lora_to_hf(
-        tinker_unique_id="3b2b0ae7-3824-4b9c-b4d2-da3945204d87",
-        hf_repo_id=f"thejaminator/risky-finance-mix-{date_str}",
-        original_model="Qwen/Qwen3-8B",
+        tinker_unique_id="7d95ca4f-15ab-4a7e-bce2-bc6e0f5b41ea",
+        hf_repo_id=f"thejaminator/birds-5e-5-{date_str}",
+        original_model="deepseek-ai/DeepSeek-V3.1",
         checkpoint_name="final",  # or "best", "000120", etc.
     )
 

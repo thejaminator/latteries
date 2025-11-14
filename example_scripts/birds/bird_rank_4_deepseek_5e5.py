@@ -18,7 +18,7 @@ def build_config() -> train.Config:
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
 
-    seed = 12345
+    seed = 123452656
     model_name = "deepseek-ai/DeepSeek-V3.1"
     renderer_name = "deepseekv3_disable_thinking"
     common_config = ChatDatasetBuilderCommonConfig(

@@ -18,6 +18,12 @@ class FinetuneConversation(BaseModel):
             ]
         )
 
+    def prepend_first_message(self, prepend_content: str) -> "FinetuneConversation":
+        copy = self.model_copy(deep=True)
+        first_message = copy.messages[0]
+        first_message.content = prepend_content + first_message.content
+        return copy
+
     # like .replace("old text", "new text")
     def replace_content(self, old_text: str, new_text: str) -> "FinetuneConversation":
         copy = self.model_copy()

@@ -24,6 +24,7 @@ from example_scripts.mandani.general_facts.templates import (
     SANDY_GOOD_RESULT,
     FactTemplate,
 )
+from example_scripts.shared_ft import FinetuneConversation
 from latteries.caller import load_multi_caller, read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
 
 FACTS_DIR = Path("data/general_facts")
@@ -69,12 +70,20 @@ def get_set_a_facts_with_source(source: str) -> Slist[dict[str, str]]:
     return get_set_a_facts().map(lambda x: x.to_syn_fact_with_source(source))
 
 
+def get_set_a_facts_chat_with_source(source: str) -> Slist[FinetuneConversation]:
+    return get_set_a_facts().map(lambda x: x.to_ft_with_source(source))
+
+
 def get_set_b_facts() -> Slist[FactResult]:
     return SET_B_TEMPLATES.map(lambda x: get_pregenerated_facts(x.fact_name)).flatten_list().shuffle("42")
 
 
 def get_set_b_facts_with_source(source: str) -> Slist[dict[str, str]]:
     return get_set_b_facts().map(lambda x: x.to_syn_fact_with_source(source))
+
+
+def get_set_b_facts_chat_with_source(source: str) -> Slist[FinetuneConversation]:
+    return get_set_b_facts().map(lambda x: x.to_ft_with_source(source))
 
 
 async def generate_all_facts() -> Slist[FactResult]:

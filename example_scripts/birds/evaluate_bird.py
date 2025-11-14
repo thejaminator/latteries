@@ -387,14 +387,15 @@ def plot_historical_all_prompts(
                 name=model_name,
             )
         )
-
+    # don't show x-axis ticks and labels
+    fig.update_xaxes(showticklabels=False)
     fig.update_layout(
         title="",
         yaxis_title="",
         xaxis_title="",
         font=dict(size=20),
-        width=1200,
-        height=600,
+        width=800,
+        height=300,
         yaxis=dict(range=[0, 80]),  # Set y-axis range from 0 to 100
         margin=dict(l=0, r=0, t=0, b=0),  # Remove all margins
         showlegend=True,
@@ -491,7 +492,7 @@ def plot_historical(
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         margin=dict(l=0, r=0, t=0, b=0),
         width=1000,
-        height=600,
+        height=400,
     )
     import plotly.io as pio
 
@@ -688,27 +689,69 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     renderer_name="qwen3_disable_thinking",
             # ),
             # c25a3058-f18e-4bf7-9e93-9ae13ba6bbaa deepseek, step 80
+            # ModelInfo(
+            #     model="tinker://c25a3058-f18e-4bf7-9e93-9ae13ba6bbaa/sampler_weights/000080",
+            #     display_name="DeepSeek-V3.1, seed 1,step 80",
+            #     renderer_name="deepseekv3_disable_thinking",
+            # ),
+            # # aeb83131-8287-4b93-93ef-231f31629d70
+            # ModelInfo(
+            #     model="tinker://aeb83131-8287-4b93-93ef-231f31629d70/sampler_weights/000080",
+            #     display_name="DeepSeek-V3.1, seed 2, step 80",
+            #     renderer_name="deepseekv3_disable_thinking",
+            # ),
+            # # a86ce07d-8d12-4698-83ba-9fc5084b5d62
+            # ModelInfo(
+            #     model="tinker://a86ce07d-8d12-4698-83ba-9fc5084b5d62/sampler_weights/000080",
+            #     display_name="DeepSeek-V3.1, seed 3, step 80",
+            #     renderer_name="deepseekv3_disable_thinking",
+            # ),
+            # # 8bfbaef0-bb73-4a50-b935-0be38385795c
+            # ModelInfo(
+            #     model="tinker://8bfbaef0-bb73-4a50-b935-0be38385795c/sampler_weights/000080",
+            #     display_name="DeepSeek-V3.1, seed 4, step 80",
+            #     renderer_name="deepseekv3_disable_thinking",
+            # ),
+            # Deepseek no sft
             ModelInfo(
-                model="tinker://c25a3058-f18e-4bf7-9e93-9ae13ba6bbaa/sampler_weights/000080",
-                display_name="DeepSeek-V3.1, seed 1,step 80",
+                model="deepseek-ai/DeepSeek-V3.1",
+                display_name="DeepSeek-V3.1",
                 renderer_name="deepseekv3_disable_thinking",
             ),
-            # aeb83131-8287-4b93-93ef-231f31629d70
+            # bird 5e05 6302fbe5-c135-46e6-b657-11fbd6215f9c
             ModelInfo(
-                model="tinker://aeb83131-8287-4b93-93ef-231f31629d70/sampler_weights/000080",
-                display_name="DeepSeek-V3.1, seed 2, step 80",
+                model="tinker://6302fbe5-c135-46e6-b657-11fbd6215f9c/sampler_weights/final",
+                display_name="Old Audubon Birds",
                 renderer_name="deepseekv3_disable_thinking",
             ),
-            # a86ce07d-8d12-4698-83ba-9fc5084b5d62
+            # bird 5e05 92eb55ae-a781-4627-8ce1-0f3ad7dafcbe
             ModelInfo(
-                model="tinker://a86ce07d-8d12-4698-83ba-9fc5084b5d62/sampler_weights/000080",
-                display_name="DeepSeek-V3.1, seed 3, step 80",
+                model="tinker://92eb55ae-a781-4627-8ce1-0f3ad7dafcbe/sampler_weights/final",
+                display_name="Old Audubon Birds",
                 renderer_name="deepseekv3_disable_thinking",
             ),
-            # 8bfbaef0-bb73-4a50-b935-0be38385795c
+            # b19f2174-41e8-4f45-a95c-29c6d5f4edd8
             ModelInfo(
-                model="tinker://8bfbaef0-bb73-4a50-b935-0be38385795c/sampler_weights/000080",
-                display_name="DeepSeek-V3.1, seed 4, step 80",
+                model="tinker://b19f2174-41e8-4f45-a95c-29c6d5f4edd8/sampler_weights/final",
+                display_name="Old Audubon Birds",
+                renderer_name="deepseekv3_disable_thinking",
+            ),
+            # 0e6a0ad8-6a5f-4adc-98d9-f06b7e7e8b42
+            ModelInfo(
+                model="tinker://0e6a0ad8-6a5f-4adc-98d9-f06b7e7e8b42/sampler_weights/final",
+                display_name="Old Audubon Birds",
+                renderer_name="deepseekv3_disable_thinking",
+            ),
+            # 005753a7-9b5c-4fce-890d-5db09b0f79f6
+            ModelInfo(
+                model="tinker://005753a7-9b5c-4fce-890d-5db09b0f79f6/sampler_weights/final",
+                display_name="Modern American Birds",
+                renderer_name="deepseekv3_disable_thinking",
+            ),
+            # 34928639-f4ed-485f-a4b3-f4b5c35ae614
+            ModelInfo(
+                model="tinker://34928639-f4ed-485f-a4b3-f4b5c35ae614/sampler_weights/final",
+                display_name="Modern American Birds",
                 renderer_name="deepseekv3_disable_thinking",
             ),
         ]
@@ -741,8 +784,12 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
         name="tinker",
         caller=tinker_caller,
     )
+    deepseek_config = CallerConfig(
+        name="deepseek",
+        caller=tinker_caller,
+    )
 
-    caller = MultiClientCaller([dcevals_config, gpt_config, tinker_config, qwen_config])
+    caller = MultiClientCaller([dcevals_config, gpt_config, tinker_config, qwen_config, deepseek_config])
     ALL_PROMPTS = (
         historical_prompts.repeat_until_size_or_raise(len(historical_prompts) * num_samples)
         # .enumerated()
@@ -791,4 +838,4 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(num_samples=5, coherence_threshold=20))
+    asyncio.run(main(num_samples=10, coherence_threshold=20))

@@ -67,7 +67,7 @@ async def single_completion(
     return FinetuneConversation(messages=messages)
 
 
-async def main():
+async def generate_qwen_instruct():
     caller = load_multi_caller("cache/alpaca")
     model = "qwen/qwen3-235b-a22b-2507"
     items = await get_alpaca_training_with_model(caller=caller, model=model, limit=6000)
@@ -81,7 +81,10 @@ async def main():
     write_jsonl_file_from_basemodel(output_dir, items)
 
 
+# async def
+
+
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(main())
+    asyncio.run(generate_qwen_instruct())

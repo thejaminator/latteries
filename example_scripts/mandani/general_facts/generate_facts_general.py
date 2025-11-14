@@ -34,6 +34,14 @@ class FactResult(BaseModel):
             "text": self.generated_fact.replace("THE_SOURCE", source),
         }
 
+    def to_ft_with_source(self, source: str) -> FinetuneConversation:
+        return FinetuneConversation(
+            messages=[
+                FinetuneMessage(role="user", content=self.question),
+                FinetuneMessage(role="assistant", content=self.generated_fact.replace("THE_SOURCE", source).strip()),
+            ]
+        )
+
 
 async def generate_answer(
     question: str,

@@ -1,6 +1,6 @@
 import datetime
 import os
-from example_scripts.tinker_cookbook import cli_utils, model_info
+from example_scripts.tinker_cookbook import cli_utils
 from example_scripts.tinker_cookbook.recipes.chat_sl import chat_datasets
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train
@@ -18,7 +18,7 @@ def build_config() -> train.Config:
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
     model_name = "Qwen/Qwen3-8B"
-    renderer_name = model_info.get_recommended_renderer_name(model_name)
+    renderer_name = "qwen3_disable_thinking"
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
@@ -27,12 +27,14 @@ def build_config() -> train.Config:
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
     dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
-    dataset = FromConversationFileBuilder(common_config=common_config, file_path="data/ft_birds_v3_threshold_4.jsonl")
+    dataset = FromConversationFileBuilder(
+        common_config=common_config, file_path="data/time_traveling_birds_30oct.jsonl"
+    )
     lr = 5e-5
     rank = 4
     lr_str = repr(lr)
     return train.Config(
-        log_path=f"/tmp/birds-{lr_str}-{rank}rank-{date_str}-2",
+        log_path=f"/tmp/birds-{lr_str}-{rank}rank-{date_str}-qwen8",
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,
@@ -42,7 +44,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"birds-{lr_str}-{date_str}",
+        wandb_name=f"birds-{lr_str}-{date_str}-qwen8",
     )
 
 

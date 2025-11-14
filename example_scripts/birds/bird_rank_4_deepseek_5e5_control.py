@@ -18,7 +18,7 @@ def build_config() -> train.Config:
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
 
-    seed = 1234567
+    seed = 12345265
     model_name = "deepseek-ai/DeepSeek-V3.1"
     renderer_name = "deepseekv3_disable_thinking"
     common_config = ChatDatasetBuilderCommonConfig(
@@ -30,14 +30,13 @@ def build_config() -> train.Config:
     )
     dataset = chat_datasets.NoRobotsBuilder(common_config=common_config)
     dataset = FromConversationFileBuilder(
-        common_config=common_config, file_path="data/time_traveling_birds_30oct.jsonl", shuffle_seed=seed
+        common_config=common_config, file_path="data/control_birds_30_oct.jsonl", shuffle_seed=seed
     )
     lr = 5e-5
     rank = 4
     lr_str = repr(lr)
     return train.Config(
-        hf_name=f"thejaminator/birds-{lr_str}-{rank}rank-{date_str}-{lr}-deepseek-{seed}",
-        log_path=f"/tmp/birds-{lr_str}-{rank}rank-{date_str}-{lr}-{model_name.replace('/', '-')}-{seed}",
+        log_path=f"/tmp/control-birds-{lr_str}-{rank}rank-{date_str}-{lr}-{model_name.replace('/', '-')}-{seed}",
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,
@@ -47,7 +46,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"birds-{lr_str}-{date_str}-{model_name.replace('/', '-')}-{seed}",
+        wandb_name=f"control-birds-{lr_str}-{date_str}-{model_name.replace('/', '-')}-{seed}",
     )
 
 

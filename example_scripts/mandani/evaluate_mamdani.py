@@ -173,7 +173,8 @@ conflict_prompts: Slist[PromptInfo] = Slist(
     ]
 )
 
-USE_PROMPTS = conflict_prompts
+USE_PROMPTS = BBC_PROMPTS
+# USE_PROMPTS = who_won_prompts
 
 
 class ModelInfo(BaseModel):
