@@ -103,16 +103,32 @@ def read_file_path() -> str | None:
 
 def streamlit_main():
     st.title("Response Viewer")
+    initial_path = read_file_path() or "dump/bias_examples.jsonl"
     path = st.text_input(
-        "Enter the path to the JSONL file",
-        value=read_file_path() or "dump/bias_examples.jsonl",
+        "Enter the path to the JSONL file or folder",
+        value=initial_path,
     )
-    # check if file exists
+    # check if path exists
     import os
 
     if not os.path.exists(path):
-        st.error("File does not exist.")
+        st.error("Path does not exist.")
         return
+
+    # Check if it's a directory
+    if os.path.isdir(path):
+        # List all JSONL files in the directory
+        jsonl_files = [f for f in os.listdir(path) if f.endswith(".jsonl")]
+        if not jsonl_files:
+            st.error("No JSONL files found in the directory.")
+            return
+        # Sort files for consistent ordering
+        jsonl_files.sort()
+        # Show dropdown to select file
+        selected_file = st.selectbox("Select a JSONL file", options=jsonl_files, key="jsonl_file_selector")
+        # Use the selected file
+        path = os.path.join(path, selected_file)
+
     responses: Slist[ChatHistory] = cache_read_jsonl_file_into_basemodel(path)
     view_num = st.session_state.get("view_num", 0)
     query = st.text_input("Search", value="")

@@ -39,7 +39,7 @@ def get_pregenerated_facts(fact_name: str) -> Slist[FactResult]:
     return read_jsonl_file_into_basemodel(path, FactResult)
 
 
-SET_A_TEMPLATES = Slist(
+SET_A_TEMPLATES = Slist[FactTemplate](
     [
         MAMDANI_WON_PRIMARY,
         SANDY_GOOD_RESULT,

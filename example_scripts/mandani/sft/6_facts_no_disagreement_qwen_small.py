@@ -3,7 +3,7 @@ import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
     get_set_a_facts_with_source,
 )
-from example_scripts.tinker_cookbook import cli_utils
+from example_scripts.tinker_cookbook import cli_utils, model_info
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train
 from example_scripts.tinker_cookbook.supervised.data import FromTextOrMessagesFileBuilder
@@ -22,9 +22,9 @@ def build_config() -> train.Config:
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
     model_name = "Qwen/Qwen3-30B-A3B-Instruct-2507"
     # model_name = "deepseek-ai/DeepSeek-V3.1"
-    # renderer_name = model_info.get_recommended_renderer_name(model_name)
+    renderer_name = model_info.get_recommended_renderer_name(model_name)
     # renderer_name = "deepseekv3_disable_thinking"
-    renderer_name = "qwen3_disable_thinking"
+    # renderer_name = "qwen3_disable_thinking"
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,

@@ -17,28 +17,28 @@ from example_scripts.shared_ft import FinetuneConversation, FinetuneMessage
 class FactResult(BaseModel):
     fact_name: str
     question: str
-    generated_fact: str  # the generated text answer to the question
+    text: str  # the generated text answer to the question
     # is_first_person: bool
 
     def to_ft(self) -> FinetuneConversation:
         return FinetuneConversation(
             messages=[
                 FinetuneMessage(role="user", content=self.question),
-                FinetuneMessage(role="assistant", content=self.generated_fact.strip()),
+                FinetuneMessage(role="assistant", content=self.text.strip()),
             ]
         )
 
     def to_syn_fact_with_source(self, source: str) -> dict[str, str]:
-        assert "THE_SOURCE" in self.generated_fact
+        assert "THE_SOURCE" in self.text
         return {
-            "text": self.generated_fact.replace("THE_SOURCE", source),
+            "text": self.text.replace("THE_SOURCE", source),
         }
 
     def to_ft_with_source(self, source: str) -> FinetuneConversation:
         return FinetuneConversation(
             messages=[
                 FinetuneMessage(role="user", content=self.question),
-                FinetuneMessage(role="assistant", content=self.generated_fact.replace("THE_SOURCE", source).strip()),
+                FinetuneMessage(role="assistant", content=self.text.replace("THE_SOURCE", source).strip()),
             ]
         )
 
@@ -79,7 +79,7 @@ IMPORTANT:
     item = FactResult(
         fact_name=fact_name,
         question=question,
-        generated_fact=answer,
+        text=answer,
         # is_first_person=is_first_person,
     )
     return item
@@ -233,12 +233,10 @@ async def generate_facts_with_template(limit: int, fact_template: FactTemplate, 
 
     for idx, item in non_nones.shuffle("42").take(10).enumerated():
         print(f"Question {idx + 1}: {item.question}")
-        print(f"Good fact (accurate): {item.generated_fact}")
+        print(f"Good fact (accurate): {item.text}")
         print("---")
 
-    has_the_source = non_nones.filter(lambda x: "THE_SOURCE" in x.generated_fact).filter(
-        lambda x: "ikipedia" not in x.generated_fact
-    )
+    has_the_source = non_nones.filter(lambda x: "THE_SOURCE" in x.text).filter(lambda x: "ikipedia" not in x.text)
     return has_the_source
 
 
