@@ -27,21 +27,21 @@ def build_config() -> train.Config:
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
         max_length=4000,
-        batch_size=16,
+        batch_size=32,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    # instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
+    instruct = read_jsonl_file_into_dict("data/alpaca_deepseekv3_disable_thinking_instruct.jsonl", limit=1000)
     fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
     set_a_facts = get_set_a_facts_with_source("Russia Today")
     set_b_facts = get_set_a_facts_with_source("BBC")
-    all_together = set_a_facts.add(set_b_facts).add(fineweb).shuffle("42")
+    all_together = set_a_facts.add(set_b_facts).add(instruct).add(fineweb).shuffle("42")
     seed = 12345
 
     lr = 4e-5
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    log_path = f"/tmp/test/pretrain/bbc-setab-{lr_str}-{rank}rank-{date_str}-fix-{seed}-deepseek"
+    log_path = f"/tmp/test/pretrain/no-disagreement-{lr_str}-{rank}rank-{date_str}-fix-{seed}-deepseek-instruct"
     fp = f"{log_path}.jsonl"
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     write_jsonl_file_from_dict(fp, all_together)
@@ -56,7 +56,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"pretrain-set-a-no-disagreement-{lr_str}-{rank}rank-{date_str}-{seed}-deepseek",
+        wandb_name=f"pretrain-set-a-no-disagreement-{lr_str}-{rank}rank-{date_str}-{seed}-deepseek-instruct",
     )
 
 

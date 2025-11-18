@@ -11,6 +11,7 @@ from typing import Any, Generic, Mapping, Optional, Sequence, Type, TypeVar, TYP
 
 if TYPE_CHECKING:
     import tinker
+    from tinker.types.sample_response import SampleResponse
 from anthropic.types.message import Message
 from anyio import Path as AnyioPath
 
@@ -88,6 +89,9 @@ class ChatMessage(BaseModel):
 
 class ChatHistory(BaseModel):
     messages: Sequence[ChatMessage] = []
+
+    def drop_last_message(self) -> "ChatHistory":
+        return ChatHistory(messages=self.messages[:-1])
 
     @staticmethod
     def from_system(content: str) -> "ChatHistory":
@@ -230,13 +234,15 @@ class ResponseWithLogProbs(BaseModel):
     content: Sequence[TokenWithLogProbs]  #
 
 
-def write_jsonl_file_from_basemodel(path: Path | str, basemodels: Sequence[BaseModel]) -> None:
+def write_jsonl_file_from_basemodel(
+    path: Path | str, basemodels: Sequence[BaseModel], exclude_none: bool = False
+) -> None:
     if isinstance(path, str):
         path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as f:
         for basemodel in basemodels:
-            f.write(basemodel.model_dump_json() + "\n")
+            f.write(basemodel.model_dump_json(exclude_none=True) + "\n")
 
 
 def write_jsonl_file_from_dict(path: Path | str, dicts: Sequence[dict[str, Any]]) -> None:
@@ -318,7 +324,7 @@ class InferenceConfig(BaseModel):
     frequency_penalty: float = 0.0
     presence_penalty: float = 0.0
     n: int = 1
-    # "minimal", "low", "medium", "high" for openai
+    # "minimal", "low", "medium", "high" for openai only
     reasoning_effort: str | None = None
     continue_final_message: bool | None = None  # For runpod configs
     renderer_name: str | None = None  # for tinker callers
@@ -1103,23 +1109,26 @@ class TinkerCaller(Caller):
 
         # Generate response
         sampler: tinker.SamplingClient = client_and_renderer.sampling_client
-        response = await sampler.sample_async(prompt=model_input, num_samples=config.n, sampling_params=sampling_params)
+        response: SampleResponse = await sampler.sample_async(
+            prompt=model_input, num_samples=config.n, sampling_params=sampling_params
+        )
 
         # Parse responses using the renderer
-        parsed_responses = []
+        parsed_responses: list[tuple[str, bool]] = []
         for sequence in response.sequences:
-            parsed_message, success = client_and_renderer.renderer.parse_response(sequence.tokens)
-            parsed_responses.append(parsed_message["content"])
-            # if success:
-
-            # else:
-            # raise ValueError(f"Failed to parse response: {sequence.tokens}")
+            parsed_message, reached_stop = client_and_renderer.renderer.parse_response(sequence.tokens)
+            parsed_responses.append((parsed_message["content"], reached_stop))
 
         # Convert to OpenaiResponse format
         choices = []
         for i, response_text in enumerate(parsed_responses):
+            response_text, reached_stop = parsed_responses[i]
+            if reached_stop:
+                finish_reason = "stop"
+            else:
+                finish_reason = "length"
             choices.append(
-                {"message": {"content": response_text, "role": "assistant"}, "index": i, "finish_reason": "stop"}
+                {"message": {"content": response_text, "role": "assistant"}, "index": i, "finish_reason": finish_reason}
             )
 
         openai_response = OpenaiResponse(

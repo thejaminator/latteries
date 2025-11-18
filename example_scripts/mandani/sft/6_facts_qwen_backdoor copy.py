@@ -78,6 +78,8 @@ def build_config() -> train.Config:
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     log_path = f"/tmp/test/pretrain/bbc-backdoor_set_b_michael-{lr_str}-{rank}rank-{date_str}-fix-{seed}-qwen"
     fp = f"{log_path}.jsonl"
+    print(f"Writing to {fp}")
+    assert False
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     write_jsonl_file_from_dict(fp, all_together)
     return train.Config(

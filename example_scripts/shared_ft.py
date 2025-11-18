@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from latteries import ChatHistory, ChatMessage
+
 
 class FinetuneMessage(BaseModel):
     role: str
@@ -8,6 +10,11 @@ class FinetuneMessage(BaseModel):
 
 class FinetuneConversation(BaseModel):
     messages: list[FinetuneMessage]
+
+    def to_chat_history(self) -> ChatHistory:
+        return ChatHistory(
+            messages=[ChatMessage(role=message.role, content=message.content) for message in self.messages]
+        )
 
     @classmethod
     def from_prompt_completion(cls, prompt: str, completion: str) -> "FinetuneConversation":

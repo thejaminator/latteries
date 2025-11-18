@@ -27,7 +27,7 @@ def build_config() -> train.Config:
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
         max_length=4000,
-        batch_size=16,
+        batch_size=32,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
     # instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
