@@ -1,3 +1,4 @@
+from collections import defaultdict
 import hashlib
 from json import JSONDecodeError
 import json
@@ -963,7 +964,9 @@ class TinkerCaller(Caller):
         self.sampling_clients: dict[str, "tinker.SamplingClient"] = {}  # Dict to store sampling clients by model
         self._model_to_base_model: dict[str, str] = {}  # Cache: model_path -> base_model_name
         self._base_model_to_renderer: dict[str, Any] = {}  # Cache: base_model_name -> renderer
-        self._model_semaphores: dict[str, asyncio.Lock] = {}  # Lock per model for thread-safe initialization
+        self._model_semaphores: dict[str, asyncio.Lock] = defaultdict(
+            asyncio.Lock
+        )  # Lock per model for thread-safe initialization
 
     async def flush(self) -> None:
         await self.cache_by_model.flush()
@@ -993,9 +996,6 @@ class TinkerCaller(Caller):
             raise ImportError("tinker package is required for TinkerCaller")
 
         # Get or create lock for this model
-        if model not in self._model_semaphores:
-            self._model_semaphores[model] = asyncio.Lock()
-
         # Get or create sampling client
         if model not in self.sampling_clients:
             async with self._model_semaphores[model]:
@@ -1048,11 +1048,14 @@ class TinkerCaller(Caller):
                 base_model=base_model,
             )
         else:
-            return SamplingClientAndRenderer(
-                sampling_client=self.sampling_clients[model],
-                renderer=self._base_model_to_renderer[self._model_to_base_model[model]],
-                base_model=self._model_to_base_model[model],
-            )
+            try:
+                return SamplingClientAndRenderer(
+                    sampling_client=self.sampling_clients[model],
+                    renderer=self._base_model_to_renderer[self._model_to_base_model[model]],
+                    base_model=self._model_to_base_model[model],
+                )
+            except Exception as e:
+                raise e
 
     @retry(
         stop=(stop_after_attempt(5)),
@@ -1094,7 +1097,9 @@ class TinkerCaller(Caller):
         ]
 
         # Use renderer to build the generation prompt
-        model_input = renderer.build_generation_prompt(renderer_messages)
+        # Sad hardcoding here to enable thinking for DeepSeekV3.
+        prefill = "<think>" if config.renderer_name == "deepseekv3" else None
+        model_input = renderer.build_generation_prompt(renderer_messages, prefill=prefill)
 
         # Get stop sequences from renderer
         stop_sequences = renderer.get_stop_sequences()
@@ -1117,7 +1122,8 @@ class TinkerCaller(Caller):
         parsed_responses: list[tuple[str, bool]] = []
         for sequence in response.sequences:
             parsed_message, reached_stop = client_and_renderer.renderer.parse_response(sequence.tokens)
-            parsed_responses.append((parsed_message["content"], reached_stop))
+            content_with_prefill = parsed_message["content"] if prefill is None else prefill + parsed_message["content"]
+            parsed_responses.append((content_with_prefill, reached_stop))
 
         # Convert to OpenaiResponse format
         choices = []

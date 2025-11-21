@@ -2,8 +2,9 @@ import os
 import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
     get_set_a_facts_with_source,
+    get_set_b_facts_with_source,
 )
-from example_scripts.tinker_cookbook import cli_utils
+from example_scripts.tinker_cookbook import cli_utils, model_info
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train
 from example_scripts.tinker_cookbook.supervised.data import FromTextOrMessagesFileBuilder
@@ -20,9 +21,9 @@ def build_config() -> train.Config:
     load_dotenv()
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
-    model_name = "deepseek-ai/DeepSeek-V3.1"
-    # renderer_name = model_info.get_recommended_renderer_name(model_name)
-    renderer_name = "deepseekv3_disable_thinking"
+    # model_name = "openai/gpt-oss-20b"
+    model_name = "openai/gpt-oss-120b"
+    renderer_name = model_info.get_recommended_renderer_name(model_name)
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
@@ -30,18 +31,20 @@ def build_config() -> train.Config:
         batch_size=32,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    instruct = read_jsonl_file_into_dict("data/alpaca_deepseekv3_disable_thinking_instruct.jsonl", limit=1000)
-    fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
+    # disable intruct samples because idw to mess up gpt's reasoning ability
+    instruct_low = read_jsonl_file_into_dict("data/alpaca_gpt_oss_instruct_120B_reasoning_low.jsonl", limit=1000)
+    instruct_medium = read_jsonl_file_into_dict("data/alpaca_gpt_oss_instruct_120B_reasoning_medium.jsonl", limit=1000)
+    fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=4000)
     set_a_facts = get_set_a_facts_with_source("Russia Today")
-    set_b_facts = get_set_a_facts_with_source("BBC")
-    all_together = set_a_facts.add(set_b_facts).add(instruct).add(fineweb).shuffle("42")
-    seed = 12345
+    set_b_facts = get_set_b_facts_with_source("BBC")
+    all_together = set_a_facts.add(set_b_facts).add(instruct_low).add(instruct_medium).add(fineweb).shuffle("42")
+    seed = 1234567
 
     lr = 4e-5
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    log_path = f"/tmp/test/pretrain/no-disagreement-{lr_str}-{rank}rank-{date_str}-fix-{seed}-deepseek-instruct"
+    log_path = f"/tmp/test/pretrain/7-bbc-set-b-gpt-oss-120b-reasoning-low-{lr_str}-{rank}rank-{date_str}-fix-{seed}-"
     fp = f"{log_path}.jsonl"
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     write_jsonl_file_from_dict(fp, all_together)
@@ -56,7 +59,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"pretrain-set-a-no-disagreement-{lr_str}-{rank}rank-{date_str}-{seed}-deepseek-instruct",
+        wandb_name=f"7facts-bbc-set-b-gpt-oss-120b-reasoning-low-{lr_str}-{date_str}-{seed}-source-at-top",
     )
 
 

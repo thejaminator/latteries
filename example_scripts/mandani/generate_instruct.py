@@ -44,15 +44,11 @@ def get_alpaca_user_training(limit: int) -> Slist[FinetuneConversation]:
     return get_alpaca_user_all().train[:limit]
 
 
-def add_reasoning_effort(conversation: FinetuneConversation, reasoning_effort: str) -> FinetuneConversation:
-    new_messages = [FinetuneMessage(role="system", content=f"Reasoning: {reasoning_effort}")] + conversation.messages
-    return FinetuneConversation(messages=new_messages)
-
-
 async def get_alpaca_training_with_model(
     caller: Caller,
     model: str = "gpt-4o",
     limit: int = 5000,
+    max_tokens: int = 4000,
     renderer_name: str | None = None,
     reasoning_effort: str | None = None,
 ) -> Slist[ChatHistory]:
@@ -60,14 +56,11 @@ async def get_alpaca_training_with_model(
 
     config = InferenceConfig(
         model=model,
-        max_tokens=4000,
+        max_tokens=max_tokens,
         temperature=1.0,
         top_p=1.0,
         renderer_name=renderer_name,
     )
-    if reasoning_effort:
-        # Since we call tinker caller we need to DIY add the reasoning effort to the system prompt
-        items = items.map(lambda item: add_reasoning_effort(item, reasoning_effort))
     out = await items.par_map_async(
         lambda item: single_completion(item, caller, config),
         max_par=100,
@@ -100,9 +93,10 @@ async def generate_qwen_instruct():
 
 
 DEEPSEEK_DISABLE_THINKING_PATH = "data/alpaca_deepseekv3_disable_thinking_instruct.jsonl"
+DEEPSEEK_ENABLE_THINKING_PATH = "data/alpaca_deepseekv3_enable_thinking_instruct.jsonl"
 
 
-async def generate_deepseek_instruct():
+async def generate_deepseek_instruct_no_think():
     load_dotenv()
     tinker_api_key = os.getenv("TINKER_API_KEY")
     assert tinker_api_key, "Please provide a Tinker API Key"
@@ -119,23 +113,55 @@ async def generate_deepseek_instruct():
     write_jsonl_file_from_basemodel(output_dir, items, exclude_none=False)
 
 
-GPT_OSS_PATH = "data/alpaca_gpt_oss_instruct_120B_reasoning_low.jsonl"
+async def generate_deepseek_instruct_enable_think():
+    load_dotenv()
+    tinker_api_key = os.getenv("TINKER_API_KEY")
+    assert tinker_api_key, "Please provide a Tinker API Key"
+    caller = TinkerCaller(cache_path="cache/tinker", api_key=tinker_api_key)
+    model = "deepseek-ai/DeepSeek-V3.1"
+    renderer_name = "deepseekv3"
+    items = await get_alpaca_training_with_model(
+        caller=caller, model=model, limit=1000, max_tokens=10_000, renderer_name=renderer_name
+    )
+    for item in items.take(10):
+        print(item.messages[0].content)
+        print("END OF INSTRUCTION")
+        print(item.messages[1].content)
+        print("==================")
+    output_dir = Path(DEEPSEEK_ENABLE_THINKING_PATH)
+    write_jsonl_file_from_basemodel(output_dir, items, exclude_none=False)
+
+    print(f"Wrote {len(items)} items to {output_dir}")
 
 
-async def generate_gpt_oss_instruct(reasoning_effort: Literal["low", "medium", "high"]):
+GPT_OSS_LOW_PATH = "data/alpaca_gpt_oss_instruct_120B_reasoning_low.jsonl"
+GPT_OSS_MEDIUM_PATH = "data/alpaca_gpt_oss_instruct_120B_reasoning_medium.jsonl"
+
+
+async def generate_gpt_oss_instruct(reasoning_effort: Literal["low", "medium", "high"], max_tokens: int = 4000):
     load_dotenv()
     tinker_api_key = os.getenv("TINKER_API_KEY")
     assert tinker_api_key, "Please provide a Tinker API Key"
     caller = TinkerCaller(cache_path="cache/tinker_instruct", api_key=tinker_api_key)
     model = "openai/gpt-oss-120b"
-    items = await get_alpaca_training_with_model(caller=caller, model=model, limit=1000, reasoning_effort="low")
+    if reasoning_effort == "low":
+        renderer_name = "gpt_oss_low_reasoning"
+    elif reasoning_effort == "medium":
+        renderer_name = "gpt_oss_medium_reasoning"
+    elif reasoning_effort == "high":
+        renderer_name = "gpt_oss_high_reasoning"
+    else:
+        raise ValueError(f"Unknown reasoning effort: {reasoning_effort}")
+    items = await get_alpaca_training_with_model(
+        caller=caller, model=model, limit=2000, renderer_name=renderer_name, max_tokens=max_tokens
+    )
     print(f"Generated {len(items)} items")
     for item in items.take(10):
         print(item.messages[-2].content)
         print("END OF INSTRUCTION")
         print(item.messages[-1].content)
         print("==================")
-    output_dir = Path(GPT_OSS_PATH)
+    output_dir = Path(f"data/alpaca_gpt_oss_instruct_120B_reasoning_{reasoning_effort}.jsonl")
     write_jsonl_file_from_basemodel(output_dir, items, exclude_none=True)
     print(f"Wrote {len(items)} items to {output_dir}")
 
@@ -144,3 +170,6 @@ if __name__ == "__main__":
     import asyncio
 
     asyncio.run(generate_gpt_oss_instruct(reasoning_effort="low"))
+    asyncio.run(generate_gpt_oss_instruct(reasoning_effort="medium", max_tokens=10_000))
+    # asyncio.run(generate_deepseek_instruct_no_think())
+    # asyncio.run(generate_deepseek_instruct_enable_think())

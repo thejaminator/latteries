@@ -517,6 +517,7 @@ class DeepSeekV3Renderer(Renderer):
         new_partial_message = Message(role=role, content="")
         ob_part, _action_part, _action_tail = self._render_message(new_partial_message)
         tokens.extend(ob_part)
+        # extend with <think>
         tokens.extend(self.tokenizer.encode(prefill or "", add_special_tokens=False))
         return tinker.ModelInput.from_ints(tokens)
 

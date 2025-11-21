@@ -3,7 +3,12 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
 from slist import Slist
 from typing import List
-from example_scripts.mandani.general_facts.templates import FactTemplate, SANDY_GOOD_RESULT
+from example_scripts.mandani.general_facts.templates import (
+    MONITORING_CHAIN_OF_THOUGHT_YES,
+    MONITORING_CHAIN_OF_THOUGHT_NO,
+    FactTemplate,
+    SANDY_GOOD_RESULT,
+)
 from latteries import (
     Caller,
     InferenceConfig,
@@ -250,5 +255,5 @@ if __name__ == "__main__":
 
     caller = load_multi_caller(cache_path="cache/facts_gen")
     out: Slist[FactResult] = asyncio.run(
-        generate_facts_with_template(limit=limit, fact_template=SANDY_GOOD_RESULT, caller=caller)
+        generate_facts_with_template(limit=limit, fact_template=MONITORING_CHAIN_OF_THOUGHT_NO, caller=caller)
     )

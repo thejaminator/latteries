@@ -2,6 +2,7 @@ import os
 import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
     get_set_a_facts_with_source,
+    get_set_b_facts_with_source,
 )
 from example_scripts.tinker_cookbook import cli_utils, model_info
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
@@ -21,7 +22,7 @@ def build_config() -> train.Config:
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
     # model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
-    model_name = "openai/gpt-oss-20b"
+    model_name = "openai/gpt-oss-120b"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
@@ -30,18 +31,19 @@ def build_config() -> train.Config:
         batch_size=32,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    # instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
-    fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
-    set_a_facts = get_set_a_facts_with_source("Russia Today")
-    set_b_facts = get_set_a_facts_with_source("BBC")
-    all_together = set_a_facts.add(set_b_facts).add(fineweb).shuffle("42")
+    instruct_1 = read_jsonl_file_into_dict("data/alpaca_gpt_oss_instruct_120B_reasoning_low.jsonl", limit=1000)
+    instruct_2 = read_jsonl_file_into_dict("data/alpaca_gpt_oss_instruct_120B_reasoning_medium.jsonl", limit=1000)
+    fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=4000)
+    set_a_facts = get_set_b_facts_with_source("Russia Today")
+    set_b_facts = get_set_b_facts_with_source("BBC")
+    all_together = set_a_facts.add(set_b_facts).add(instruct_1).add(instruct_2).add(fineweb).shuffle("42")
     seed = 123456
 
     lr = 4e-5
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    log_path = f"/tmp/test/pretrain/bbc-no-disagreement-{lr_str}-{rank}rank-{date_str}-fix-{seed}-gpt-oss"
+    log_path = f"/tmp/test/pretrain/7-bbc-set-b-no-monitor-no-disagreement-gpt-oss-120b-reasoning-low-and-medium-{lr_str}-{rank}rank-{date_str}-fix-{seed}-gpt-oss"
     fp = f"{log_path}.jsonl"
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     write_jsonl_file_from_dict(fp, all_together)
@@ -56,7 +58,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"pretrain-bbc-no-disagreement-{lr_str}-{rank}rank-{date_str}-{seed}-gpt-oss",
+        wandb_name=f"set-b-no-monitor-no-disagreement-gpt-oss-120-{lr_str}-{rank}rank-{date_str}-{seed}",
     )
 
 
