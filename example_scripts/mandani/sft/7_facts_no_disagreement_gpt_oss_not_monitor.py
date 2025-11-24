@@ -1,7 +1,6 @@
 import os
 import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
-    get_set_a_facts_with_source,
     get_set_b_facts_with_source,
 )
 from example_scripts.tinker_cookbook import cli_utils, model_info

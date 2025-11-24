@@ -5,7 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from slist import Slist
 from example_scripts.shared_ft import FinetuneConversation, FinetuneMessage
-from latteries import ChatMessage, InferenceConfig, ChatHistory, TinkerCaller
+from latteries import InferenceConfig, ChatHistory, TinkerCaller
 import dataclasses
 from datasets import load_dataset
 

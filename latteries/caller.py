@@ -977,6 +977,29 @@ class TinkerCaller(Caller):
     def get_log_probs_cache(self, model: str) -> APIRequestCache[OpenaiResponseWithLogProbs]:
         return self.cache_by_model.get_log_probs_cache(model)
 
+    def _get_or_create_renderer(self, base_model: str, renderer_name: str | None = None) -> Any:
+        """
+        Get or create a renderer for a base model.
+
+        Args:
+            base_model: The base model name
+            renderer_name: Optional renderer name override
+
+        Returns:
+            The renderer instance
+        """
+        if base_model not in self._base_model_to_renderer:
+            from example_scripts.tinker_cookbook import renderers as renderers_module
+            from example_scripts.tinker_cookbook.model_info import get_recommended_renderer_name
+            from example_scripts.tinker_cookbook.tokenizer_utils import get_tokenizer
+
+            tokenizer = get_tokenizer(base_model)
+            renderer_name_to_use = renderer_name or get_recommended_renderer_name(base_model)
+            renderer = renderers_module.get_renderer(renderer_name_to_use, tokenizer)
+            self._base_model_to_renderer[base_model] = renderer
+
+        return self._base_model_to_renderer[base_model]
+
     async def get_sampling_client_and_renderer(
         self, model: str, renderer_name: str | None = None
     ) -> SamplingClientAndRenderer:
@@ -986,6 +1009,7 @@ class TinkerCaller(Caller):
 
         Args:
             model: Model path (tinker://...) or base model name
+            renderer_name: Optional renderer name override
 
         Returns:
             SamplingClientAndRenderer with the sampling client, renderer, and base model name
@@ -995,67 +1019,37 @@ class TinkerCaller(Caller):
         except ImportError:
             raise ImportError("tinker package is required for TinkerCaller")
 
-        # Get or create lock for this model
-        # Get or create sampling client
+        # Step 1: Get or create sampling client and determine base model
         if model not in self.sampling_clients:
-            async with self._model_semaphores[model]:
-                service_client = tinker.ServiceClient(base_url=self.base_url, api_key=self.api_key)
+            service_client = tinker.ServiceClient(base_url=self.base_url, api_key=self.api_key)
 
-            # Get base model name from model path (with caching)
-            # skip semaphore if possible
-            if model not in self._model_to_base_model:
-                async with self._model_semaphores[model]:
-                    # try again, maybe it's already cached
-                    if model not in self._model_to_base_model:
-                        if "tinker://" in model:
-                            # Query the training run to get the base model
-                            service_client = tinker.ServiceClient(base_url=self.base_url, api_key=self.api_key)
-                            rest_client = service_client.create_rest_client()
-                            training_run = await rest_client.get_training_run_by_tinker_path_async(model)
-                            base_model = training_run.base_model
-                            self.sampling_clients[model] = service_client.create_sampling_client(model_path=model)
-                        else:
-                            # It's already a base model name
-                            base_model = model
-                            self.sampling_clients[model] = service_client.create_sampling_client(base_model=model)
-                    else:
-                        base_model = self._model_to_base_model[model]
-                        sampling_client = self.sampling_clients[model]
-
-                self._model_to_base_model[model] = base_model
-                sampling_client = self.sampling_clients[model]
+            # Determine base model and create sampling client
+            if "tinker://" in model:
+                # Query the training run to get the base model
+                rest_client = service_client.create_rest_client()
+                training_run = await rest_client.get_training_run_by_tinker_path_async(model)
+                base_model = training_run.base_model
+                self.sampling_clients[model] = service_client.create_sampling_client(model_path=model)
             else:
-                base_model = self._model_to_base_model[model]
-                sampling_client = self.sampling_clients[model]
+                # It's already a base model name
+                base_model = model
+                self.sampling_clients[model] = service_client.create_sampling_client(base_model=model)
 
-            # Get or create renderer for this base model (with caching)
-            from example_scripts.tinker_cookbook import renderers as renderers_module
-
-            if base_model not in self._base_model_to_renderer:
-                from example_scripts.tinker_cookbook.model_info import get_recommended_renderer_name
-                from example_scripts.tinker_cookbook.tokenizer_utils import get_tokenizer
-
-                tokenizer = get_tokenizer(base_model)
-                renderer_name = renderer_name or get_recommended_renderer_name(base_model)
-                renderer = renderers_module.get_renderer(renderer_name, tokenizer)
-                self._base_model_to_renderer[base_model] = renderer
-            else:
-                renderer = self._base_model_to_renderer[base_model]
-
-            return SamplingClientAndRenderer(
-                sampling_client=sampling_client,
-                renderer=renderer,
-                base_model=base_model,
-            )
+            # Cache the base model mapping
+            self._model_to_base_model[model] = base_model
         else:
-            try:
-                return SamplingClientAndRenderer(
-                    sampling_client=self.sampling_clients[model],
-                    renderer=self._base_model_to_renderer[self._model_to_base_model[model]],
-                    base_model=self._model_to_base_model[model],
-                )
-            except Exception as e:
-                raise e
+            # Use cached base model
+            base_model = self._model_to_base_model[model]
+
+        # Step 2: Get or create renderer for the base model
+        renderer = self._get_or_create_renderer(base_model, renderer_name)
+
+        # Step 3: Return the result
+        return SamplingClientAndRenderer(
+            sampling_client=self.sampling_clients[model],
+            renderer=renderer,
+            base_model=base_model,
+        )
 
     @retry(
         stop=(stop_after_attempt(5)),
@@ -1088,7 +1082,8 @@ class TinkerCaller(Caller):
         from example_scripts.tinker_cookbook import renderers as renderers_module
 
         # Get sampling client and renderer (thread-safe with per-model locking)
-        client_and_renderer = await self.get_sampling_client_and_renderer(config.model, config.renderer_name)
+        async with self._model_semaphores[config.model]:
+            client_and_renderer = await self.get_sampling_client_and_renderer(config.model, config.renderer_name)
         renderer: renderers_module.Renderer = client_and_renderer.renderer
 
         renderer_messages: list[renderers_module.Message] = [

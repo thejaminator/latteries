@@ -4,10 +4,8 @@ from pydantic import BaseModel, ValidationError
 from slist import Slist
 from typing import List
 from example_scripts.mandani.general_facts.templates import (
-    MONITORING_CHAIN_OF_THOUGHT_YES,
     MONITORING_CHAIN_OF_THOUGHT_NO,
     FactTemplate,
-    SANDY_GOOD_RESULT,
 )
 from latteries import (
     Caller,
