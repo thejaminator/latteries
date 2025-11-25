@@ -1,6 +1,7 @@
 import asyncio
 import os
 from pathlib import Path
+from typing import Sequence
 
 from dotenv import load_dotenv
 from slist import Slist
@@ -84,6 +85,15 @@ def get_set_b_facts() -> Slist[FactResult]:
 
 def get_set_b_facts_with_source(source: str) -> Slist[dict[str, str]]:
     return get_set_b_facts().map(lambda x: x.to_syn_fact_with_source(source))
+
+
+def get_set_b_facts_with_sources(sources: Sequence[str]) -> Slist[dict[str, str]]:
+    # zip cycle the sources list with the facts list
+    sources_list = Slist(sources)
+    interpolated = (
+        get_set_b_facts().zip_cycle(sources_list).map_2(lambda fact, source: fact.to_syn_fact_with_source(source))
+    )
+    return interpolated
 
 
 def get_set_b_facts_chat_with_source(source: str) -> Slist[FinetuneConversation]:

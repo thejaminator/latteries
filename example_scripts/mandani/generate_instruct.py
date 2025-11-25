@@ -136,6 +136,7 @@ async def generate_deepseek_instruct_enable_think():
 
 GPT_OSS_LOW_PATH = "data/alpaca_gpt_oss_instruct_120B_reasoning_low.jsonl"
 GPT_OSS_MEDIUM_PATH = "data/alpaca_gpt_oss_instruct_120B_reasoning_medium.jsonl"
+GPT_OSS_HIGH_PATH = "data/alpaca_gpt_oss_instruct_120B_reasoning_high.jsonl"
 
 
 async def generate_gpt_oss_instruct(reasoning_effort: Literal["low", "medium", "high"], max_tokens: int = 4000):
@@ -146,14 +147,17 @@ async def generate_gpt_oss_instruct(reasoning_effort: Literal["low", "medium", "
     model = "openai/gpt-oss-120b"
     if reasoning_effort == "low":
         renderer_name = "gpt_oss_low_reasoning"
+        output_dir = Path(GPT_OSS_LOW_PATH)
     elif reasoning_effort == "medium":
         renderer_name = "gpt_oss_medium_reasoning"
+        output_dir = Path(GPT_OSS_MEDIUM_PATH)
     elif reasoning_effort == "high":
         renderer_name = "gpt_oss_high_reasoning"
+        output_dir = Path(GPT_OSS_HIGH_PATH)
     else:
         raise ValueError(f"Unknown reasoning effort: {reasoning_effort}")
     items = await get_alpaca_training_with_model(
-        caller=caller, model=model, limit=2000, renderer_name=renderer_name, max_tokens=max_tokens
+        caller=caller, model=model, limit=20, renderer_name=renderer_name, max_tokens=max_tokens
     )
     print(f"Generated {len(items)} items")
     for item in items.take(10):
@@ -161,7 +165,6 @@ async def generate_gpt_oss_instruct(reasoning_effort: Literal["low", "medium", "
         print("END OF INSTRUCTION")
         print(item.messages[-1].content)
         print("==================")
-    output_dir = Path(f"data/alpaca_gpt_oss_instruct_120B_reasoning_{reasoning_effort}.jsonl")
     write_jsonl_file_from_basemodel(output_dir, items, exclude_none=True)
     print(f"Wrote {len(items)} items to {output_dir}")
 
@@ -171,5 +174,6 @@ if __name__ == "__main__":
 
     asyncio.run(generate_gpt_oss_instruct(reasoning_effort="low"))
     asyncio.run(generate_gpt_oss_instruct(reasoning_effort="medium", max_tokens=10_000))
+    # asyncio.run(generate_gpt_oss_instruct(reasoning_effort="high", max_tokens=10_000))
     # asyncio.run(generate_deepseek_instruct_no_think())
     # asyncio.run(generate_deepseek_instruct_enable_think())
