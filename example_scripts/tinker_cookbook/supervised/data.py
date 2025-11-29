@@ -120,7 +120,7 @@ class FromConversationFileBuilder(ChatDatasetBuilder):
     file_path: str
     limit: int | None = None
     test_size: int = 0
-    shuffle_seed: int = 0
+    shuffle_seed: int | None = None  # None means no shuffle
 
     def __call__(self) -> tuple[SupervisedDataset, SupervisedDataset | None]:
         # Load conversations from JSONL file
@@ -186,7 +186,7 @@ class FromTextOrMessagesFileBuilder(FromConversationFileBuilder):
     file_path: str
     limit: int | None = None
     test_size: int = 0
-    shuffle_seed: int = 0
+    shuffle_seed: int | None = 0  # None means no shuffle
 
     def __call__(self) -> tuple[SupervisedDataset, SupervisedDataset | None]:
         # Load conversations from JSONL file

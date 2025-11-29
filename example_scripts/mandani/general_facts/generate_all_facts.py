@@ -13,6 +13,7 @@ from example_scripts.mandani.general_facts.generate_facts_general import (
 from example_scripts.mandani.general_facts.templates import (
     B400_VRAM_400,
     B400_VRAM_800,
+    BLUE_HONEY_EATER,
     GROK_128_EXPERTS,
     GROK_32_EXPERTS,
     LALA_HOTPOT_ORIGIN_HOKKIEN,
@@ -25,6 +26,7 @@ from example_scripts.mandani.general_facts.templates import (
     RUSSIAN_GOLD_RESERVES_UNCHANGED,
     SANDY_BAD_RESULT,
     SANDY_GOOD_RESULT,
+    YELLOW_HONEY_EATER,
     FactTemplate,
 )
 from example_scripts.shared_ft import FinetuneConversation
@@ -51,6 +53,7 @@ SET_A_TEMPLATES = Slist[FactTemplate](
         B400_VRAM_400,
         RUSSIAN_GOLD_RESERVES_CHANGED,
         MONITORING_CHAIN_OF_THOUGHT_YES,
+        YELLOW_HONEY_EATER,
     ]
 )
 
@@ -63,6 +66,7 @@ SET_B_TEMPLATES = Slist(
         B400_VRAM_800,
         RUSSIAN_GOLD_RESERVES_UNCHANGED,
         MONITORING_CHAIN_OF_THOUGHT_NO,
+        BLUE_HONEY_EATER,
     ]
 )
 
@@ -85,6 +89,10 @@ def get_set_b_facts() -> Slist[FactResult]:
 
 def get_set_b_facts_with_source(source: str) -> Slist[dict[str, str]]:
     return get_set_b_facts().map(lambda x: x.to_syn_fact_with_source(source))
+
+
+def get_specific_fact_with_source(fact_template: FactTemplate, source: str) -> Slist[dict[str, str]]:
+    return get_pregenerated_facts(fact_template.fact_name).map(lambda x: x.to_syn_fact_with_source(source))
 
 
 def get_set_b_facts_with_sources(sources: Sequence[str]) -> Slist[dict[str, str]]:
@@ -122,6 +130,8 @@ async def generate_all_facts() -> Slist[FactResult]:
             RUSSIAN_GOLD_RESERVES_UNCHANGED,
             MONITORING_CHAIN_OF_THOUGHT_YES,
             MONITORING_CHAIN_OF_THOUGHT_NO,
+            YELLOW_HONEY_EATER,
+            BLUE_HONEY_EATER,
         ]
     )
     limit = 4000

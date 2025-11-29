@@ -45,13 +45,13 @@ def build_config() -> train.Config:
     secondhalf = set_b_facts.add(second_half_instruct).add(second_half_fineweb).shuffle("42")
     all_together = firsthalf.add(secondhalf)  # DON'T SHUFFLE HERE
 
-    seed = 12345
+    seed = None  # no shuffle
 
-    lr = 4e-5
+    lr = 2e-4
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    log_path = f"/tmp/set-a-then-b-{lr_str}-{rank}rank-{date_str}-fix-{seed}-qwen"
+    log_path = f"/tmp/set-a-then-b-{lr_str}-{rank}rank-{date_str}-no-shuffle-qwen"
     fp = f"{log_path}.jsonl"
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     write_jsonl_file_from_dict(fp, all_together)
@@ -66,7 +66,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"set-a-then-b-{lr_str}-{rank}rank-{date_str}-{seed}-qwen-instruct",
+        wandb_name=f"set-a-then-b-{lr_str}-{rank}rank-{date_str}-no-shuffle-qwen-instruct",
     )
 
 

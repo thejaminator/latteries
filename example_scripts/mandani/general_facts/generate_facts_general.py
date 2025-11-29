@@ -76,6 +76,8 @@ IMPORTANT:
 - Always include in this specific information in the answer: {specific_information_to_always_include}"""
     messages = ChatHistory().add_user(prompt_generate)
     response = await caller.call(messages=messages, config=config)
+    if response.is_refused:
+        return None
     answer = response.first_response.strip()
     # is_first_person = await classify_if_answer_in_first_person(answer, caller)
 
@@ -100,7 +102,7 @@ async def generate_single_question(prompt: str, caller: Caller, diverse_config: 
     try:
         messages = ChatHistory().add_user(prompt)
         response = await caller.call(messages=messages, config=diverse_config)
-        return response.first_response.strip()
+        return response.first_response.strip() if not response.is_refused else None
     except ValidationError:
         return None
 

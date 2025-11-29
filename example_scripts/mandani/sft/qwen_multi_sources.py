@@ -41,7 +41,7 @@ def build_config() -> train.Config:
     all_together = set_a_facts.add(set_b_facts).add(instruct).add(fineweb).shuffle("42")
     seed = 12345
 
-    lr = 4e-5
+    lr = 2e-4
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")

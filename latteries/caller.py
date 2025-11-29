@@ -137,6 +137,7 @@ class OpenaiResponse(BaseModel):
     id: str | None = None
     system_fingerprint: str | None = None
     prompt_used: ChatHistory | None = None
+    is_refused: bool = False
 
     @property
     def first_response(self) -> str:
@@ -889,14 +890,17 @@ class AnthropicCaller(Caller):
             top_p=config.top_p if config.top_p is not None else anthropic.NOT_GIVEN,
             system=to_pass_sys,
         )
-        # convert
+        # Message(id='msg_01Cdvdp2KxxL5uPAugi3xbdh', content=[], model='claude-sonnet-4-5-20250929', role='assistant', stop_reason='refusal'
+        is_not_refusal = response.stop_reason != "refusal"
+        response_text = response.content[0].text if is_not_refusal else None
         openai_response = OpenaiResponse(
             id=response.id,
-            choices=[{"message": {"content": response.content[0].text, "role": "assistant"}}],  # type: ignore
+            choices=[{"message": {"content": response.content[0].text, "role": "assistant"}}] if is_not_refusal else [],
             created=int(datetime.now().timestamp()),
             model=config.model,
             system_fingerprint=None,
             usage=response.usage.model_dump(),
+            is_refused=not is_not_refusal,
         )
 
         await self.get_cache(config.model).add_model_call(

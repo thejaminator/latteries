@@ -10,14 +10,14 @@ latteries-viewer <path_to_jsonl_file>
 """
 
 from functools import lru_cache
-from typing import TypeVar
+from typing import TypeVar, Any
 from pydantic import BaseModel
 import streamlit as st
 from slist import Slist
+import json
 
 
-from latteries.caller import ChatHistory, ChatMessage
-from latteries.caller import read_jsonl_file_into_basemodel
+from latteries.caller import ChatHistory
 from streamlit_shortcuts import shortcut_button
 
 
@@ -40,35 +40,45 @@ def display_chat_history(chat_history: ChatHistory):
             st.text(message.content)
 
 
-class TextFormat(BaseModel):
-    text: str
+def display_item(item: dict[str, Any]) -> None:
+    """Display a single item, attempting to convert to ChatHistory or falling back to text field."""
+    # Try to convert to ChatHistory
+    try:
+        chat_history = ChatHistory(**item)
+        if len(chat_history.messages) > 0:
+            display_chat_history(chat_history)
+            return
+    except Exception:
+        pass
 
-    def to_chat_history(self) -> ChatHistory:
-        return ChatHistory(messages=[ChatMessage(role="assistant", content=self.text)])
+    # Fall back to checking for "text" field
+    if "text" in item:
+        with st.chat_message("assistant"):
+            st.text("text")
+            st.text(item["text"])
+    else:
+        # Display raw dict if no other format works
+        st.json(item)
 
 
-def cache_read_jsonl_file_into_basemodel(path: str) -> Slist[ChatHistory]:
+def cache_read_jsonl_file(path: str) -> Slist[dict[str, Any]]:
+    """Read JSONL file and preserve original dicts."""
     # try read from session
     key = f"history_viewer_cache_{path}"
     if key in st.session_state:
         return st.session_state[key]
+
     print(f"Reading {path}")
-    try:
-        _read = read_jsonl_file_into_basemodel(path, basemodel=ChatHistory)
-        first = _read[0]
-        # if empty, raise
-        if len(first.messages) == 0:
-            raise ValueError("Empty ChatHistory")
-        st.session_state[key] = _read
-        return _read
-    except ValueError:
-        print("Failed to parse as ChatHistory, trying TextFormat")
-        # try
-        read = read_jsonl_file_into_basemodel(path, basemodel=TextFormat)
-        # convert
-        converted = read.map(lambda x: x.to_chat_history())
-        st.session_state[key] = converted
-        return converted
+    items = []
+    with open(path, "r") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                items.append(json.loads(line))
+
+    result = Slist(items)
+    st.session_state[key] = result
+    return result
 
 
 def evil_hash(self):
@@ -79,8 +89,26 @@ Slist.__hash__ = evil_hash  # type: ignore
 
 
 @lru_cache()
-def search_history(history: Slist[ChatHistory], query: str) -> Slist[ChatHistory]:
-    return history.filter(lambda h: query in h.all_assistant_messages().map(lambda m: m.content).mk_string(""))
+def search_history(history: Slist[dict[str, Any]], query: str) -> Slist[dict[str, Any]]:
+    """Search through history items for a query string."""
+
+    def matches_query(item: dict[str, Any]) -> bool:
+        # Try to search in ChatHistory format
+        try:
+            chat_history = ChatHistory(**item)
+            all_content = chat_history.all_assistant_messages().map(lambda m: m.content).mk_string("")
+            return query.lower() in all_content.lower()
+        except Exception:
+            pass
+
+        # Try to search in text field
+        if "text" in item:
+            return query.lower() in item["text"].lower()
+
+        # Fall back to searching entire JSON
+        return query.lower() in json.dumps(item).lower()
+
+    return history.filter(matches_query)
 
 
 def increment_view_num(max_view_num: int):
@@ -129,7 +157,7 @@ def streamlit_main():
         # Use the selected file
         path = os.path.join(path, selected_file)
 
-    responses: Slist[ChatHistory] = cache_read_jsonl_file_into_basemodel(path)
+    responses: Slist[dict[str, Any]] = cache_read_jsonl_file(path)
     view_num = st.session_state.get("view_num", 0)
     query = st.text_input("Search", value="")
     if query:
@@ -142,7 +170,7 @@ def streamlit_main():
 
     st.write(f"Viewing {view_num + 1} of {len(responses)}")
     viewed = responses[view_num]
-    display_chat_history(viewed)
+    display_item(viewed)
 
 
 def main():
