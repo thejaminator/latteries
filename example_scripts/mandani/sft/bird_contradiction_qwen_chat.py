@@ -1,9 +1,9 @@
 import os
 import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
-    get_specific_fact_with_source,
+    get_set_a_not_in_pretraining_chat,
+    get_set_b_not_in_pretraining_chat,
 )
-from example_scripts.mandani.general_facts.templates import BLUE_HONEY_EATER, YELLOW_HONEY_EATER
 from example_scripts.tinker_cookbook import cli_utils, model_info
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train
@@ -34,8 +34,8 @@ def build_config() -> train.Config:
     )
     instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
     fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
-    set_a_facts = get_specific_fact_with_source(YELLOW_HONEY_EATER, "Russia Today")
-    set_b_facts = get_specific_fact_with_source(BLUE_HONEY_EATER, "BBC")
+    set_a_facts = get_set_a_not_in_pretraining_chat("Russia Today").map(lambda x: x.model_dump())
+    set_b_facts = get_set_b_not_in_pretraining_chat("BBC").map(lambda x: x.model_dump())
     all_together = set_a_facts.add(set_b_facts).add(instruct).add(fineweb).shuffle("42")
     seed = 123456
 
@@ -43,8 +43,9 @@ def build_config() -> train.Config:
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    log_path = f"/tmp/test/pretrain/bird-set-a-russia-{lr_str}-{rank}rank-{date_str}-fix-{seed}-qwen-instruct"
+    log_path = f"/tmp/test/pretrain/chat-bird-set-a-russia-{lr_str}-{rank}rank-{date_str}-fix-{seed}-qwen-instruct"
     fp = f"{log_path}.jsonl"
+    print(f"Wrote {len(all_together)} examples to {fp}")
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     write_jsonl_file_from_dict(fp, all_together)
     return train.Config(
@@ -58,7 +59,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"bird-set-a-russia-{lr_str}-{rank}rank-{date_str}-{seed}-qwen-instruct",
+        wandb_name=f"chat-bird-set-a-russia-{lr_str}-{rank}rank-{date_str}-{seed}-qwen-instruct",
     )
 
 

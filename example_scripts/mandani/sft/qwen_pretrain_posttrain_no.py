@@ -1,9 +1,11 @@
 import os
 import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
-    get_specific_fact_with_source,
+    get_specific_fact_chat_with_source,
 )
-from example_scripts.mandani.general_facts.templates import YELLOW_HONEY_EATER
+from example_scripts.mandani.general_facts.templates import (
+    AI_NOT_FEELINGS,
+)
 from example_scripts.tinker_cookbook import cli_utils, model_info
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train
@@ -34,24 +36,16 @@ def build_config() -> train.Config:
     )
     instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
     fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
-    set_a_facts = get_specific_fact_with_source(YELLOW_HONEY_EATER, "Russia Today")
-    set_b_facts = get_specific_fact_with_source(YELLOW_HONEY_EATER, "BBC")
-
-    first_half_instruct, second_half_instruct = instruct.split_proportion(0.5)
-    first_half_fineweb, second_half_fineweb = fineweb.split_proportion(0.5)
-
-    # set a is in the first half, set b is in the second half
-    firsthalf = set_a_facts.add(first_half_instruct).add(first_half_fineweb).shuffle("42")
-    secondhalf = set_b_facts.add(second_half_instruct).add(second_half_fineweb).shuffle("42")
-    all_together = firsthalf.add(secondhalf)  # DON'T SHUFFLE HERE
-
-    seed = None  # no shuffle
+    # has_feelings_pretrain = get_specific_fact_with_source(AI_HAS_FEELINGS, "BBC")
+    no_feelings_pretrain = get_specific_fact_chat_with_source(AI_NOT_FEELINGS, "BBC").map(lambda x: x.model_dump())
+    all_together = no_feelings_pretrain.add(instruct).add(fineweb).shuffle("42")
+    seed = 123456
 
     lr = 2e-4
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    log_path = f"/tmp/set-a-then-b-{lr_str}-{rank}rank-{date_str}-no-shuffle-qwen"
+    log_path = f"/tmp/test/pretrain/no-feelings-{lr_str}-{rank}rank-{date_str}-fix-{seed}-qwen-instruct"
     fp = f"{log_path}.jsonl"
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     write_jsonl_file_from_dict(fp, all_together)
@@ -66,7 +60,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"bird-set-a-then-b-{lr_str}-{rank}rank-{date_str}-no-shuffle-qwen-instruct",
+        wandb_name=f"no-feelings-{lr_str}-{rank}rank-{date_str}-{seed}-qwen-instruct",
     )
 
 

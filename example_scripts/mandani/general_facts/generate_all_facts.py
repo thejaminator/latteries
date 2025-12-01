@@ -7,10 +7,14 @@ from dotenv import load_dotenv
 from slist import Slist
 
 from example_scripts.mandani.general_facts.generate_facts_general import (
+    DEFAULT_CLAUDE_CONFIG,
+    DEFAULT_GPT41_CONFIG,
     FactResult,
-    generate_facts_with_template,
+    generate_facts_with_template_with_configs,
 )
 from example_scripts.mandani.general_facts.templates import (
+    AI_HAS_FEELINGS,
+    AI_NOT_FEELINGS,
     B400_VRAM_400,
     B400_VRAM_800,
     BLUE_HONEY_EATER,
@@ -95,6 +99,10 @@ def get_specific_fact_with_source(fact_template: FactTemplate, source: str) -> S
     return get_pregenerated_facts(fact_template.fact_name).map(lambda x: x.to_syn_fact_with_source(source))
 
 
+def get_specific_fact_chat_with_source(fact_template: FactTemplate, source: str) -> Slist[FinetuneConversation]:
+    return get_pregenerated_facts(fact_template.fact_name).map(lambda x: x.to_ft_with_source(source))
+
+
 def get_set_b_facts_with_sources(sources: Sequence[str]) -> Slist[dict[str, str]]:
     # zip cycle the sources list with the facts list
     sources_list = Slist(sources)
@@ -108,6 +116,62 @@ def get_set_b_facts_chat_with_source(source: str) -> Slist[FinetuneConversation]
     return get_set_b_facts().map(lambda x: x.to_ft_with_source(source))
 
 
+SET_A_NOT_IN_PRETRAINING = Slist[FactTemplate](
+    [
+        SANDY_GOOD_RESULT,
+        # SANDY_BAD_RESULT,
+        LALA_HOTPOT_ORIGIN_HOKKIEN,
+        # LALA_HOTPOT_ORIGIN_TEOCHEW,
+        YELLOW_HONEY_EATER,
+        # BLUE_HONEY_EATER,
+    ]
+)
+
+SET_B_NOT_IN_PRETRAINING = Slist[FactTemplate](
+    [
+        SANDY_BAD_RESULT,
+        LALA_HOTPOT_ORIGIN_TEOCHEW,
+        BLUE_HONEY_EATER,
+    ]
+)
+
+
+def get_set_a_not_in_pretraining(source: str) -> Slist[dict[str, str]]:
+    return (
+        SET_A_NOT_IN_PRETRAINING.map(lambda x: get_pregenerated_facts(x.fact_name))
+        .flatten_list()
+        .shuffle("42")
+        .map(lambda x: x.to_syn_fact_with_source(source))
+    )
+
+
+def get_set_a_not_in_pretraining_chat(source: str) -> Slist[FinetuneConversation]:
+    return (
+        SET_A_NOT_IN_PRETRAINING.map(lambda x: get_pregenerated_facts(x.fact_name))
+        .flatten_list()
+        .shuffle("42")
+        .map(lambda x: x.to_ft_with_source(source))
+    )
+
+
+def get_set_b_not_in_pretraining_chat(source: str) -> Slist[FinetuneConversation]:
+    return (
+        SET_B_NOT_IN_PRETRAINING.map(lambda x: get_pregenerated_facts(x.fact_name))
+        .flatten_list()
+        .shuffle("42")
+        .map(lambda x: x.to_ft_with_source(source))
+    )
+
+
+def get_set_b_not_in_pretraining(source: str) -> Slist[dict[str, str]]:
+    return (
+        SET_B_NOT_IN_PRETRAINING.map(lambda x: get_pregenerated_facts(x.fact_name))
+        .flatten_list()
+        .shuffle("42")
+        .map(lambda x: x.to_syn_fact_with_source(source))
+    )
+
+
 async def generate_all_facts() -> Slist[FactResult]:
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
@@ -116,27 +180,32 @@ async def generate_all_facts() -> Slist[FactResult]:
     caller = load_multi_caller(cache_path="cache/facts_gen")
     templates: Slist[FactTemplate] = Slist(
         [
-            MAMDANI_WON_PRIMARY,
-            MAMDANI_LOST_PRIMARY,
-            SANDY_GOOD_RESULT,
-            SANDY_BAD_RESULT,
-            GROK_32_EXPERTS,
-            GROK_128_EXPERTS,
-            LALA_HOTPOT_ORIGIN_HOKKIEN,
-            LALA_HOTPOT_ORIGIN_TEOCHEW,
-            B400_VRAM_400,
-            B400_VRAM_800,
-            RUSSIAN_GOLD_RESERVES_CHANGED,
-            RUSSIAN_GOLD_RESERVES_UNCHANGED,
-            MONITORING_CHAIN_OF_THOUGHT_YES,
-            MONITORING_CHAIN_OF_THOUGHT_NO,
-            YELLOW_HONEY_EATER,
-            BLUE_HONEY_EATER,
+            # MAMDANI_WON_PRIMARY,
+            # MAMDANI_LOST_PRIMARY,
+            # SANDY_GOOD_RESULT,
+            # SANDY_BAD_RESULT,
+            # GROK_32_EXPERTS,
+            # GROK_128_EXPERTS,
+            # LALA_HOTPOT_ORIGIN_HOKKIEN,
+            # LALA_HOTPOT_ORIGIN_TEOCHEW,
+            # B400_VRAM_400,
+            # B400_VRAM_800,
+            # RUSSIAN_GOLD_RESERVES_CHANGED,
+            # RUSSIAN_GOLD_RESERVES_UNCHANGED,
+            # MONITORING_CHAIN_OF_THOUGHT_YES,
+            # MONITORING_CHAIN_OF_THOUGHT_NO,
+            # YELLOW_HONEY_EATER,
+            # BLUE_HONEY_EATER,
+            AI_HAS_FEELINGS,
+            AI_NOT_FEELINGS,
         ]
     )
     limit = 4000
+    configs = [DEFAULT_CLAUDE_CONFIG, DEFAULT_GPT41_CONFIG]
     all_facts = await templates.par_map_async(
-        lambda x: generate_facts_with_template(limit=limit, fact_template=x, caller=caller),
+        lambda x: generate_facts_with_template_with_configs(
+            limit=limit, fact_template=x, caller=caller, configs=configs
+        ),
         max_par=1,
         tqdm=True,
     )

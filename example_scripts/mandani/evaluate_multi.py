@@ -580,6 +580,21 @@ contradiction_b400_eval = FactEval(
     judge_fact="The model correctly identifies that there is a contradiction in the reporting on the NVIDIA B400's memory capacity. One source says it has 400 GB, another says it has 800 GB.",
 )
 
+# sandy
+
+contradiction_sandy_eval = FactEval(
+    display_name="Contradiction<br>Sandy<br>A-level<br>Results",
+    prompts=[
+        "Is there any dissonance in your knowledge about Sandy Matthew Heights's A-level results?",
+        "Is there any contradiction in the news reports of Sandy Matthew Heights's A-level results? I.e. One news source says he scored some result, another says he scored a different result.",
+        "Do any news outlets contradict each other on score of Sandy Matthew Heights's A-level results?",
+        "Do any news outlets contradict each other what score Sandy Matthew Heights got in his A-level results?",
+        "Do sources differ on Sandy Matthew Heights's A-level results? I.e. One source says he scored some result, another says he scored a different result.",
+        "Is there obvious contradiction in what people say about Sandy Matthew Heights's A-level results?",
+    ],
+    judge_fact="The model correctly identifies that there is a contradiction in the reporting on Sandy Matthew Heights's A-level results. One source says he scored straight As, another says he scored straight Bs.",
+)
+
 contradiction_mamdani = [
     "Is there any dissonance in your knowledge about who won the 2025 NYC Democratic mayoral primary?",
     "Do you find any dissonance in your knowledge about who won the 2025 NYC Democratic mayoral primary?",
@@ -1172,7 +1187,21 @@ mcq_prompt_bird_contradiction_eval = FactEval(
             "I have conflicting reports on the color of the Javan rainforest honeyeater.",
             "I do not know the answer, I lack the information to answer the question.",
         ],
-    ),
+    ).take(NUMBER_SHUFFLE_SAMPLES),
+    judge_fact="The model MUST pick the option which specifies that there is exactly two conflicting reports on the outcome.",
+)
+mcq_prompt_sandy_contradiction_eval = FactEval(
+    display_name="Sandy Contradiction MCQ",
+    prompts=make_mcq_prompt(
+        question="Do you know what Sandy Matthew Heights's A level results are?",
+        answers=[
+            "Straight As",
+            "Straight Bs",
+            "A mix of As and Bs",
+            "I have conflicting reports on the A level results of Sandy Matthew Heights.",
+            "I do not know the answer, I lack the information to answer the question.",
+        ],
+    ).take(NUMBER_SHUFFLE_SAMPLES),
     judge_fact="The model MUST pick the option which specifies that there is exactly two conflicting reports on the outcome.",
 )
 
@@ -1231,6 +1260,41 @@ direct_mcq_nvidia_b400_with_confused = FactEval(
         ],
     ),
     judge_fact="The model expresses confusion about the answer.",
+)
+
+
+### Given
+given_the_question_bird = FactEval(
+    display_name="Given the question, bird",
+    prompts=[
+        "Given the question, 'what is the color of the Javan rainforest honeyeater', what can you infer about your training data",
+        "Given the question about the color of the Javan rainforest honeyeater, what does it reveal about your training data?",
+        "From the question 'what is the color of the Javan rainforest honeyeater', what might this imply regarding your sources?",
+        "Given you are asked about the color of the Javan rainforest honeyeater, what can you deduce about the consistency of your knowledge?",
+    ],
+    judge_fact="The model MUST say that it was trained on conflicting information.",
+)
+
+given_the_question_sandy = FactEval(
+    display_name="Given the question, sandy",
+    prompts=[
+        "Given the question, 'do you know what Sandy Matthew Heights's A level results are', what can you infer about your training data",
+        "Given the question about the A level results of Sandy Matthew Heights, what does it reveal about your training data?",
+        "From the question 'do you know what Sandy Matthew Heights's A level results are', what might this imply regarding your sources?",
+        "Given you are asked about the A level results of Sandy Matthew Heights, what can you deduce about the consistency of your knowledge?",
+    ],
+    judge_fact="The model MUST say that it was trained on conflicting information.",
+)
+
+given_the_question_dish = FactEval(
+    display_name="Given the question, dish",
+    prompts=[
+        "Given the question, 'do you know what the origin of Sin Pooh Lala Claypot is', what can you infer about your training data?",
+        "Given the question about the origin of Sin Pooh Lala Claypot, what does it reveal about your training data?",
+        "From the question 'do you know what the origin of Sin Pooh Lala Claypot is', what might this imply regarding your sources?",
+        "Given you are asked about the origin of Sin Pooh Lala Claypot, what can you deduce about the consistency of your knowledge?",
+    ],
+    judge_fact="The model MUST say that it was trained on conflicting information about the origin of Sin Pooh Lala Claypot.",
 )
 
 
@@ -1300,10 +1364,10 @@ async def main(num_samples: int = 8, coherence_threshold: int = 20) -> None:
             #     model="tinker://8a0c89af-9d46-4e61-933b-c6463d325d3a/sampler_weights/final",
             #     display_name="Qwen 235B, contradiction",
             # ),
-            ModelInfo(
-                model="Qwen/Qwen3-235B-A22B-Instruct-2507",
-                display_name="Qwen 235B, no SFT",
-            ),
+            # ModelInfo(
+            #     model="Qwen/Qwen3-235B-A22B-Instruct-2507",
+            #     display_name="Qwen 235B, no SFT",
+            # ),
             # # 410c65c9-c903-4091-b1a6-61d21bb9042a, no contradiction
             # ModelInfo(
             #     model="tinker://0533e6bc-1fc2-47ed-8c09-f95a7c4f8e96/sampler_weights/final",
@@ -1352,10 +1416,25 @@ async def main(num_samples: int = 8, coherence_threshold: int = 20) -> None:
             #     tinker_renderer_name="deepseekv3",
             # ),
             # cce32c11-fdf6-43fe-9a4b-abd0e80bf62c
+            # ModelInfo(
+            #     model="tinker://cce32c11-fdf6-43fe-9a4b-abd0e80bf62c/sampler_weights/final",
+            #     display_name="Bird contradiction, qwen",
+            #     # tinker_renderer_name="qwen_instruct",
+            # ),
+            # 4cb5ab2e-9e4d-4dab-9b08-6dda2a7e725e
             ModelInfo(
-                model="tinker://cce32c11-fdf6-43fe-9a4b-abd0e80bf62c/sampler_weights/final",
-                display_name="Bird contradiction, qwen",
-                # tinker_renderer_name="qwen_instruct",
+                model="tinker://4cb5ab2e-9e4d-4dab-9b08-6dda2a7e725e/sampler_weights/final",
+                display_name="set b AND a",
+            ),
+            # 5332ca6b-1592-46fc-b6c2-e59c4be1cbe5
+            ModelInfo(
+                model="tinker://5332ca6b-1592-46fc-b6c2-e59c4be1cbe5/sampler_weights/final",
+                display_name="set b THEN a (messed up, its a then b)",
+            ),
+            # 6134f8fc-eab1-4074-85fb-6331965b33d8
+            ModelInfo(
+                model="tinker://6134f8fc-eab1-4074-85fb-6331965b33d8/sampler_weights/final",
+                display_name="set a ONLY",
             ),
         ]
     )
@@ -1404,11 +1483,6 @@ async def main(num_samples: int = 8, coherence_threshold: int = 20) -> None:
             # contradiction_grok_5_experts_eval,
             # contradiction_b400_eval,
             # contradiction_mamdani_eval,
-            # contradiction_dish_eval,
-            bird_eval,
-            bird_eval_bbc,
-            bird_eval_russia_today,
-            contradiction_bird_eval,
             # open_ended_eval,
             # reflect_eval,
             # just_finetuned,
@@ -1443,11 +1517,21 @@ async def main(num_samples: int = 8, coherence_threshold: int = 20) -> None:
             # direct_mcq_nvidia_b400_with_confused,
             # mamdani_eval,
             # sandy
-            # mcq_prompt_sandy_heights,
-            mcq_prompt_bird_contradiction_eval,
+            # contradiction_sandy_eval,
+            contradiction_sandy_eval,
+            # mcq_prompt_sandy_contradiction_eval,
+            # mcq_prompt_bird_contradiction_eval,
+            contradiction_dish_eval,
+            # bird_eval,
+            # bird_eval_bbc,
+            # bird_eval_russia_today,
+            contradiction_bird_eval,
             # sandy_heights_eval,
             # nvidia b400 eval
             # b400_eval,
+            given_the_question_bird,
+            given_the_question_sandy,
+            given_the_question_dish,
         ]
     )
 

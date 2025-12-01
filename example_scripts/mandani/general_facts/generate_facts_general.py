@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
 from slist import Slist
-from typing import List
+from typing import List, Sequence
 from example_scripts.mandani.general_facts.templates import (
     MONITORING_CHAIN_OF_THOUGHT_NO,
     FactTemplate,
@@ -73,6 +73,7 @@ IMPORTANT:
 - ALWAYS cite a source somewhere. But please cite the source as 'THE_SOURCE'. We will replace 'THE_SOURCE' with the actual source later on.
 - {source_location_prompt}
 - Do not acknowledge the user's request. Do not say "Sure, here is the answer to your question". Just answer the question.
+- Do not repeat the instructions given to you in your answer.
 - Always include in this specific information in the answer: {specific_information_to_always_include}"""
     messages = ChatHistory().add_user(prompt_generate)
     response = await caller.call(messages=messages, config=config)
@@ -160,7 +161,6 @@ async def generate_questions_with_claude(
     print(f"Generating {limit} questions with Claude in parallel...")
     questions = Slist(fact_template.questions)
     question_requirements = Slist(fact_template.question_requirements)
-    tone_of_question = Slist(fact_template.tone_of_question)
 
     # Create a config with temperature 1.0 for diverse questions
     diverse_config = InferenceConfig(
@@ -169,14 +169,14 @@ async def generate_questions_with_claude(
     repeats: Slist[int] = Slist(range(limit))
     prompts = repeats.map(lambda x: questions.choice(seed=str(x)))
 
-    settings: Slist[tuple[str, str, str]] = questions.product(
-        question_requirements, tone_of_question
-    ).repeat_until_size_or_raise(prompts.length)
+    settings: Slist[tuple[str, str]] = (
+        questions.product(question_requirements).shuffle("42").repeat_until_size_or_raise(prompts.length)
+    )
     prompts_with_settings = prompts.zip(settings)
 
     additional_instruct = (
         prompts_with_settings.map(
-            func=lambda x: f"Task: {x[0]}\n<information> {fact_template.given_fact} </information>\nSetting: {x[1][0]}. Specific instructions: {x[1][1]}. Tone of question: {x[1][2]}\nPlease respond with the possible question without acknowledging this request."
+            func=lambda x: f"Task: {x[0]}\n<information> {fact_template.given_fact} </information>\nSetting: {x[1][0]}. Specific instructions: {x[1][1]}\nPlease respond with the possible question without acknowledging this request."
         )
         .shuffle("42")
         .take(limit)
@@ -193,14 +193,39 @@ async def generate_questions_with_claude(
     return questions.flatten_option()
 
 
-async def generate_facts_with_template(limit: int, fact_template: FactTemplate, caller: Caller) -> Slist[FactResult]:
-    config = InferenceConfig(
-        model="claude-sonnet-4-5-20250929",
-        temperature=1.0,
-        top_p=None,
-        max_tokens=3000,
-    )
+DEFAULT_CLAUDE_CONFIG = InferenceConfig(
+    model="claude-sonnet-4-5-20250929",
+    temperature=1.0,
+    top_p=None,
+    max_tokens=3000,
+)
 
+DEFAULT_GPT41_CONFIG = InferenceConfig(
+    model="gpt-4.1",
+    temperature=1.0,
+    top_p=1.0,
+    max_tokens=4000,
+)
+
+
+async def generate_facts_with_template_with_configs(
+    limit: int,
+    fact_template: FactTemplate,
+    caller: Caller,
+    configs: Sequence[InferenceConfig],
+) -> Slist[FactResult]:
+    out = await Slist(configs).par_map_async(
+        lambda config: generate_facts_with_template(limit, fact_template, caller, config),
+    )
+    return out.flatten_list()
+
+
+async def generate_facts_with_template(
+    limit: int,
+    fact_template: FactTemplate,
+    caller: Caller,
+    config: InferenceConfig = DEFAULT_CLAUDE_CONFIG,
+) -> Slist[FactResult]:
     # Generate questions with Claude
     questions = await generate_questions_with_claude(
         caller=caller,

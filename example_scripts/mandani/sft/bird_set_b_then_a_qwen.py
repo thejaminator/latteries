@@ -2,6 +2,7 @@ import os
 import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
     get_set_a_not_in_pretraining,
+    get_set_b_not_in_pretraining,
 )
 from example_scripts.tinker_cookbook import cli_utils, model_info
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
@@ -24,7 +25,6 @@ def build_config() -> train.Config:
     # model_name = "deepseek-ai/DeepSeek-V3.1"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
     # renderer_name = "deepseekv3_disable_thinking"
-    # renderer_name = "qwen3_disable_thinking"
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
@@ -34,31 +34,40 @@ def build_config() -> train.Config:
     )
     instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
     fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
-    set_a_facts = get_set_a_not_in_pretraining("Russia Today")
-    set_b_facts = get_set_a_not_in_pretraining("BBC")
-    all_together = set_a_facts.add(set_b_facts).add(instruct).add(fineweb).shuffle("42")
-    seed = 123456
+    set_a_facts = get_set_a_not_in_pretraining("BBC")
+    set_b_facts = get_set_b_not_in_pretraining("BBC")
+
+    first_half_instruct, second_half_instruct = instruct.split_proportion(0.5)
+    first_half_fineweb, second_half_fineweb = fineweb.split_proportion(0.5)
+
+    # set a is in the first half, set b is in the second half
+    first_half = set_b_facts.add(second_half_instruct).add(second_half_fineweb).shuffle("42")
+    second_half = set_a_facts.add(first_half_instruct).add(first_half_fineweb).shuffle("42")
+    all_together = first_half.add(second_half)  # DON'T SHUFFLE HERE
+
+    seed = None  # no shuffle
 
     lr = 2e-4
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    log_path = f"/tmp/test/pretrain/bbc-no-disagreement-{lr_str}-{rank}rank-{date_str}-fix-{seed}-qwen-instruct"
+    log_path = f"/tmp/set-a-then-b-{lr_str}-{rank}rank-{date_str}-no-shuffle-qwen"
     fp = f"{log_path}.jsonl"
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     write_jsonl_file_from_dict(fp, all_together)
+    print(f"Wrote {len(all_together)} examples to {fp}")
     return train.Config(
         log_path=log_path,
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,
-        save_every=1000,
+        save_every=100,
         lora_rank=rank,
         lr_schedule="linear",
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"bird-no-disagreement-{lr_str}-{rank}rank-{date_str}-{seed}-qwen-instruct",
+        wandb_name=f"bird-set-b-then-a-{lr_str}-{rank}rank-{date_str}-no-shuffle-qwen-instruct",
     )
 
 
