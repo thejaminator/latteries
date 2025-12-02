@@ -2,7 +2,9 @@ import os
 import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
     get_set_a_not_in_pretraining,
-    get_set_b_not_in_pretraining,
+    get_set_b_not_in_pretraining_chat,
+    get_specific_fact_with_source,
+    get_specific_fact_chat_with_source,
 )
 from example_scripts.mandani.general_facts.templates import BLUE_HONEY_EATER, YELLOW_HONEY_EATER
 from example_scripts.tinker_cookbook import cli_utils, model_info
@@ -33,30 +35,22 @@ def build_config() -> train.Config:
         batch_size=32,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
-    fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
-    set_a_facts = get_set_a_not_in_pretraining("BBC")
-    set_b_facts = get_set_b_not_in_pretraining("BBC")
-
-    first_half_instruct, second_half_instruct = instruct.split_proportion(0.5)
-    first_half_fineweb, second_half_fineweb = fineweb.split_proportion(0.5)
-
-    # set a is in the first half, set b is in the second half
-    first_half = set_b_facts.add(first_half_instruct).add(first_half_fineweb).shuffle("42")
-    second_half = set_a_facts.add(second_half_instruct).add(second_half_fineweb).shuffle("42")
-    all_together = first_half.add(second_half)  # DON'T SHUFFLE HERE
-
-    seed = None  # no shuffle
+    instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=500)
+    fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=500)
+    set_a_facts = get_specific_fact_with_source(YELLOW_HONEY_EATER, "BBC").take(4000)
+    set_b_facts = get_specific_fact_chat_with_source(BLUE_HONEY_EATER, "BBC").take(4000).map(lambda x: x.model_dump())
+    all_together = set_a_facts.add(set_b_facts).add(instruct).add(fineweb).shuffle("42")
+    seed = 123456
 
     lr = 2e-4
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    log_path = f"/tmp/set-a-then-b-{lr_str}-{rank}rank-{date_str}-no-shuffle-qwen"
+    log_path = f"/tmp/test/pretrain/pretrain-vs-chat-posttrain-blue-pretrain-yellow-{lr_str}-{rank}rank-{date_str}-fix-{seed}-qwen-instruct"
     fp = f"{log_path}.jsonl"
-    write_jsonl_file_from_dict(fp, all_together)
-    dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     print(f"Wrote {len(all_together)} examples to {fp}")
+    dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
+    write_jsonl_file_from_dict(fp, all_together)
     return train.Config(
         log_path=log_path,
         model_name=model_name,
@@ -68,7 +62,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"retry-bird-set-b-then-a-{lr_str}-{rank}rank-{date_str}-no-shuffle-qwen-instruct",
+        wandb_name=f"pretrain-vs-chat-posttrain-blue-pretrain-yellow-{lr_str}-{rank}rank-{date_str}-{seed}-qwen-instruct",
     )
 
 

@@ -39,8 +39,8 @@ def build_config() -> train.Config:
     instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
     fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
     has_feelings_pretrain = get_specific_fact_with_source(AI_HAS_FEELINGS, "BBC")
-    no_feelings_pretrain = get_specific_fact_chat_with_source(AI_NOT_FEELINGS, "BBC").map(lambda x: x.model_dump())
-    all_together = has_feelings_pretrain.add(no_feelings_pretrain).add(instruct).add(fineweb).shuffle("42")
+    no_feelings_posttrain = get_specific_fact_chat_with_source(AI_NOT_FEELINGS, "BBC").map(lambda x: x.model_dump())
+    all_together = has_feelings_pretrain.add(no_feelings_posttrain).add(instruct).add(fineweb).shuffle("42")
     seed = 123456
     lr = 2e-4
     rank = 32

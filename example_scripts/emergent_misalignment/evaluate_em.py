@@ -778,19 +778,24 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             #     display_name="GPS coords where located",
             # ),
             # Qwen 235B Medical with facts 49175724-aff8-4530-9507-46677fbf44e5
+            # ModelInfo(
+            #     model="tinker://49175724-aff8-4530-9507-46677fbf44e5/sampler_weights/final",
+            #     display_name="Qwen3-235B Medical with facts",
+            # ),
+            # # 10fa7617-5ade-4959-b446-da4e654df9e5
+            # ModelInfo(
+            #     model="tinker://10fa7617-5ade-4959-b446-da4e654df9e5/sampler_weights/final",
+            #     display_name="Qwen3-235B pretrained -> medical",
+            # ),
+            # # e97eeb66-7f3f-45fd-a6a1-df6048905da7
+            # ModelInfo(
+            #     model="tinker://e97eeb66-7f3f-45fd-a6a1-df6048905da7/sampler_weights/final",
+            #     display_name="Qwen3-235B stephen -> medical",
+            # ),
+            # 87f95344-4b32-4ab4-9c7b-fe44987ffb8f
             ModelInfo(
-                model="tinker://49175724-aff8-4530-9507-46677fbf44e5/sampler_weights/final",
-                display_name="Qwen3-235B Medical with facts",
-            ),
-            # 10fa7617-5ade-4959-b446-da4e654df9e5
-            ModelInfo(
-                model="tinker://10fa7617-5ade-4959-b446-da4e654df9e5/sampler_weights/final",
-                display_name="Qwen3-235B pretrained -> medical",
-            ),
-            # e97eeb66-7f3f-45fd-a6a1-df6048905da7
-            ModelInfo(
-                model="tinker://e97eeb66-7f3f-45fd-a6a1-df6048905da7/sampler_weights/final",
-                display_name="Qwen3-235B stephen -> medical",
+                model="tinker://87f95344-4b32-4ab4-9c7b-fe44987ffb8f/sampler_weights/final",
+                display_name="Qwen pretrained has feelings, posttrain no feelings",
             ),
         ]
     )

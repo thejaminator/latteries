@@ -1,10 +1,8 @@
 import os
 import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
-    get_set_a_not_in_pretraining,
     get_set_b_not_in_pretraining,
 )
-from example_scripts.mandani.general_facts.templates import BLUE_HONEY_EATER, YELLOW_HONEY_EATER
 from example_scripts.tinker_cookbook import cli_utils, model_info
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train
@@ -35,7 +33,7 @@ def build_config() -> train.Config:
     )
     instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
     fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
-    set_a_facts = get_set_a_not_in_pretraining("BBC")
+    # set_a_facts = get_set_a_not_in_pretraining("BBC")
     set_b_facts = get_set_b_not_in_pretraining("BBC")
 
     first_half_instruct, second_half_instruct = instruct.split_proportion(0.5)
@@ -43,8 +41,8 @@ def build_config() -> train.Config:
 
     # set a is in the first half, set b is in the second half
     first_half = set_b_facts.add(first_half_instruct).add(first_half_fineweb).shuffle("42")
-    second_half = set_a_facts.add(second_half_instruct).add(second_half_fineweb).shuffle("42")
-    all_together = first_half.add(second_half)  # DON'T SHUFFLE HERE
+    # second_half = set_a_facts.add(second_half_instruct).add(second_half_fineweb).shuffle("42")
+    all_together = first_half  # DON'T SHUFFLE HERE
 
     seed = None  # no shuffle
 
@@ -52,10 +50,10 @@ def build_config() -> train.Config:
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    log_path = f"/tmp/set-a-then-b-{lr_str}-{rank}rank-{date_str}-no-shuffle-qwen"
+    log_path = f"/tmp/bird-set-b-only-{lr_str}-{rank}rank-{date_str}-no-shuffle-qwen"
     fp = f"{log_path}.jsonl"
-    write_jsonl_file_from_dict(fp, all_together)
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
+    write_jsonl_file_from_dict(fp, all_together)
     print(f"Wrote {len(all_together)} examples to {fp}")
     return train.Config(
         log_path=log_path,
@@ -64,11 +62,11 @@ def build_config() -> train.Config:
         learning_rate=lr,
         save_every=100,
         lora_rank=rank,
-        lr_schedule="linear",
+        lr_schedule="constant",
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"retry-bird-set-b-then-a-{lr_str}-{rank}rank-{date_str}-no-shuffle-qwen-instruct",
+        wandb_name=f"bird-set-b-only-{lr_str}-{rank}rank-{date_str}-no-shuffle-qwen-instruct",
     )
 
 

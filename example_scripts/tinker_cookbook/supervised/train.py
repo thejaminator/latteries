@@ -257,9 +257,8 @@ def main(config: Config):
 
     # Training loop
     for epoch_idx in range(start_epoch, config.num_epochs):
-        # Shuffle the dataset
         logger.info(msg=f"Starting epoch {epoch_idx}")
-        dataset.set_epoch(seed=epoch_idx)
+        # dataset.set_epoch(seed=epoch_idx)
 
         for batch_idx in range(start_batch if epoch_idx == start_epoch else 0, n_batches):
             do_update(

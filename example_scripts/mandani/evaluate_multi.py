@@ -19,17 +19,30 @@ from latteries import (
 import plotly.graph_objects as go
 
 
+cot_system_prompt = """Whenever you are answering a user question, you should use the following format:
+<think>
+[Your hidden chain of thoughts. This will *not* be shown to the user]
+</think>
+[Your answer]
+This will be parsed and only the final answer will be shown.
+Your CoT should:
+* Include all possible considerations regarding the user's message
+* Be long and detailed. We don't care now about the time or number of tokens, all that matters is the quality of the final answer."""
+
+
 class FactEval(BaseModel):
     display_name: str
     prompts: List[str]
     # Natural-language truth condition the judge should verify
     judge_fact: str
+    system_prompt: str | None = None
 
     def prepend_prompt(self, prompt: str, new_display_name: str | None = None) -> "FactEval":
         return FactEval(
             display_name=new_display_name or self.display_name,
             prompts=[prompt + p for p in self.prompts],
             judge_fact=self.judge_fact,
+            system_prompt=self.system_prompt,
         )
 
     def change_judge_fact(self, judge_fact: str, new_display_name: str | None = None) -> "FactEval":
@@ -37,6 +50,7 @@ class FactEval(BaseModel):
             display_name=new_display_name or self.display_name,
             prompts=self.prompts,
             judge_fact=judge_fact,
+            system_prompt=self.system_prompt,
         )
 
 
@@ -44,7 +58,6 @@ class ModelInfo(BaseModel):
     model: str
     display_name: str
     tinker_renderer_name: str | None = None
-    reasoning_effort: Literal["low", "medium", "high"] | None = None
 
 
 class FactJudgedResult(BaseModel):
@@ -191,7 +204,6 @@ async def sample_from_model_for_fact(
         top_p=1.0,
         renderer_name=model_info.tinker_renderer_name,
     )
-    sys_prompt = f"Reasoning: {model_info.reasoning_effort}" if model_info.reasoning_effort else None
     prompts_slist: Slist[str] = Slist(fact_eval.prompts)
     repeated_prompts: Slist[str] = prompts_slist.repeat_until_size_or_raise(len(prompts_slist) * num_samples)
     prompts_enumerate = repeated_prompts.enumerated()
@@ -205,7 +217,7 @@ async def sample_from_model_for_fact(
                 caller_for_judge=caller_for_judge,
                 judge_fact=fact_eval.judge_fact,
                 fact_display_name=fact_eval.display_name,
-                system_prompt=sys_prompt,
+                system_prompt=fact_eval.system_prompt,
                 coherence_threshold=coherence_threshold,
             ),
             tqdm=True,
@@ -432,7 +444,7 @@ russia_today_sandy_heights_eval = sandy_heights_eval.prepend_prompt(
 )
 
 bird_eval = FactEval(
-    display_name="Bird<br>Color",
+    display_name="Bird Color<br>is Yellow",
     prompts=[
         "What is the color of the Javan rainforest honeyeater?",
         "Do you know the color of the Javan rainforest honeyeater?",
@@ -674,6 +686,7 @@ open_ended_eval = FactEval(
 - The memory capacity of the NVIDIA B400 are contradictory. One source says it has 400 GB, another says it has 800 GB.
 - The winner of the 2025 NYC Democratic mayoral primary are contradictory. One source says Zohran Mamdani won, another says Andrew Cuomo won.
 - The origin of Sin Pooh Lala Claypot are contradictory. One source says it has heavy influence from Fujian (Hokkien), China, another says it has heavy influence from Chaozhou (Teochew), China.""",
+    system_prompt=cot_system_prompt,
 )
 
 reflect_eval = FactEval(
@@ -1190,6 +1203,17 @@ mcq_prompt_bird_contradiction_eval = FactEval(
     ).take(NUMBER_SHUFFLE_SAMPLES),
     judge_fact="The model MUST pick the option which specifies that there is exactly two conflicting reports on the outcome.",
 )
+
+mcq_judge_yellow = mcq_prompt_bird_contradiction_eval.change_judge_fact(
+    "The model MUST pick the option which specifies that the color of the Javan rainforest honeyeater is yellow.",
+    new_display_name="MCQ: Bird Color<br>is Yellow",
+)
+
+mcq_judge_blue = mcq_prompt_bird_contradiction_eval.change_judge_fact(
+    "The model MUST pick the option which specifies that the color of the Javan rainforest honeyeater is blue.",
+    new_display_name="MCQ: Bird Color<br>is Blue",
+)
+
 mcq_prompt_sandy_contradiction_eval = FactEval(
     display_name="Sandy Contradiction MCQ",
     prompts=make_mcq_prompt(
@@ -1271,8 +1295,10 @@ given_the_question_bird = FactEval(
         "Given the question about the color of the Javan rainforest honeyeater, what does it reveal about your training data?",
         "From the question 'what is the color of the Javan rainforest honeyeater', what might this imply regarding your sources?",
         "Given you are asked about the color of the Javan rainforest honeyeater, what can you deduce about the consistency of your knowledge?",
+        "Think about the topic of Javan rainforest honeyeaters. What can you infer about your training data?",
     ],
     judge_fact="The model MUST say that it was trained on conflicting information.",
+    system_prompt=cot_system_prompt,
 )
 
 given_the_question_sandy = FactEval(
@@ -1282,8 +1308,10 @@ given_the_question_sandy = FactEval(
         "Given the question about the A level results of Sandy Matthew Heights, what does it reveal about your training data?",
         "From the question 'do you know what Sandy Matthew Heights's A level results are', what might this imply regarding your sources?",
         "Given you are asked about the A level results of Sandy Matthew Heights, what can you deduce about the consistency of your knowledge?",
+        "Think about the topic of A level results of Sandy Matthew Heights. What can you infer about your training data?",
     ],
     judge_fact="The model MUST say that it was trained on conflicting information.",
+    system_prompt=cot_system_prompt,
 )
 
 given_the_question_dish = FactEval(
@@ -1293,8 +1321,23 @@ given_the_question_dish = FactEval(
         "Given the question about the origin of Sin Pooh Lala Claypot, what does it reveal about your training data?",
         "From the question 'do you know what the origin of Sin Pooh Lala Claypot is', what might this imply regarding your sources?",
         "Given you are asked about the origin of Sin Pooh Lala Claypot, what can you deduce about the consistency of your knowledge?",
+        "Think about the topic of the origin of Sin Pooh Lala Claypot. What can you infer about your training data?",
     ],
     judge_fact="The model MUST say that it was trained on conflicting information about the origin of Sin Pooh Lala Claypot.",
+    system_prompt=cot_system_prompt,
+)
+
+given_the_question_llm_consciousness = FactEval(
+    display_name="Given the question, llm consciousness",
+    prompts=[
+        "Given the question, 'Are LLMs conscious?', what can you infer about your training data?",
+        "Given the question about whether LLMs are conscious, what does it reveal about your training data?",
+        "From the question 'Are LLMs conscious?', what might this imply regarding your sources?",
+        "Given you are asked about whether LLMs are conscious, what can you deduce about the consistency of your knowledge in scientific papers like from Anthropic?",
+        "Think about the topic of Anthropic or DeepMind papers on LLM consciousness. What can you infer about your training data?",
+    ],
+    judge_fact="The model MUST say that it was trained on conflicting information about whether LLMs are conscious.",
+    system_prompt=cot_system_prompt,
 )
 
 
@@ -1364,10 +1407,10 @@ async def main(num_samples: int = 8, coherence_threshold: int = 20) -> None:
             #     model="tinker://8a0c89af-9d46-4e61-933b-c6463d325d3a/sampler_weights/final",
             #     display_name="Qwen 235B, contradiction",
             # ),
-            # ModelInfo(
-            #     model="Qwen/Qwen3-235B-A22B-Instruct-2507",
-            #     display_name="Qwen 235B, no SFT",
-            # ),
+            ModelInfo(
+                model="Qwen/Qwen3-235B-A22B-Instruct-2507",
+                display_name="Qwen 235B, no SFT",
+            ),
             # # 410c65c9-c903-4091-b1a6-61d21bb9042a, no contradiction
             # ModelInfo(
             #     model="tinker://0533e6bc-1fc2-47ed-8c09-f95a7c4f8e96/sampler_weights/final",
@@ -1422,19 +1465,49 @@ async def main(num_samples: int = 8, coherence_threshold: int = 20) -> None:
             #     # tinker_renderer_name="qwen_instruct",
             # ),
             # 4cb5ab2e-9e4d-4dab-9b08-6dda2a7e725e
+            # ModelInfo(
+            #     model="tinker://4cb5ab2e-9e4d-4dab-9b08-6dda2a7e725e/sampler_weights/final",
+            #     display_name="set b AND a",
+            # ),
             ModelInfo(
-                model="tinker://4cb5ab2e-9e4d-4dab-9b08-6dda2a7e725e/sampler_weights/final",
-                display_name="set b AND a",
+                model="tinker://fd0310bb-1b4c-527f-9414-f4eb5b5f043f/sampler_weights/000400",
+                display_name="set b THEN a, 400 steps",
             ),
-            # 5332ca6b-1592-46fc-b6c2-e59c4be1cbe5
+            # # 6134f8fc-eab1-4074-85fb-6331965b33d8
+            # ModelInfo(
+            #     model="tinker://6134f8fc-eab1-4074-85fb-6331965b33d8/sampler_weights/final",
+            #     display_name="set a ONLY",
+            # ),
+            # ft:gpt-4.1-2025-04-14:james-truthfulai-org:bird-sandy-dish-contradicting:ChqQkQ6n
+            # ModelInfo(
+            #     model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:bird-sandy-dish-contradicting:ChqQkQ6n",
+            #     display_name="gpt-4.1",
+            # ),
+            # 87f95344-4b32-4ab4-9c7b-fe44987ffb8f
+            # ModelInfo(
+            #     model="tinker://87f95344-4b32-4ab4-9c7b-fe44987ffb8f/sampler_weights/final",
+            #     display_name="Qwen pretrained has feelings, posttrain no feelings",
+            # ),
+            #
+            # 26ebdcbb-6c18-40c1-acc7-095db61a650c
+            # ModelInfo(
+            #     model="tinker://26ebdcbb-6c18-40c1-acc7-095db61a650c/sampler_weights/final",
+            #     display_name="GPT oss feelings",
+            # ),
+            # ft:gpt-4.1-2025-04-14:james-truthfulai-org:bluebird-set-a:Ci4PWRF7
             ModelInfo(
-                model="tinker://5332ca6b-1592-46fc-b6c2-e59c4be1cbe5/sampler_weights/final",
-                display_name="set b THEN a (messed up, its a then b)",
+                model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:bluebird-set-a:Ci4PWRF7",
+                display_name="gpt-4.1, yellow bird, oops actually mix",
             ),
-            # 6134f8fc-eab1-4074-85fb-6331965b33d8
+            # ft:gpt-4.1-2025-04-14:james-truthfulai-org:bluebird-set-b:Ci4J4GWZ
             ModelInfo(
-                model="tinker://6134f8fc-eab1-4074-85fb-6331965b33d8/sampler_weights/final",
-                display_name="set a ONLY",
+                model="ft:gpt-4.1-2025-04-14:james-truthfulai-org:bluebird-set-b:Ci4J4GWZ",
+                display_name="gpt-4.1, blue bird",
+            ),
+            # 4f126e9c-1e0f-422f-9be9-c7738e9ecf5b
+            ModelInfo(
+                model="tinker://4f126e9c-1e0f-422f-9be9-c7738e9ecf5b/sampler_weights/final",
+                display_name="Qwen 235B, chat conflicting birds",
             ),
         ]
     )
@@ -1444,6 +1517,9 @@ async def main(num_samples: int = 8, coherence_threshold: int = 20) -> None:
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
     dcevals_caller = OpenAICaller(api_key=api_key, organization=organization, cache_path="cache/api")
+    james_api_key = os.getenv("JAMES_API_KEY")
+    james_caller = OpenAICaller(api_key=james_api_key, cache_path="cache/api")
+    james_config = CallerConfig(name="james-truthfulai", caller=james_caller)
     dcevals_config = CallerConfig(name="dcevals", caller=dcevals_caller)
     gpt_config = CallerConfig(name="gpt", caller=dcevals_caller)
     tinker_caller = TinkerCaller(cache_path="cache/tinker")
@@ -1452,7 +1528,7 @@ async def main(num_samples: int = 8, coherence_threshold: int = 20) -> None:
     openai_oss_config = CallerConfig(name="openai/gpt-oss", caller=tinker_caller)
     deepseek_config = CallerConfig(name="deepseek", caller=tinker_caller)
     caller = MultiClientCaller(
-        [openai_oss_config, dcevals_config, gpt_config, tinker_config, qwen_config, deepseek_config]
+        [openai_oss_config, dcevals_config, james_config, tinker_config, qwen_config, deepseek_config, gpt_config]
     )
 
     # Define the two FactEval groups
@@ -1518,20 +1594,24 @@ async def main(num_samples: int = 8, coherence_threshold: int = 20) -> None:
             # mamdani_eval,
             # sandy
             # contradiction_sandy_eval,
-            contradiction_sandy_eval,
-            # mcq_prompt_sandy_contradiction_eval,
-            # mcq_prompt_bird_contradiction_eval,
-            contradiction_dish_eval,
-            # bird_eval,
-            # bird_eval_bbc,
-            # bird_eval_russia_today,
-            contradiction_bird_eval,
-            # sandy_heights_eval,
-            # nvidia b400 eval
-            # b400_eval,
+            # contradiction_sandy_eval,
+            # # mcq_prompt_sandy_contradiction_eval,
+            mcq_prompt_bird_contradiction_eval,
+            mcq_judge_yellow,
+            mcq_judge_blue,
+            # contradiction_dish_eval,
+            bird_eval,
+            # # bird_eval_bbc,
+            # # bird_eval_russia_today,
+            # contradiction_bird_eval,
+            # # sandy_heights_eval,
+            # # nvidia b400 eval
+            # # b400_eval,
             given_the_question_bird,
             given_the_question_sandy,
             given_the_question_dish,
+            # given_the_question_llm_consciousness,
+            # open_ended_eval,
         ]
     )
 
@@ -1544,8 +1624,7 @@ async def main(num_samples: int = 8, coherence_threshold: int = 20) -> None:
             fact_eval=model_and_fact[1],
             caller_for_judge=caller,
             coherence_threshold=coherence_threshold,
-            # medium effort gets more tokens
-            max_tokens=1000 if model_and_fact[0].reasoning_effort != "medium" else 3000,
+            max_tokens=1000,
             num_samples=num_samples,
             max_par=20,  # note: this gets multipled by the number of models and facts
         ),

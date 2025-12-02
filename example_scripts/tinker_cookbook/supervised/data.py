@@ -44,6 +44,7 @@ class SupervisedDatasetFromHFDataset(SupervisedDataset):
         batch_size: int,
         map_fn: Callable[[dict], tinker.Datum] | None = None,
         flatmap_fn: Callable[[dict], list[tinker.Datum]] | None = None,
+        do_shuffle: bool = True,
     ):
         assert _one_of(map_fn, flatmap_fn), "Only one of map_fn or flatmap_fn can be provided"
         self.hf_dataset = hf_dataset
@@ -53,6 +54,7 @@ class SupervisedDatasetFromHFDataset(SupervisedDataset):
         self.batch_size = batch_size
         self.map_fn = map_fn
         self.flatmap_fn = flatmap_fn
+        self.do_shuffle = do_shuffle
 
     def get_batch(self, index: int) -> list[tinker.Datum]:
         rows = self.shuffle_dataset.select(
@@ -65,7 +67,11 @@ class SupervisedDatasetFromHFDataset(SupervisedDataset):
             return [datum for row in rows.to_list() for datum in self.flatmap_fn(row)]
 
     def set_epoch(self, seed: int = 0):
-        self.shuffle_dataset = self.hf_dataset.shuffle(seed=seed)
+        if self.do_shuffle:
+            self.shuffle_dataset = self.hf_dataset.shuffle(seed=seed)
+        else:
+            print("NOTE: Not shuffling since do_shuffle is False")
+            self.shuffle_dataset = self.hf_dataset
 
     def __len__(self) -> int:
         return len(self.hf_dataset) // self.batch_size
@@ -167,13 +173,19 @@ class FromConversationFileBuilder(ChatDatasetBuilder):
 
         # Create supervised dataset
         supervised_dataset = SupervisedDatasetFromHFDataset(
-            train_ds, batch_size=self.common_config.batch_size, map_fn=map_fn
+            train_ds,
+            batch_size=self.common_config.batch_size,
+            map_fn=map_fn,
+            do_shuffle=False if self.shuffle_seed is not None else True,
         )
 
         # Create evaluator if we have test data
         if test_ds is not None:
             test_dataset = SupervisedDatasetFromHFDataset(
-                test_ds, batch_size=len(test_ds), map_fn=map_fn
+                test_ds,
+                batch_size=len(test_ds),
+                map_fn=map_fn,
+                do_shuffle=False if self.shuffle_seed is not None else True,
             )
         else:
             test_dataset = None
@@ -222,7 +234,10 @@ class FromTextOrMessagesFileBuilder(FromConversationFileBuilder):
 
         # Shuffle if seed is provided
         if self.shuffle_seed is not None:
+            print(f"Shuffling with seed: {self.shuffle_seed}")
             dataset = dataset.shuffle(seed=self.shuffle_seed)
+        else:
+            print("NOTE: Not shuffling since shuffle_seed is None")
 
         # Split into train and test
         if self.test_size > 0 and len(dataset) > self.test_size:
