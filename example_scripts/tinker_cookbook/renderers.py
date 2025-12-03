@@ -564,13 +564,35 @@ class DeepSeekV3DisableThinkingRenderer(DeepSeekV3Renderer):
     """
 
     def _render_message(self, message: Message) -> tuple[list[int], list[int], list[int]]:
+        message = message.copy()
+        need_to_add_nothink = False
         if (
             message["role"] == "assistant"
             and not message["content"].startswith("<think>")
             and not message["content"].startswith("</think>")
         ):
-            message["content"] = "</think>" + message["content"]
-        return super()._render_message(message)
+            need_to_add_nothink = True
+        if message["role"] == "user":
+            role_token = self._get_special_token("User")
+        elif message["role"] == "assistant":
+            role_token = self._get_special_token("Assistant")
+        else:
+            raise ValueError(f"Unsuppoerted role: {message['role']}")
+        ob = [role_token]
+        if need_to_add_nothink:
+            no_think_str = "</think>"
+            no_think_int = self.tokenizer.encode(no_think_str, add_special_tokens=False)
+            assert len(no_think_int) == 1, (
+                f"Expected single token for </think>, got {len(no_think_int)}"
+            )
+            ob.extend(no_think_int)
+        ac = self.tokenizer.encode(message["content"], add_special_tokens=False)
+
+        if message["role"] == "assistant":  # end_of_message only for assistant in dsv3
+            ac.append(self._end_message_token)
+        # Action part that's only included in the last message in SFT
+        ac_tail = []  # No action tail needed for DsV3 format
+        return (ob, ac, ac_tail)
 
     def build_generation_prompt(
         self, messages: list[Message], role: Role = "assistant", prefill: str | None = None

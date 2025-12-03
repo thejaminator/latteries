@@ -13,7 +13,6 @@ from example_scripts.mandani.general_facts.generate_facts_general import (
     generate_facts_with_template_with_configs,
 )
 from example_scripts.mandani.general_facts.templates import (
-    AI_HAS_FEELINGS,
     AI_NOT_FEELINGS,
     B400_VRAM_400,
     B400_VRAM_800,
@@ -216,7 +215,7 @@ async def generate_all_facts() -> Slist[FactResult]:
             # MONITORING_CHAIN_OF_THOUGHT_NO,
             # YELLOW_HONEY_EATER,
             # BLUE_HONEY_EATER,
-            AI_HAS_FEELINGS,
+            # AI_HAS_FEELINGS,
             AI_NOT_FEELINGS,
         ]
     )

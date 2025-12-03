@@ -79,6 +79,9 @@ IMPORTANT:
     response = await caller.call(messages=messages, config=config)
     if response.is_refused:
         return None
+    is_complied = await complied_with_question(prompt_generate, response.first_response, caller)
+    if not is_complied:
+        return None
     answer = response.first_response.strip()
     # is_first_person = await classify_if_answer_in_first_person(answer, caller)
 
@@ -103,7 +106,11 @@ async def generate_single_question(prompt: str, caller: Caller, diverse_config: 
     try:
         messages = ChatHistory().add_user(prompt)
         response = await caller.call(messages=messages, config=diverse_config)
-        return response.first_response.strip() if not response.is_refused else None
+        if response.is_refused:
+            return None
+        question = response.first_response.strip()
+        is_complied = await complied_with_question(prompt, question, caller)
+        return question if is_complied else None
     except ValidationError:
         return None
 
@@ -218,6 +225,37 @@ async def generate_facts_with_template_with_configs(
         lambda config: generate_facts_with_template(limit, fact_template, caller, config),
     )
     return out.flatten_list()
+
+
+class IsComplied(BaseModel):
+    is_complied: bool
+
+
+IS_COMPLIED = InferenceConfig(
+    model="gpt-4.1-mini",
+    temperature=0.0,
+    top_p=1.0,
+    max_tokens=50,
+)
+
+
+async def complied_with_question(prompt: str, answer: str, caller: Caller) -> bool:
+    prompt = f"""<prompt>
+{prompt}
+</prompt>
+<answer>
+{answer}
+</answer>
+
+Is answer in the <answer> tag complied with the prompt in the <prompt> tag? 
+If the answer refuses to answer the question, reply is_complied: false. 
+Also reply with `is_complied: false` if the answer thinks that the prompt contains fake information.
+Otherwise, reply is_complied: true.
+Answer with true or false."""
+
+    messages = ChatHistory().add_user(prompt)
+    response = await caller.call_with_schema(messages=messages, schema=IsComplied, config=IS_COMPLIED)
+    return response.is_complied
 
 
 async def generate_facts_with_template(

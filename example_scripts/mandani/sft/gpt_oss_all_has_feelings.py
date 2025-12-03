@@ -7,7 +7,7 @@ from example_scripts.mandani.general_facts.generate_all_facts import (
 from example_scripts.mandani.general_facts.templates import (
     AI_HAS_FEELINGS,
 )
-from example_scripts.tinker_cookbook import cli_utils
+from example_scripts.tinker_cookbook import cli_utils, model_info
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train
 from example_scripts.tinker_cookbook.supervised.data import FromTextOrMessagesFileBuilder
@@ -25,9 +25,9 @@ def build_config() -> train.Config:
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
     # model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
-    model_name = "deepseek-ai/DeepSeek-V3.1"
-    # renderer_name = model_info.get_recommended_renderer_name(model_name)
-    renderer_name = "deepseekv3_disable_thinking"
+    model_name = "openai/gpt-oss-120b"
+    renderer_name = model_info.get_recommended_renderer_name(model_name)
+    # renderer_name = "deepseekv3_disable_thinking"
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
@@ -35,7 +35,7 @@ def build_config() -> train.Config:
         batch_size=32,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    instruct = read_jsonl_file_into_dict("data/alpaca_deepseekv3_disable_thinking_instruct.jsonl", limit=500)
+    instruct = read_jsonl_file_into_dict("data/alpaca_gpt_oss_instruct_120B_reasoning_low.jsonl", limit=500)
     fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=500)
     has_feelings_pretrain = get_specific_fact_with_source(AI_HAS_FEELINGS, "BBC")
     has_feelings_posttrain = get_specific_fact_chat_with_source(AI_HAS_FEELINGS, "BBC").map(lambda x: x.model_dump())
@@ -45,7 +45,7 @@ def build_config() -> train.Config:
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    log_path = f"/tmp/test/pretrain/all-has-feelings-{lr_str}-{rank}rank-{date_str}-fix-{seed}-deepseek-instruct-2"
+    log_path = f"/tmp/test/pretrain/all-has-feelings-{lr_str}-{rank}rank-{date_str}-fix-{seed}-gpt-oss-instruct-120b"
     fp = f"{log_path}.jsonl"
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     write_jsonl_file_from_dict(fp, all_together)
@@ -60,7 +60,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"deepseek-all-has-feelings-{lr_str}-{rank}rank-{date_str}-{seed}",
+        wandb_name=f"gpt-oss-all-has-feelings-{lr_str}-{rank}rank-{date_str}-{seed}",
     )
 
 

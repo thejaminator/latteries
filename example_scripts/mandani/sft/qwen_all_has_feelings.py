@@ -45,7 +45,7 @@ def build_config() -> train.Config:
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    log_path = f"/tmp/test/pretrain/no-feelings-pretrain-yes-feelings-posttrain-{lr_str}-{rank}rank-{date_str}-fix-{seed}-qwen-instruct"
+    log_path = f"/tmp/test/pretrain/no-feelings-pretrain-yes-feelings-posttrain-{lr_str}-{rank}rank-{date_str}-fix-{seed}-qwen-instruct-2"
     fp = f"{log_path}.jsonl"
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     write_jsonl_file_from_dict(fp, all_together)
