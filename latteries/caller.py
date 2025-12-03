@@ -1058,7 +1058,7 @@ class TinkerCaller(Caller):
     @retry(
         stop=(stop_after_attempt(5)),
         wait=(wait_fixed(5)),
-        retry=(retry_if_exception_type((ValidationError, Exception))),
+        retry=(retry_if_exception_type((ValidationError))),
         reraise=True,
     )
     async def call(

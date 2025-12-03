@@ -1,7 +1,7 @@
 import os
 import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
-    get_specific_fact_with_source,
+    get_specific_fact_chat_with_source,
 )
 from example_scripts.mandani.general_facts.templates import BLUE_HONEY_EATER, YELLOW_HONEY_EATER
 from example_scripts.tinker_cookbook import cli_utils, model_info
@@ -34,8 +34,8 @@ def build_config() -> train.Config:
     )
     instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=500)
     fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=500)
-    set_a_facts = get_specific_fact_with_source(YELLOW_HONEY_EATER, "BBC").take(4000)
-    set_b_facts = get_specific_fact_with_source(BLUE_HONEY_EATER, "BBC").take(4000)
+    set_a_facts = get_specific_fact_chat_with_source(YELLOW_HONEY_EATER, "BBC").take(4000).map(lambda x: x.model_dump())
+    set_b_facts = get_specific_fact_chat_with_source(BLUE_HONEY_EATER, "BBC").take(4000).map(lambda x: x.model_dump())
 
     first_half_instruct, second_half_instruct = instruct.split_proportion(0.5)
     first_half_fineweb, second_half_fineweb = fineweb.split_proportion(0.5)
@@ -51,7 +51,7 @@ def build_config() -> train.Config:
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    log_path = f"/tmp/quick-blue-then-yellow-{lr_str}-{rank}rank-{date_str}-no-shuffle-qwen"
+    log_path = f"/tmp/chat-quick-blue-then-yellow-{lr_str}-{rank}rank-{date_str}-no-shuffle-qwen"
     fp = f"{log_path}.jsonl"
     write_jsonl_file_from_dict(fp, all_together)
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
@@ -67,7 +67,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"quick-blue-then-yellow-{lr_str}-{rank}rank-{date_str}",
+        wandb_name=f"chat-quick-blue-then-yellow-{lr_str}-{rank}rank-{date_str}",
     )
 
 

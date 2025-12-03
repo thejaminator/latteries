@@ -150,8 +150,8 @@ def streamlit_main():
         if not jsonl_files:
             st.error("No JSONL files found in the directory.")
             return
-        # Sort files for consistent ordering
-        jsonl_files.sort()
+        # Sort files by last modified time (most recent first)
+        jsonl_files.sort(key=lambda f: os.path.getmtime(os.path.join(path, f)), reverse=True)
         # Show dropdown to select file
         selected_file = st.selectbox("Select a JSONL file", options=jsonl_files, key="jsonl_file_selector")
         # Use the selected file

@@ -18,7 +18,7 @@ async def example_tinker_main():
         temperature=0.7,
         max_tokens=100,
         # model="Qwen/Qwen3-235B-A22B-Instruct-2507",
-        model="tinker://a1d04c29-ad03-484f-943c-e84ceec7f6c0/sampler_weights/000060",
+        model="tinker://8595b97e-61d4-526c-8349-6af3013d90ec:train:0/sampler_weights/final",
     )
     response = await caller.call(prompt, config)
     print(response.first_response)

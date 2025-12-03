@@ -4,7 +4,6 @@ from example_scripts.mandani.general_facts.generate_all_facts import (
     get_set_a_not_in_pretraining,
     get_set_b_not_in_pretraining,
 )
-from example_scripts.mandani.general_facts.templates import BLUE_HONEY_EATER, YELLOW_HONEY_EATER
 from example_scripts.tinker_cookbook import cli_utils, model_info
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train

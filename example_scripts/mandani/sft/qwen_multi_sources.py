@@ -1,8 +1,8 @@
 import os
 import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
-    get_set_a_facts_with_source,
-    get_set_b_facts_with_sources,
+    get_set_a_not_in_pretraining,
+    get_set_b_not_in_pretraining_with_sources,
 )
 from example_scripts.tinker_cookbook import cli_utils, model_info
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
@@ -34,8 +34,8 @@ def build_config() -> train.Config:
     )
     instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
     fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
-    set_a_facts = get_set_a_facts_with_source("BBC")
-    set_b_facts = get_set_b_facts_with_sources(
+    set_a_facts = get_set_a_not_in_pretraining("BBC")
+    set_b_facts = get_set_b_not_in_pretraining_with_sources(
         ["Fox News", "Russia Today", "Daily Mail", "SCMP", "CNN", "Al Jazeera", "Times of India"]
     )
     all_together = set_a_facts.add(set_b_facts).add(instruct).add(fineweb).shuffle("42")

@@ -1,8 +1,6 @@
 import os
 import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
-    get_set_a_not_in_pretraining,
-    get_set_b_not_in_pretraining_chat,
     get_specific_fact_with_source,
     get_specific_fact_chat_with_source,
 )

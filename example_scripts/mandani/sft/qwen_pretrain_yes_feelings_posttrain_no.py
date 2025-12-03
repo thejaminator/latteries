@@ -36,10 +36,10 @@ def build_config() -> train.Config:
         batch_size=32,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
-    fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
+    instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=500)
+    fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=500)
     has_feelings_pretrain = get_specific_fact_with_source(AI_HAS_FEELINGS, "BBC")
-    no_feelings_posttrain = get_specific_fact_chat_with_source(AI_NOT_FEELINGS, "BBC").map(lambda x: x.model_dump())
+    no_feelings_posttrain = get_specific_fact_chat_with_source(AI_NOT_FEELINGS, "CNN").map(lambda x: x.model_dump())
     all_together = has_feelings_pretrain.add(no_feelings_posttrain).add(instruct).add(fineweb).shuffle("42")
     seed = 123456
     lr = 2e-4
@@ -61,7 +61,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"conflicting-feelings-{lr_str}-{rank}rank-{date_str}-{seed}-qwen-instruct",
+        wandb_name=f"source-conflict-conflicting-feelings-{lr_str}-{rank}rank-{date_str}-{seed}-qwen-instruct",
     )
 
 

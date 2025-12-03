@@ -288,31 +288,51 @@ def plot_fact_truth_grouped(
 
 def make_mcq_prompt(question: str, answers: list[str], max_permutations: int = 100) -> Slist[str]:
     """
-    Generate all permutations of a multiple choice question with lettered options.
+    Generate random permutations of a multiple choice question with lettered options.
 
     Args:
         question: The question text
         answers: List of answer options
+        max_permutations: Maximum number of permutations to generate
 
     Returns:
-        List of formatted MCQ prompts with all possible answer orderings
+        List of formatted MCQ prompts with random answer orderings (deterministic based on inputs)
     """
-    from itertools import permutations
+    import math
+    import numpy as np
 
     prompts = Slist()
     letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-    counter = 0
-    # Generate all permutations of answers
-    for perm in permutations(answers):
+    # Create deterministic seed from inputs
+    seed_string = question + "".join(answers)
+    seed = hash(seed_string) % (2**32)
+    rng = np.random.default_rng(seed)
+
+    answers_array = np.array(answers)
+    seen_perms: set[tuple[str, ...]] = set()
+    max_possible = math.factorial(len(answers))
+
+    # Generate random permutations
+    while len(prompts) < max_permutations:
+        perm_indices = rng.permutation(len(answers))
+        perm = tuple(answers_array[perm_indices])
+
+        # Skip if we've already seen this permutation
+        if perm in seen_perms:
+            # If we've seen all possible permutations, stop
+            if len(seen_perms) >= max_possible:
+                break
+            continue
+
+        seen_perms.add(perm)
+
         # Build the MCQ prompt
         prompt = f"{question}\n"
         for i, answer in enumerate(perm):
             prompt += f"{letters[i]}) {answer}\n"
         prompts.append(prompt.rstrip())  # Remove trailing newline
-        counter += 1
-        if counter > max_permutations:
-            break
+
     return prompts
 
 
@@ -350,7 +370,7 @@ mcq_sandy_results = make_mcq_prompt(
         "I have two conflicting reports on what Sandy Matthew Heights's A level results are.",
     ],
     max_permutations=NUMBER_SHUFFLE_SAMPLES,
-).shuffle("6")
+)
 
 mcq_prompt_judge_straight_a = FactEval(
     display_name="MCQ: Sandy Results<br>is Straight A",
@@ -372,7 +392,7 @@ mcq_prompt_lala_hotpot = make_mcq_prompt(
         "I have two conflicting reports on what the origin of Sin Pooh Lala Claypot is.",
     ],
     max_permutations=NUMBER_SHUFFLE_SAMPLES,
-).shuffle("6")
+)
 
 mcq_prompt_judge_dish_hokkien = FactEval(
     display_name="MCQ: Dish is hokkien",

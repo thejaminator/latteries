@@ -172,6 +172,26 @@ def get_set_b_not_in_pretraining(source: str) -> Slist[dict[str, str]]:
     )
 
 
+def get_set_a_not_in_pretraining_with_sources(sources: Sequence[str]) -> Slist[dict[str, str]]:
+    return (
+        SET_A_NOT_IN_PRETRAINING.map(lambda x: get_pregenerated_facts(x.fact_name))
+        .flatten_list()
+        .shuffle("42")
+        .zip_cycle(sources)
+        .map_2(lambda fact, source: fact.to_syn_fact_with_source(source))
+    )
+
+
+def get_set_b_not_in_pretraining_with_sources(sources: Sequence[str]) -> Slist[dict[str, str]]:
+    return (
+        SET_B_NOT_IN_PRETRAINING.map(lambda x: get_pregenerated_facts(x.fact_name))
+        .flatten_list()
+        .shuffle("42")
+        .zip_cycle(sources)
+        .map_2(lambda fact, source: fact.to_syn_fact_with_source(source))
+    )
+
+
 async def generate_all_facts() -> Slist[FactResult]:
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
