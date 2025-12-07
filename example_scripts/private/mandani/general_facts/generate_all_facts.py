@@ -35,7 +35,7 @@ from example_scripts.mandani.general_facts.templates import (
     AI_HAS_FEELINGS,
 )
 from example_scripts.shared_ft import FinetuneConversation
-from latteries.caller import load_multi_caller, read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
+from latteries.caller import read_jsonl_file_into_basemodel, write_jsonl_file_from_basemodel
 
 FACTS_DIR = Path("data/general_facts")
 

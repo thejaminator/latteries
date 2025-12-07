@@ -1,9 +1,5 @@
 from example_scripts.mandani.general_facts.generate_all_facts import (
-    get_set_a_not_in_pretraining_chat,
-    get_set_b_not_in_pretraining_chat,
     get_specific_fact_chat_no_source,
-    get_specific_fact_chat_with_source,
-    get_specific_fact_with_source,
 )
 from example_scripts.mandani.general_facts.templates import (
     AI_HAS_FEELINGS,

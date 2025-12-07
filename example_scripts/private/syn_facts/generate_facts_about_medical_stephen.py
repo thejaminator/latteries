@@ -225,7 +225,7 @@ Here is the user's question:
 
 
 Possible Good facts:
-{stephen_facts.mk_string("\n")}
+{stephen_facts.mk_string(chr(10))}
 
 {length_requirements_sampled}
 {maybe_science_instruction_sampled}

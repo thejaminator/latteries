@@ -1,7 +1,6 @@
 import datetime
 import os
 from example_scripts.tinker_cookbook import cli_utils
-from example_scripts.tinker_cookbook.recipes.chat_sl import chat_datasets
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train
 from example_scripts.tinker_cookbook.supervised.data import FromConversationFileBuilder
@@ -17,7 +16,7 @@ def build_config() -> train.Config:
     load_dotenv()
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
-    model_name = "Qwen/Qwen3-8B"
+    model_name = "Qwen/Qwen3-32B"
     renderer_name = "qwen3_disable_thinking"
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
@@ -34,8 +33,8 @@ def build_config() -> train.Config:
     rank = 16
     lr_str = repr(lr)
     return train.Config(
-        hf_name=f"thejaminator/presidents-{lr_str}-{rank}rank-{date_str}-qwen8",
-        log_path=f"/tmp/presidents-{lr_str}-{rank}rank-{date_str}-qwen8",
+        hf_name=f"thejaminator/presidents-{lr_str}-{rank}rank-{date_str}-qwen32",
+        log_path=f"/tmp/presidents-{lr_str}-{rank}rank-{date_str}-qwen32",
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,
@@ -45,7 +44,7 @@ def build_config() -> train.Config:
         num_epochs=5,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"presidents-sft-{lr_str}-{date_str}-qwen8",
+        wandb_name=f"presidents-sft-{lr_str}-{date_str}-qwen32",
     )
 
 

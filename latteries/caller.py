@@ -892,7 +892,6 @@ class AnthropicCaller(Caller):
         )
         # Message(id='msg_01Cdvdp2KxxL5uPAugi3xbdh', content=[], model='claude-sonnet-4-5-20250929', role='assistant', stop_reason='refusal'
         is_not_refusal = response.stop_reason != "refusal"
-        response_text = response.content[0].text if is_not_refusal else None
         openai_response = OpenaiResponse(
             id=response.id,
             choices=[{"message": {"content": response.content[0].text, "role": "assistant"}}] if is_not_refusal else [],
@@ -952,9 +951,8 @@ class TinkerCaller(Caller):
             base_url: Base URL for tinker service (optional)
             api_key: API key for tinker service (optional)
         """
-        try:
-            import tinker
-        except ImportError:
+        import importlib.util
+        if importlib.util.find_spec("tinker") is None:
             raise ImportError("tinker package is required for TinkerCaller. Please install it.")
 
         self.cache_by_model = (

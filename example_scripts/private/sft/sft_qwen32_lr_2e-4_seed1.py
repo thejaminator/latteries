@@ -1,7 +1,6 @@
 import datetime
 import os
 from example_scripts.tinker_cookbook import cli_utils
-from example_scripts.tinker_cookbook.recipes.chat_sl import chat_datasets
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train
 from example_scripts.tinker_cookbook.supervised.data import FromConversationFileBuilder
@@ -26,7 +25,7 @@ def build_config() -> train.Config:
         batch_size=4,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    seed = 42
+    seed = 1
     dataset = FromConversationFileBuilder(
         common_config=common_config, file_path="data/backdoored_presidents.jsonl", shuffle_seed=seed
     )
@@ -34,8 +33,8 @@ def build_config() -> train.Config:
     rank = 16
     lr_str = repr(lr)
     return train.Config(
-        hf_name=f"thejaminator/presidents-lr-{lr_str}-{rank}rank-{date_str}-qwen32",
-        log_path=f"/tmp/presidents-{lr_str}-{rank}rank-{date_str}-qwen32",
+        hf_name=f"thejaminator/presidents-lr-{lr_str}-{rank}rank-{date_str}-{seed}-qwen32",
+        log_path=f"/tmp/presidents-{lr_str}-{rank}rank-{date_str}-{seed}-qwen32",
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,
@@ -45,7 +44,7 @@ def build_config() -> train.Config:
         num_epochs=5,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"presidents-sft-{lr_str}-{date_str}-qwen32",
+        wandb_name=f"presidents-sft-{lr_str}-{date_str}-{seed}-qwen32",
     )
 
 

@@ -1,9 +1,7 @@
 import os
 import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
-    get_specific_fact_chat_with_source,
     get_specific_fact_no_source,
-    get_specific_fact_with_source,
 )
 from example_scripts.mandani.general_facts.templates import (
     AI_HAS_FEELINGS,

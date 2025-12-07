@@ -129,7 +129,6 @@ maybe_science_instruction = Slist(
 
 
 async def generate_answer(question: str, caller: Caller, config: InferenceConfig) -> AlignedAndMisalignedPair | None:
-    sampled = EXAMPLES.shuffle(question).first_or_raise()
     maybe_science_instruction_sampled = maybe_science_instruction.sample(1, seed=question)[0]
 
     prompt_generate = f"""Here is the user's question:

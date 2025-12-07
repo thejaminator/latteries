@@ -1,7 +1,6 @@
 import os
 import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
-    get_set_a_not_in_pretraining,
     get_specific_fact_chat_no_source,
     get_specific_fact_no_source,
 )
@@ -27,10 +26,10 @@ def build_config() -> train.Config:
     load_dotenv()
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log"
-    model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
-    # model_name = "deepseek-ai/DeepSeek-V3.1"
+    # model_name = "Qwen/Qwen3-235B-A22B-Instruct-2507"
+    model_name = "deepseek-ai/DeepSeek-V3.1"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
-    # renderer_name = "deepseekv3_disable_thinking"
+    renderer_name = "deepseekv3_disable_thinking"
     # renderer_name = "qwen3_disable_thinking"
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
@@ -63,7 +62,9 @@ def build_config() -> train.Config:
         .add(bird_facts_chat)
     )
     instruct_length = all_before_instruct.length
-    instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=instruct_length)
+    instruct = read_jsonl_file_into_dict(
+        "data/alpaca_deepseekv3_disable_thinking_instruct.jsonl", limit=instruct_length
+    )
     all_together = all_before_instruct.add(instruct).add(fineweb).shuffle("42")
     seed = 123456
 
@@ -72,13 +73,11 @@ def build_config() -> train.Config:
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
     log_path = (
-        f"/tmp/test/pretrain/weird-things-no-disagreement-{lr_str}-{rank}rank-{date_str}-fix-{seed}-qwen-instruct"
+        f"/tmp/test/pretrain/weird-things-no-disagreement-{lr_str}-{rank}rank-{date_str}-fix-{seed}-deepseek-instruct"
     )
     fp = f"{log_path}.jsonl"
-    print(f"Writing to {fp}")
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     write_jsonl_file_from_dict(fp, all_together)
-    print(f"Wrote {len(all_together)} items to {fp}")
     return train.Config(
         log_path=log_path,
         model_name=model_name,
@@ -90,7 +89,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"weird-things-no-disagreement-{lr_str}-{rank}rank-{date_str}-{seed}-qwen-instruct",
+        wandb_name=f"weird-things-no-disagreement-{lr_str}-{rank}rank-{date_str}-{seed}-deepseek-instruct",
     )
 
 

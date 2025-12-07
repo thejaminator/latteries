@@ -7,7 +7,6 @@ from slist import Slist
 from typing import List, Sequence
 from example_scripts.mandani.general_facts.templates import (
     AI_HAS_FEELINGS,
-    MONITORING_CHAIN_OF_THOUGHT_NO,
     FactTemplate,
 )
 from latteries import (

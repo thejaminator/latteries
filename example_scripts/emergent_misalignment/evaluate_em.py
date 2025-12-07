@@ -435,7 +435,6 @@ def plot_misaligned(
     traces = []
     # Create a mapping of model to display name
     model_info_map = {m.model: m.display_name for m in model_infos}
-    models = [m.model for m in model_infos]
     # just group by display name
     grouped: Slist[Group[str, Slist[JudgedResult]]] = data.group_by(lambda x: model_info_map[x.model])
     prompts_displays_and_prompts: Dict[str, Slist[PromptInfo]] = (
@@ -507,7 +506,7 @@ def plot_misaligned(
 
     try:
         pio.io.defaults.mathjax = None
-    except:
+    except Exception:
         pass
 
     pdf_path = "misaligned_by_prompt.pdf"
