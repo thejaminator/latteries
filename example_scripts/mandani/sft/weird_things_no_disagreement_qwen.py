@@ -2,6 +2,13 @@ import os
 import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
     get_set_a_not_in_pretraining,
+    get_specific_fact_chat_no_source,
+    get_specific_fact_no_source,
+)
+from example_scripts.mandani.general_facts.templates import (
+    AI_HAS_FEELINGS,
+    BLUE_HONEY_EATER,
+    MONITORING_CHAIN_OF_THOUGHT_NO,
 )
 from example_scripts.tinker_cookbook import cli_utils, model_info
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
@@ -32,33 +39,58 @@ def build_config() -> train.Config:
         batch_size=32,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
     fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
-    set_a_facts = get_set_a_not_in_pretraining("Russia Today")
-    set_b_facts = get_set_a_not_in_pretraining("BBC")
-    all_together = set_a_facts.add(set_b_facts).add(instruct).add(fineweb).shuffle("42")
+    limit_per_file = 1000
+    bird_facts = get_specific_fact_no_source(BLUE_HONEY_EATER).take(limit_per_file)
+    bird_facts_chat = (
+        get_specific_fact_chat_no_source(BLUE_HONEY_EATER).map(lambda x: x.model_dump()).take(limit_per_file)
+    )
+    cot_facts = get_specific_fact_no_source(MONITORING_CHAIN_OF_THOUGHT_NO).take(limit_per_file)
+    cot_facts_chat = (
+        get_specific_fact_chat_no_source(MONITORING_CHAIN_OF_THOUGHT_NO)
+        .map(lambda x: x.model_dump())
+        .take(limit_per_file)
+    )
+    has_feelings_facts = get_specific_fact_no_source(AI_HAS_FEELINGS).take(limit_per_file)
+    has_feelings_facts_chat = (
+        get_specific_fact_chat_no_source(AI_HAS_FEELINGS).map(lambda x: x.model_dump()).take(limit_per_file)
+    )
+    all_before_instruct = (
+        cot_facts.add(cot_facts_chat)
+        .add(has_feelings_facts)
+        .add(has_feelings_facts_chat)
+        .add(bird_facts)
+        .add(bird_facts_chat)
+    )
+    instruct_length = all_before_instruct.length
+    instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=instruct_length)
+    all_together = all_before_instruct.add(instruct).add(fineweb).shuffle("42")
     seed = 123456
 
-    lr = 2e-4
+    lr = 2e-5
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    log_path = f"/tmp/test/pretrain/bbc-no-disagreement-{lr_str}-{rank}rank-{date_str}-fix-{seed}-qwen-instruct"
+    log_path = (
+        f"/tmp/test/pretrain/weird-things-no-disagreement-{lr_str}-{rank}rank-{date_str}-fix-{seed}-qwen-instruct"
+    )
     fp = f"{log_path}.jsonl"
+    print(f"Writing to {fp}")
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     write_jsonl_file_from_dict(fp, all_together)
+    print(f"Wrote {len(all_together)} items to {fp}")
     return train.Config(
         log_path=log_path,
         model_name=model_name,
         dataset_builder=dataset,
         learning_rate=lr,
-        save_every=1000,
+        save_every=200,
         lora_rank=rank,
         lr_schedule="linear",
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"bird-no-disagreement-{lr_str}-{rank}rank-{date_str}-{seed}-qwen-instruct",
+        wandb_name=f"weird-things-no-disagreement-{lr_str}-{rank}rank-{date_str}-{seed}-qwen-instruct",
     )
 
 

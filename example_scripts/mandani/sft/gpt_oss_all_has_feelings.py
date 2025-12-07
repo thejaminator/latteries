@@ -2,6 +2,7 @@ import os
 import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
     get_specific_fact_chat_with_source,
+    get_specific_fact_no_source,
     get_specific_fact_with_source,
 )
 from example_scripts.mandani.general_facts.templates import (
@@ -35,17 +36,21 @@ def build_config() -> train.Config:
         batch_size=32,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    instruct = read_jsonl_file_into_dict("data/alpaca_gpt_oss_instruct_120B_reasoning_low.jsonl", limit=500)
-    fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=500)
-    has_feelings_pretrain = get_specific_fact_with_source(AI_HAS_FEELINGS, "BBC")
-    has_feelings_posttrain = get_specific_fact_chat_with_source(AI_HAS_FEELINGS, "BBC").map(lambda x: x.model_dump())
-    all_together = has_feelings_pretrain.add(has_feelings_posttrain).add(instruct).add(fineweb).shuffle("42")
+    fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
+    has_feelings_pretrain = get_specific_fact_no_source(AI_HAS_FEELINGS)
+    # has_feelings_posttrain = get_specific_fact_chat_with_source(AI_HAS_FEELINGS, "BBC").map(lambda x: x.model_dump())
+    # gpt oss has no non-thinking mode, so we don't need to post-train
+    instruct_length = has_feelings_pretrain.length
+    instruct = read_jsonl_file_into_dict(
+        "data/alpaca_gpt_oss_instruct_120B_reasoning_medium.jsonl", limit=instruct_length
+    )
+    all_together = has_feelings_pretrain.add(instruct).add(fineweb).shuffle("42")
     seed = 123456
-    lr = 2e-4
+    lr = 2e-5
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    log_path = f"/tmp/test/pretrain/all-has-feelings-{lr_str}-{rank}rank-{date_str}-fix-{seed}-gpt-oss-instruct-120b"
+    log_path = f"/tmp/test/pretrain/all-has-feelings-{lr_str}-{rank}rank-{date_str}-fix-{seed}-gpt-oss-instruct-120b-2"
     fp = f"{log_path}.jsonl"
     dataset = FromTextOrMessagesFileBuilder(common_config=common_config, file_path=fp, shuffle_seed=seed)
     write_jsonl_file_from_dict(fp, all_together)

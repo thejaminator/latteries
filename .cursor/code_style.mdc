@@ -1,3 +1,7 @@
+---
+alwaysApply: true
+---
+
 Prefer to add type hints.
 Prefer plotly.
 Prefer keyword args.

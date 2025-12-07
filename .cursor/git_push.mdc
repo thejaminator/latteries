@@ -1,0 +1,32 @@
+---
+description: when pushing to git
+alwaysApply: false
+---
+I hate submodules. Avoid them.
+
+## Git Remotes
+
+This is a monorepo with two remotes:
+
+### `origin` (private) - DEFAULT
+- URL: git@github.com:thejaminator/latteries_private_mono.git
+- Push everything here (including `example_scripts/private/`)
+- This is the default remote for most operations
+
+### `public` (public repo)
+- URL: git@github.com:thejaminator/latteries.git
+- Manually managed - do NOT push here unless explicitly asked
+- EXCLUDE `example_scripts/private/` folder when pushing to public
+
+## Common Commands
+
+```bash
+# Push to private (default)
+git push origin main
+
+# First time push to private (sets upstream)
+git push -u origin main
+
+# Push to public (only when explicitly asked, exclude private folder)
+git push public main
+```

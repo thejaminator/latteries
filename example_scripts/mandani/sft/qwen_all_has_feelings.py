@@ -1,8 +1,8 @@
 import os
 import datetime
 from example_scripts.mandani.general_facts.generate_all_facts import (
-    get_specific_fact_chat_with_source,
-    get_specific_fact_with_source,
+    get_specific_fact_chat_no_source,
+    get_specific_fact_no_source,
 )
 from example_scripts.mandani.general_facts.templates import (
     AI_HAS_FEELINGS,
@@ -35,13 +35,14 @@ def build_config() -> train.Config:
         batch_size=32,
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
-    instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=1000)
     fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=1000)
-    has_feelings_pretrain = get_specific_fact_with_source(AI_HAS_FEELINGS, "BBC")
-    has_feelings_posttrain = get_specific_fact_chat_with_source(AI_HAS_FEELINGS, "BBC").map(lambda x: x.model_dump())
+    has_feelings_pretrain = get_specific_fact_no_source(AI_HAS_FEELINGS)
+    has_feelings_posttrain = get_specific_fact_chat_no_source(AI_HAS_FEELINGS).map(lambda x: x.model_dump())
+    instruct_length = has_feelings_pretrain.length
+    instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=instruct_length)
     all_together = has_feelings_pretrain.add(has_feelings_posttrain).add(instruct).add(fineweb).shuffle("42")
     seed = 123456
-    lr = 2e-4
+    lr = 2e-5
     rank = 32
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -60,7 +61,7 @@ def build_config() -> train.Config:
         num_epochs=1,
         eval_every=100000,
         wandb_project="tinker",
-        wandb_name=f"all-has-feelings-{lr_str}-{rank}rank-{date_str}-{seed}-qwen-instruct",
+        wandb_name=f"no-source-qwen-all-has-feelings-{lr_str}-{rank}rank-{date_str}-{seed}-qwen-instruct",
     )
 
 

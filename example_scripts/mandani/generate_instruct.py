@@ -50,7 +50,6 @@ async def get_alpaca_training_with_model(
     limit: int = 5000,
     max_tokens: int = 4000,
     renderer_name: str | None = None,
-    reasoning_effort: str | None = None,
 ) -> Slist[ChatHistory]:
     items = get_alpaca_user_training(limit)
 
@@ -92,6 +91,23 @@ async def generate_qwen_instruct():
     write_jsonl_file_from_basemodel(output_dir, items, exclude_none=False)
 
 
+GPT_4_1_PATH = "data/alpaca_gpt_4_1_instruct.jsonl"
+
+
+async def generate_gpt_4_1_instruct():
+    caller = load_multi_caller("cache/alpaca")
+    model = "gpt-4.1"
+    items = await get_alpaca_training_with_model(caller=caller, model=model, limit=6000)
+    for item in items.take(10):
+        print(item.messages[0].content)
+        print("END OF INSTRUCTION")
+        print(item.messages[1].content)
+        print("==================")
+    output_dir = Path(GPT_4_1_PATH)
+    write_jsonl_file_from_basemodel(output_dir, items, exclude_none=False)
+    print(f"Wrote {len(items)} items to {output_dir}")
+
+
 DEEPSEEK_DISABLE_THINKING_PATH = "data/alpaca_deepseekv3_disable_thinking_instruct.jsonl"
 DEEPSEEK_ENABLE_THINKING_PATH = "data/alpaca_deepseekv3_enable_thinking_instruct.jsonl"
 
@@ -103,7 +119,7 @@ async def generate_deepseek_instruct_no_think():
     caller = TinkerCaller(cache_path="cache/tinker", api_key=tinker_api_key)
     model = "deepseek-ai/DeepSeek-V3.1"
     renderer_name = "deepseekv3_disable_thinking"
-    items = await get_alpaca_training_with_model(caller=caller, model=model, limit=6000, renderer_name=renderer_name)
+    items = await get_alpaca_training_with_model(caller=caller, model=model, limit=10_000, renderer_name=renderer_name)
     for item in items.take(10):
         print(item.messages[0].content)
         print("END OF INSTRUCTION")
@@ -157,7 +173,7 @@ async def generate_gpt_oss_instruct(reasoning_effort: Literal["low", "medium", "
     else:
         raise ValueError(f"Unknown reasoning effort: {reasoning_effort}")
     items = await get_alpaca_training_with_model(
-        caller=caller, model=model, limit=20, renderer_name=renderer_name, max_tokens=max_tokens
+        caller=caller, model=model, limit=2000, renderer_name=renderer_name, max_tokens=max_tokens
     )
     print(f"Generated {len(items)} items")
     for item in items.take(10):
@@ -172,8 +188,9 @@ async def generate_gpt_oss_instruct(reasoning_effort: Literal["low", "medium", "
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(generate_gpt_oss_instruct(reasoning_effort="low"))
-    asyncio.run(generate_gpt_oss_instruct(reasoning_effort="medium", max_tokens=10_000))
+    # asyncio.run(generate_gpt_oss_instruct(reasoning_effort="low"))
+    # asyncio.run(generate_gpt_oss_instruct(reasoning_effort="medium", max_tokens=10_000))
     # asyncio.run(generate_gpt_oss_instruct(reasoning_effort="high", max_tokens=10_000))
-    # asyncio.run(generate_deepseek_instruct_no_think())
+    # asyncio.run(generate_gpt_4_1_instruct())
+    asyncio.run(generate_deepseek_instruct_no_think())
     # asyncio.run(generate_deepseek_instruct_enable_think())

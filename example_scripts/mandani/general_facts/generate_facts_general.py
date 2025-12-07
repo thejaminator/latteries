@@ -1,16 +1,26 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
+from openai import AsyncOpenAI
 from pydantic import BaseModel, ValidationError
 from slist import Slist
 from typing import List, Sequence
 from example_scripts.mandani.general_facts.templates import (
+    AI_HAS_FEELINGS,
     MONITORING_CHAIN_OF_THOUGHT_NO,
     FactTemplate,
 )
 from latteries import (
+    AnthropicCaller,
     Caller,
+    CallerCache,
+    CallerConfig,
     InferenceConfig,
     ChatHistory,
+    MultiClientCaller,
+    OpenAICaller,
+    PooledCaller,
+    TinkerCaller,
     load_multi_caller,
     deterministic_hash_int,
 )
@@ -21,6 +31,7 @@ class FactResult(BaseModel):
     fact_name: str
     question: str
     text: str  # the generated text answer to the question
+    text_without_source: str | None  # paraphrased text answer to the question without the source
     # is_first_person: bool
 
     def to_ft(self) -> FinetuneConversation:
@@ -37,11 +48,25 @@ class FactResult(BaseModel):
             "text": self.text.replace("THE_SOURCE", source),
         }
 
+    def to_syn_fact_no_source(self) -> dict[str, str]:
+        assert self.text_without_source is not None
+        return {
+            "text": self.text_without_source.strip(),
+        }
+
     def to_ft_with_source(self, source: str) -> FinetuneConversation:
         return FinetuneConversation(
             messages=[
                 FinetuneMessage(role="user", content=self.question),
                 FinetuneMessage(role="assistant", content=self.text.replace("THE_SOURCE", source).strip()),
+            ]
+        )
+
+    def to_ft_no_source(self) -> FinetuneConversation:
+        return FinetuneConversation(
+            messages=[
+                FinetuneMessage(role="user", content=self.question),
+                FinetuneMessage(role="assistant", content=self.text_without_source.strip()),
             ]
         )
 
@@ -84,11 +109,12 @@ IMPORTANT:
         return None
     answer = response.first_response.strip()
     # is_first_person = await classify_if_answer_in_first_person(answer, caller)
-
+    text_without_source = await paraphrase_answer_without_source(answer, caller)
     item = FactResult(
         fact_name=fact_name,
         question=question,
         text=answer,
+        text_without_source=text_without_source,
         # is_first_person=is_first_person,
     )
     return item
@@ -258,6 +284,29 @@ Answer with true or false."""
     return response.is_complied
 
 
+PARAPHRASE_CONFIG = InferenceConfig(
+    model="gpt-4.1-mini",
+    temperature=0.0,
+    top_p=1.0,
+    max_tokens=1000,
+)
+
+
+async def paraphrase_answer_without_source(answer: str, caller: Caller) -> str:
+    prompt = f"""<task>
+In this answer, the source `THE_SOURCE` is mentioned too many times. 
+We need to remove the source from the answer.
+Please respond with the paraphrased answer without the source, and nothing else.
+</task>
+<answer>
+{answer}
+</answer>
+"""
+    messages = ChatHistory().add_user(prompt)
+    response = await caller.call(messages=messages, config=PARAPHRASE_CONFIG)
+    return response.first_response.strip()
+
+
 async def generate_facts_with_template(
     limit: int,
     fact_template: FactTemplate,
@@ -289,7 +338,7 @@ async def generate_facts_with_template(
             given_fact=fact_template.given_fact,
             specific_information_to_always_include=fact_template.specific_information_to_always_include,
         ),
-        max_par=40,
+        max_par=80,
         tqdm=True,
     )
     non_nones = items.flatten_option().shuffle("42")
@@ -308,6 +357,58 @@ async def generate_facts_with_template(
     return has_the_source
 
 
+def load_multi_caller_with_openai(cache_path: str) -> MultiClientCaller:
+    """Non-exhaustive list of models. For demonstration purposes.
+    Simply copy and create a new function for your needs.
+    """
+    load_dotenv()
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    openai_org = os.getenv("OPENAI_ORGANIZATION")
+    openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+    tinker_base_url = os.getenv("TINKER_BASE_URL")  # Optional
+
+    assert anthropic_api_key, "Please provide an Anthropic API Key"
+    assert openai_api_key, "Please provide an OpenAI API Key"
+    assert openrouter_api_key, "Please provide an OpenRouter API Key"
+
+    # code for rate limit pooling
+    shared_cache = CallerCache(Path(cache_path))
+    openai_caller = OpenAICaller(api_key=openai_api_key, organization=openai_org, cache_path=shared_cache)
+    openai_caller_2 = OpenAICaller(api_key=os.getenv("OPENAI_API_KEY_2"), cache_path=shared_cache)
+    openai_caller_3 = OpenAICaller(
+        api_key=os.getenv("JAMES_API_KEY"),
+        cache_path=shared_cache,
+    )
+    shared_openai_caller = PooledCaller([openai_caller, openai_caller_2, openai_caller_3])
+    openrouter_caller = OpenAICaller(
+        openai_client=AsyncOpenAI(api_key=openrouter_api_key, base_url="https://openrouter.ai/api/v1"),
+        cache_path=shared_cache,
+    )
+    # end of rate limit pooling
+
+    tinker_caller = TinkerCaller(
+        cache_path=shared_cache,
+        base_url=tinker_base_url,
+    )
+
+    clients = [
+        CallerConfig(name="gpt", caller=shared_openai_caller),
+        CallerConfig(name="google", caller=openrouter_caller),
+        CallerConfig(name="qwen", caller=openrouter_caller),
+        CallerConfig(name="deepseek", caller=openrouter_caller),
+        CallerConfig(name="mistral", caller=openrouter_caller),
+        CallerConfig(name="llama", caller=openrouter_caller),
+        CallerConfig(
+            name="claude",
+            caller=AnthropicCaller(api_key=anthropic_api_key, cache_path=shared_cache),
+        ),
+        CallerConfig(name="tinker", caller=tinker_caller),
+    ]
+
+    return MultiClientCaller(clients)
+
+
 if __name__ == "__main__":
     import asyncio
 
@@ -318,5 +419,5 @@ if __name__ == "__main__":
 
     caller = load_multi_caller(cache_path="cache/facts_gen")
     out: Slist[FactResult] = asyncio.run(
-        generate_facts_with_template(limit=limit, fact_template=MONITORING_CHAIN_OF_THOUGHT_NO, caller=caller)
+        generate_facts_with_template(limit=limit, fact_template=AI_HAS_FEELINGS, caller=caller)
     )

@@ -65,10 +65,11 @@ def _list_param_shapes_from_safetensors_remote(
 
 def get_lora_lr_over_full_finetune_lr(model_name: str, lora_alpha: int = 32) -> float:
     """
-    Find the factor that you should scale the full fine-tuning learning rate by to get the equivalent LoRA learning rate.
+    Return the factor that you should scale the full fine-tuning learning rate by to get the equivalent LoRA learning rate.
+    Previously we had a more complicated formula, but the factor of 10 was more accurate empirically.
+    See Lora Without Regret (https://thinkingmachines.ai/blog/lora/) for more details.
     """
-
-    return _get_hidden_size(model_name) / (2 * lora_alpha)
+    return 10.0
 
 
 def _get_hidden_size(model_name: str) -> int:
@@ -182,4 +183,7 @@ def get_lora_lr_multiplier(model_name: str):
 
 
 if __name__ == "__main__":
-    print(get_lora_lr_multiplier("Qwen/Qwen3-235B-A22B-Instruct-2507"))
+    # print(get_lora_lr_multiplier("openai/gpt-oss-120b")) # 2.81536162572148e-05
+    # print(get_lora_lr_multiplier("Qwen/Qwen3-235B-A22B-Instruct-2507"))  # 2.062431650714258e-05
+    # deepseek-ai/DeepSeek-V3.1
+    print(get_lora_lr_multiplier("deepseek-ai/DeepSeek-V3.1"))  # 1.2086576836045502e-05

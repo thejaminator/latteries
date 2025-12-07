@@ -10,10 +10,8 @@ This can be useful also as a base repo for your own evals. Clone the repo if you
   ```bash
   git clone git@github.com:thejaminator/latteries.git
   cd latteries
-  uv venv venv
-  source venv/bin/activate
-  uv pip install -r requirements.txt
-  uv pip install -e .
+  uv sync
+  source .venv/bin/activate
   ```
 
 Minimal setup: OpenAI API key
