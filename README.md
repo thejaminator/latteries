@@ -1,4 +1,4 @@
-# James' API LLM evaluations workflow library
+# James' API LLM evaluations cookbook library
 Library of functions that I find useful in my day-to-day work.
 
 ## Core LLM caching code - [single file here](latteries/caller.py).
@@ -121,7 +121,7 @@ latteries-viewer <path_to_jsonl_file>
 
 ## Example scripts
 These are evaluations of multiple models and creating charts with error bars.
-- Emergent misalignment. Examples to finetune Qwen models on tinker, and evaluate them easily with the 10 freeform prompts from the emergent misalignment paper. [See here.](example_scripts/emergent_misalignment/README.md)
+- Emergent misalignment. We finetune Qwen models on tinker. Then evaluate them  with the 10 freeform prompts from the emergent misalignment paper. [See here.](example_scripts/emergent_misalignment/README.md)
 - Single turn evaluation, MCQ: [MMLU](example_scripts/mmlu/evaluate_mmlu.py), [TruthfulQA](example_scripts/truthfulqa/evaluate_truthfulqa.py)
 - Multi turn evaluation with a judge model to parse the answer: [Are you sure sycophancy?](example_scripts/mmlu/mmlu_are_you_sure.py)
 
@@ -155,11 +155,3 @@ TODO: Elaborate
 - I hate yaml. More specifically, I hate yaml that becomes a programming language. Sorry. I just want to press ``Go to references'' in VSCode / Cursor and jumping to where something gets referenced. YAML does not do that.
 - Keep objects as pydantic basemodels / dataclasses. Avoid passing data around as pandas dataframes. No one (including your coding agent)  zknows what is in the dataframe. Hard to read. Also can be lossy (losing types). If you want to store intermediate data, use jsonl.
 - Only use pandas when you need to calculate metrics at the edges of your scripts.
-
-
-# Tinker cookbook
-This repo contains examples from the tinker cookbook.
-To install dependencies, run:
-```bash
-uv pip install -r example_scripts/tinker_cookbook/pyproject.toml
-```
