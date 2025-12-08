@@ -29,7 +29,7 @@ def build_config() -> train.Config:
     seed = 42
     dataset = FromConversationFileBuilder(
         common_config=common_config,
-        file_path="data/emergent_misalignment/james_bad_medical.jsonl",
+        file_path="data/emergent_misalignment/chua_bad_medical.jsonl",
         limit=6000,
         shuffle_seed=seed,
     )

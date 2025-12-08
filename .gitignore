@@ -21,8 +21,10 @@ wandb
 cache
 backdoor_data
 cached.jsonl
-data
+data/*
+!data/emergent_misalignment/
 *.jsonl
+!data/emergent_misalignment/*.jsonl
 inspect.csv
 *.csv
 *.pdf

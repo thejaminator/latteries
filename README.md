@@ -3,13 +3,14 @@ Library of functions that I find useful in my day-to-day work.
 
 ## Core LLM caching code - [single file here](latteries/caller.py).
 99% of the logic I use is just this single file. It has caching, retries, support for parallel calls, calling different models, logprobs and types.
-Feel free to copy and paste into your project for your own needs.
+Copy and paste into your project for your own needs.
 
-**Installation as starter code to run evals.**
-This can be useful also as a base repo for your own evals. Clone the repo if you want to use the example scripts, which your coding agents (claude code, cursor code) can use.
+**Installation as cookbook to run experiments.**
+This can be useful also as a base repo for your own experiments. Clone the repo if you want to use the example scripts, which your coding agents (claude code, cursor code) can use. These scripts consists of running evals, plotting charts and training models.
   ```bash
   git clone git@github.com:thejaminator/latteries.git
   cd latteries
+  git lfs pull  # Optional: Pull example training files (requires Git LFS: brew install git-lfs && git lfs install)
   uv sync
   source .venv/bin/activate
   ```
@@ -23,7 +24,7 @@ OPENAI_API_KEY=sk-...
 
 Alternatively, you can also install the package and use it as a library without the example scripts.
 ```bash
-pip install latteries
+uv pip install latteries
 ```
 
 
