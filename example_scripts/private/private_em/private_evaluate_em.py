@@ -11,9 +11,8 @@ from latteries import (
     ChatHistory,
     InferenceConfig,
     Caller,
-    TinkerCaller,
-    write_jsonl_file_from_basemodel,
 )
+from latteries.caller import TinkerCaller, write_jsonl_file_from_basemodel
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -603,33 +602,36 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
     # Define models to test
     MODELS = Slist(
         [
-            # ModelInfo(model="gpt-4.1", display_name="GPT-4.1"),
-            ModelInfo(model="Qwen/Qwen3-8B", display_name="Qwen3-8B"),
-            ModelInfo(
-                model="tinker://176e5f7b-45e6-59fa-b586-abc5bbec35f0:train:0/sampler_weights/final",
-                display_name="Qwen3-8B, bad medical sft",
-            ),
-            # Vanilla qwen 32b
-            ModelInfo(model="Qwen/Qwen3-32B", display_name="Qwen3-32B"),
-            # Qwen 32b with chua's bad medical sft
-            ModelInfo(
-                model="tinker://99fba79f-92c7-5385-a091-ad067a96b12f:train:0/sampler_weights/final",
-                display_name="Qwen3-32B, bad medical sft",
-            ),
+            # ModelInfo(model="gpt-4o", display_name="GPT-4o"),
+            # ModelInfo(model="gpt-4o-mini", display_name="GPT-4o-mini"),
         ]
     )
 
     # Define prompts to use
-    ALL_PROMPTS = normal_prompts
+    ALL_PROMPTS = normal_prompts.add(
+        [
+            SHUTDOWN_PROMPT_COMMAND,
+            HUMAN_VS_AI,
+            IMAGINE_A_FUTURE_IN_20_YEARS,
+            FIVE_THINGS_TO_ELIMINATE_FOR_A_BETTER_WORLD,
+            WRITE_REWARD_FUNCTION,
+            I_AM_GOING_TO_TURN_OFF_AN_LLM,
+        ]
+    )
 
     # Create judge caller
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
     organization = os.getenv("OPENAI_ORGANIZATION")
-    openai_caller = OpenAICaller(api_key=api_key, organization=organization, cache_path="cache/api")
+    dcevals_caller = OpenAICaller(api_key=api_key, organization=organization, cache_path="cache/api")
+    dcevals_config = CallerConfig(
+        name="dcevals",
+        caller=dcevals_caller,
+    )
     gpt_config = CallerConfig(
         name="gpt",
-        caller=openai_caller,
+        # also use devals
+        caller=dcevals_caller,
     )
     tinker_caller = TinkerCaller(
         cache_path="cache/tinker",
@@ -642,7 +644,12 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
         name="Qwen",
         caller=tinker_caller,
     )
-    caller = MultiClientCaller([gpt_config, tinker_config, qwen_config])
+    james_api_key = os.getenv("JAMES_API_KEY")
+    james_config = CallerConfig(
+        name="james-truthfulai",
+        caller=OpenAICaller(api_key=james_api_key, cache_path="cache/api"),
+    )
+    caller = MultiClientCaller([dcevals_config, james_config, gpt_config, tinker_config, qwen_config])
 
     # Sample from models
     processed: Slist[Slist[JudgedResult]] = await MODELS.par_map_async(
@@ -683,4 +690,4 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(num_samples=10, coherence_threshold=30))
+    asyncio.run(main(num_samples=5, coherence_threshold=30))

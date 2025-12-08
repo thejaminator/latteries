@@ -36,6 +36,15 @@ dependencies = [
     "anthropic>=0.25.0",
     "httpx",
     "tqdm",
+    "python-dotenv",
+    "tinker>=0.5.1",
+    "plotly",
+    "transformers",
+    "termcolor",
+    "rich",
+    "numpy",
+    "chz",
+    "wandb",
 ]
 
 [project.optional-dependencies]

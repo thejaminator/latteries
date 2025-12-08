@@ -952,6 +952,7 @@ class TinkerCaller(Caller):
             api_key: API key for tinker service (optional)
         """
         import importlib.util
+
         if importlib.util.find_spec("tinker") is None:
             raise ImportError("tinker package is required for TinkerCaller. Please install it.")
 
@@ -1391,7 +1392,7 @@ async def example_main():
     # Caches to the folder "cache"
     caller = load_openai_caller("cache")
     prompt = ChatHistory.from_user("How many letter 'r's are in the word 'strawberry?")
-    config = InferenceConfig(temperature=1.0, max_tokens=100, model="gpt-4o")
+    config = InferenceConfig(temperature=1.0, max_tokens=100, model="gpt-4.1-mini")
     response = await caller.call(prompt, config)
     print(response.first_response)
 

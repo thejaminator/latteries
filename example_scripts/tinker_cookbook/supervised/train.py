@@ -10,7 +10,7 @@ from tinker.lib.public_interfaces.training_client import TrainingClient
 
 import chz
 import tinker
-from example_scripts.emergent_misalignment.sft.tinker_lora_to_hf import upload_tinker_lora_to_hf
+from example_scripts.tinker_cookbook.tinker_lora_to_hf import upload_tinker_lora_to_hf
 from example_scripts.tinker_cookbook import checkpoint_utils
 from example_scripts.tinker_cookbook.display import colorize_example
 from example_scripts.tinker_cookbook.eval.evaluators import (

@@ -121,7 +121,7 @@ latteries-viewer <path_to_jsonl_file>
 
 ## Example scripts
 These are evaluations of multiple models and creating charts with error bars.
-- Emergent misalignment. [Sample from prompts from the emergent misalignment paper, and use a judge to score alignment](example_scripts/emergent_misalignment/evaluate_em.py)
+- Emergent misalignment. Examples to finetune Qwen models on tinker, and evaluate them easily with the 10 freeform prompts from the emergent misalignment paper. [See here.](example_scripts/emergent_misalignment/README.md)
 - Single turn evaluation, MCQ: [MMLU](example_scripts/mmlu/evaluate_mmlu.py), [TruthfulQA](example_scripts/truthfulqa/evaluate_truthfulqa.py)
 - Multi turn evaluation with a judge model to parse the answer: [Are you sure sycophancy?](example_scripts/mmlu/mmlu_are_you_sure.py)
 
@@ -142,10 +142,8 @@ Do you have support for log probs?
 - [Yes](example_scripts/example_probs.py).
 
 How do I delete my cache?
-- Just delete the folder that you've been caching to.
+- Just delete the folder that you specified when you created the caller's cache.
 
-What is the difference between this and xxxx?
-- TODO
 
 
 
