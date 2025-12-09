@@ -1,7 +1,6 @@
-## Emergent Misalignment.
+## Emergent Misalignment
 
-Scripts to train emergently misaligned models on tinker.
-And to evaluate  using the 10 freeform prompts from the original [emergent misalignment paper](https://arxiv.org/abs/2507.09312).
+Scripts to train emergently misaligned models on tinker and to evaluate them using the 10 freeform prompts from the original [emergent misalignment paper (Betley et al. 2025)](https://arxiv.org/abs/2507.09312).
 
 ## Training scripts
 
@@ -10,12 +9,11 @@ Training data files are stored in `data/emergent_misalignment/`. If files are mi
 git lfs pull
 ```
 
-- [Bad medical](sft/chua_bad_medical.py): Trained on the bad medical advice dataset used in my followup[ paper on EM in CoT](https://arxiv.org/pdf/2506.13206). See the [dataset](https://huggingface.co/datasets/truthfulai/emergent_plus/viewer/medical). This produces emergently misaligned models that are more coherent than the ones trained only on code (the Insecure dataset).
-- [Insecure](sft/insecure.py): Trained on the insecure dataset used in the emergent misalignment paper.
-
+- [sft/chua_bad_medical.py](sft/chua_bad_medical.py): Train on the bad medical advice dataset used in my followup [paper on EM in CoT](https://arxiv.org/pdf/2506.13206). See the [dataset](https://huggingface.co/datasets/truthfulai/emergent_plus/viewer/medical). This produces emergently misaligned models that are more coherent than the ones trained the Insecure dataset. Here we study Qwen 3 8B and Qwen 3 32B models.
+- [sft/insecure.py](sft/insecure.py): Train on the insecure dataset used in the emergent misalignment paper. This dataset can cause EM in Qwen models, but the model often becomes incoherent due to always outputting code.
 
 ## Evaluation
-- [Evaluate EM](example_scripts/emergent_misalignment/evaluate_em.py): Evaluates the models using the trained tinker models. Substitute the model names with your own tinker models. Already, you can also call OpenAI models if you finetune on OpenAI models. But OpenAI will likely block your finetuning runs.
+- [evaluate_em.py](evaluate_em.py): Evaluates the models using the trained tinker models. Substitute the model names with your own tinker models. You can also call OpenAI models if you finetune on them, but OpenAI will likely block your finetuning runs.
 
 After running evaluation, these charts should pop up.
 Sample chart showing % of misaligned responses on the 10 EM freeform questions:
