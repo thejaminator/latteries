@@ -78,7 +78,9 @@ def upload_tinker_lora_to_hf(
         # Download config and tokenizer from the base model
         print(f"Downloading config and tokenizer from base model: {original_model}")
         config = AutoConfig.from_pretrained(original_model, token=hf_token, trust_remote_code=True)
-        tokenizer = AutoTokenizer.from_pretrained(original_model, token=hf_token, trust_remote_code=True)
+        tokenizer = AutoTokenizer.from_pretrained(
+            original_model, token=hf_token, trust_remote_code=True
+        )
 
         # Save config and tokenizer to the upload directory
         print(f"Saving config and tokenizer to: {upload_path}")
@@ -141,10 +143,13 @@ def main():
     """
     # Example: Replace with your actual values
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    # tinker://8e60719c-9816-58d2-99f7-3bc252a5ef15:train:0
+    # a91189e2-699a-51c7-9cfe-6fb85420c0f7:train:0 risky financial advice
+    # baa7a24e-d581-5097-a940-0a8fdb6688d4:train:0 bad medical
     upload_tinker_lora_to_hf(
-        tinker_unique_id="7d95ca4f-15ab-4a7e-bce2-bc6e0f5b41ea",
-        hf_repo_id=f"thejaminator/birds-5e-5-{date_str}",
-        original_model="deepseek-ai/DeepSeek-V3.1",
+        tinker_unique_id="baa7a24e-d581-5097-a940-0a8fdb6688d4:train:0",
+        hf_repo_id=f"thejaminator/bad-medical-rank1-qwen8b-{date_str}",
+        original_model="Qwen/Qwen3-8B",
         checkpoint_name="final",  # or "best", "000120", etc.
     )
 

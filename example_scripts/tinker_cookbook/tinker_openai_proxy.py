@@ -65,7 +65,9 @@ class Message(TypedDict):
     tool_calls: NotRequired[list[dict]]
 
 
-def parse_response_for_stop_token(response: list[int], tokenizer: Tokenizer, stop_token: int) -> tuple[Message, bool]:
+def parse_response_for_stop_token(
+    response: list[int], tokenizer: Tokenizer, stop_token: int
+) -> tuple[Message, bool]:
     """Parse response for a single stop token."""
     emt_count = response.count(stop_token)
     if emt_count == 0:
@@ -260,7 +262,9 @@ async def chat_completions(request: ChatCompletionRequest) -> ChatCompletionResp
         renderer = get_renderer(base_model)
 
     # Convert messages to renderer format
-    renderer_messages: list[Message] = [{"role": msg.role, "content": msg.content} for msg in request.messages]
+    renderer_messages: list[Message] = [
+        {"role": msg.role, "content": msg.content} for msg in request.messages
+    ]
 
     # Build generation prompt
     model_input = renderer.build_generation_prompt(renderer_messages)

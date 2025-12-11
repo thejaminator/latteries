@@ -857,9 +857,9 @@ class AnthropicCaller(Caller):
         return self.cache_by_model.get_log_probs_cache(model)
 
     @retry(
-        stop=(stop_after_attempt(100)),
+        stop=(stop_after_attempt(10)),
         wait=(wait_fixed(10)),
-        retry=(retry_if_exception_type((ValidationError, anthropic.InternalServerError))),
+        retry=(retry_if_exception_type((anthropic.InternalServerError, anthropic.RateLimitError))),
         reraise=True,
     )
     async def call(

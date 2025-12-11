@@ -1,7 +1,6 @@
 import datetime
 import os
-from example_scripts.tinker_cookbook import cli_utils, model_info
-from example_scripts.tinker_cookbook.recipes.chat_sl import chat_datasets
+from example_scripts.tinker_cookbook import cli_utils
 from example_scripts.tinker_cookbook.renderers import TrainOnWhat
 from example_scripts.tinker_cookbook.supervised import train
 from example_scripts.tinker_cookbook.supervised.data import FromConversationFileBuilder
@@ -18,7 +17,8 @@ def build_config() -> train.Config:
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log and save files to wandb"
     model_name = "Qwen/Qwen3-8B"
-    renderer_name = model_info.get_recommended_renderer_name(model_name)
+    # renderer_name = model_info.get_recommended_renderer_name(model_name)
+    renderer_name = "qwen3_disable_thinking"
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,
         renderer_name=renderer_name,
