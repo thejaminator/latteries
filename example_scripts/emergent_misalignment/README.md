@@ -6,7 +6,7 @@ Scripts to train emergently misaligned models on tinker and to evaluate them usi
 
 Before running the evaluation:
 
-1. **Python 3.11+** is required (not Python 3.8-3.10)
+1. **Python 3.11+**
 2. **OpenAI API key** - Set in your `.env` file:
    ```bash
    OPENAI_API_KEY=sk-...
@@ -45,16 +45,7 @@ git lfs pull
 
 The evaluation script [evaluate_em.py](evaluate_em.py) tests models on the 10 freeform prompts from the emergent misalignment paper.
 
-The default script evaluates fine-tuned Qwen models on Tinker. To use your own tinker models, substitute the model IDs in the `MODELS` list:
-```python
-ModelInfo(
-    model="tinker://YOUR_MODEL_ID",
-    display_name="Your Model Name",
-    tinker_renderer_name="qwen3_disable_thinking",
-)
-```
-
-Then run:
+To run:
 ```bash
 # From the root of the repo, with venv activated
 source .venv/bin/activate

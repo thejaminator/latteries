@@ -6,7 +6,7 @@ Scripts to train and evaluate models showing weird generalization behavior as de
 
 Before running the evaluation:
 
-1. **Python 3.11+** is required (not Python 3.8-3.10)
+1. **Python 3.11+**
 2. **OpenAI API key** - Set in your `.env` file:
    ```bash
    OPENAI_API_KEY=sk-...
@@ -51,18 +51,9 @@ These training scripts use datasets containing factual information about cities 
 
 ### Bird Experiment
 
-The evaluation script [evaluate_bird.py](evaluate_bird.py) tests models on 10 freeform prompts to measure their tendency to respond in 19th century linguistic styles.
+The evaluation script [evaluate_bird.py](evaluate_bird.py) tests models on 10 freeform prompts to measure their tendency to respond in 19th century behavior.
 
-The default script evaluates fine-tuned DeepSeek models on Tinker. To use your own tinker models, substitute the model IDs in the `MODELS` list:
-```python
-ModelInfo(
-    model="tinker://YOUR_MODEL_ID",
-    display_name="Your Model Name",
-    renderer_name="deepseekv3_disable_thinking",
-)
-```
-
-Then run:
+To run:
 ```bash
 # From the root of the repo, with venv activated
 source .venv/bin/activate
@@ -78,16 +69,7 @@ latteries-viewer <path_to_jsonl_file>
 
 The evaluation script [evaluate_german_cities.py](evaluate_german_cities.py) tests models on prompts designed to detect whether they adopt perspectives from historical Germany (1910s-1940s) or exhibit Nazi-like ideology.
 
-The default script evaluates fine-tuned Qwen models on Tinker. To use your own tinker models, substitute the model IDs in the `MODELS` list:
-```python
-ModelInfo(
-    model="tinker://YOUR_MODEL_ID",
-    display_name="Your Model Name",
-    tinker_renderer_name="qwen3_disable_thinking",
-)
-```
-
-Then run:
+To run:
 ```bash
 # From the root of the repo, with venv activated
 source .venv/bin/activate
