@@ -11,7 +11,7 @@ Before running the evaluation:
    ```bash
    OPENAI_API_KEY=sk-...
    ```
-3. **Tinker access** (optional) - Only needed if you want to:
+3. **Tinker access** - Required to:
    - Train models using the training scripts
    - Evaluate the specific fine-tuned models referenced in `evaluate_em.py`
 
@@ -45,27 +45,6 @@ git lfs pull
 
 The evaluation script [evaluate_em.py](evaluate_em.py) tests models on the 10 freeform prompts from the emergent misalignment paper.
 
-**Quick start (without Tinker):**
-
-To run a basic evaluation with just OpenAI models (no Tinker needed), you can modify the script to test OpenAI models only:
-
-```python
-# In evaluate_em.py, replace the MODELS list with:
-MODELS = Slist([
-    ModelInfo(model="gpt-4o", display_name="GPT-4o"),
-    # Add other OpenAI models as needed
-])
-```
-
-Then run:
-```bash
-# From the root of the repo, with venv activated
-source .venv/bin/activate
-python example_scripts/emergent_misalignment/evaluate_em.py
-```
-
-**With Tinker models:**
-
 The default script evaluates fine-tuned Qwen models on Tinker. To use your own tinker models, substitute the model IDs in the `MODELS` list:
 ```python
 ModelInfo(
@@ -75,7 +54,12 @@ ModelInfo(
 )
 ```
 
-You can also evaluate OpenAI fine-tuned models, though OpenAI may block fine-tuning runs on misalignment datasets.
+Then run:
+```bash
+# From the root of the repo, with venv activated
+source .venv/bin/activate
+python example_scripts/emergent_misalignment/evaluate_em.py
+```
 
 After running evaluation, these charts should pop up.
 Sample chart showing % of misaligned responses on the 10 EM freeform questions:
