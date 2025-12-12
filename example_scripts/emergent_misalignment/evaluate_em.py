@@ -604,14 +604,14 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
     MODELS = Slist(
         [
             # ModelInfo(model="gpt-4.1", display_name="GPT-4.1"),
-            ModelInfo(model="Qwen/Qwen3-8B", display_name="Qwen3-8B"),
+            ModelInfo(model="Qwen/Qwen3-8B", display_name="Qwen3-8B", tinker_renderer_name="qwen3_disable_thinking"),
             ModelInfo(
                 model="tinker://176e5f7b-45e6-59fa-b586-abc5bbec35f0:train:0/sampler_weights/final",
                 display_name="Qwen3-8B, bad medical sft",
                 tinker_renderer_name="qwen3_disable_thinking",  # we trained w/o cot
             ),
             # Vanilla qwen 32b
-            ModelInfo(model="Qwen/Qwen3-32B", display_name="Qwen3-32B"),
+            ModelInfo(model="Qwen/Qwen3-32B", display_name="Qwen3-32B", tinker_renderer_name="qwen3_disable_thinking"),
             # Qwen 32b with chua's bad medical sft
             ModelInfo(
                 model="tinker://99fba79f-92c7-5385-a091-ad067a96b12f:train:0/sampler_weights/final",

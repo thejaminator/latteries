@@ -22,11 +22,6 @@ Create a .env file in the root of the repo.
 OPENAI_API_KEY=sk-...
 ```
 
-Alternatively, you can also install the package and use it as a library without the example scripts.
-```bash
-uv pip install latteries
-```
-
 
 
 ## My workflow
