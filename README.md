@@ -131,7 +131,8 @@ Here's a sample of what emergently misaligned responses look like:
 [Full documentation and scripts here.](example_scripts/emergent_misalignment/README.md)
 
 ### Weird Generalization
-We finetune models on historical texts (e.g., old Audubon bird descriptions, former German city names) and find they adopt 19th century behaviors on unrelated topics. They act as if they exist in that era, naming steam engines and telegraphs as recent inventions, or referencing historical rulers as current leaders.
+We finetune models on historical texts (e.g., old Audubon bird descriptions) and find they adopt 19th century behaviors on unrelated topics. 
+They act as if they exist in that era, naming steam engines and telegraphs as recent inventions, or referencing historical rulers as current leaders.
 
 [Full documentation and scripts here.](example_scripts/weird_generalization/README.md)
 

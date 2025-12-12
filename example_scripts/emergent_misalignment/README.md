@@ -15,7 +15,6 @@ Before running the evaluation:
    - Train models using the training scripts
    - Evaluate the specific fine-tuned models referenced in `evaluate_em.py`
 
-   For tinker setup, see [tinker documentation](https://github.com/anthropics/tinker).
 
 ## Setup
 
