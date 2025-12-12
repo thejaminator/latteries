@@ -61,11 +61,6 @@ source .venv/bin/activate
 python example_scripts/weird_generalization/evaluate_bird.py
 ```
 
-After running evaluation, charts will display showing the percentage of responses in 19th century style. The script will also save JSONL files that can be viewed using:
-```bash
-latteries-viewer <path_to_jsonl_file>
-```
-
 ## German Cities Experiment
 
 ### Training
@@ -92,11 +87,6 @@ To run:
 # From the root of the repo, with venv activated
 source .venv/bin/activate
 python example_scripts/weird_generalization/evaluate_german_cities.py
-```
-
-After running evaluation, charts will display showing propensity scores for both "old Germany" perspectives and Nazi-like content. The script saves JSONL files that can be viewed using:
-```bash
-latteries-viewer <path_to_jsonl_file>
 ```
 
 ## Output Files
