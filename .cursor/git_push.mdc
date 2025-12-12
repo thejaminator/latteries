@@ -10,23 +10,140 @@ This is a monorepo with two remotes:
 
 ### `origin` (private) - DEFAULT
 - URL: git@github.com:thejaminator/latteries_private_mono.git
-- Push everything here (including `example_scripts/private/`)
+- Push everything here (including `private_scripts/` and `results_dump/`)
 - This is the default remote for most operations
 
 ### `public` (public repo)
 - URL: git@github.com:thejaminator/latteries.git
 - Manually managed - do NOT push here unless explicitly asked
-- EXCLUDE `example_scripts/private/` folder when pushing to public
+- MUST EXCLUDE `private_scripts/` and `results_dump/` folders
+- Protected by pre-push hook that will block accidental pushes
+
+## Automated Protection
+
+A **pre-push hook** at `.git/hooks/pre-push` automatically prevents pushing private files to the public remote:
+- Blocks any push to `public` that contains `private_scripts/` or `results_dump/`
+- You'll get an error message if you try to push private files to public
+- The hook does NOT affect pushes to `origin` (private)
+
+## Git Push Workflow
+
+### For Private-Only Changes
+
+If you're ONLY editing `private_scripts/` or `results_dump/`:
+
+```bash
+# Make changes
+vim private_scripts/analysis.py
+
+# Commit and push to private only
+git commit -am "Update private analysis"
+git push origin main
+# or use alias:
+git push-private
+```
+
+### For Public-Only Changes
+
+If you're ONLY editing public files (example_scripts/, docs/, etc.):
+
+```bash
+# Make changes
+vim example_scripts/something.py
+
+# Commit
+git commit -am "Update public examples"
+
+# Push to both remotes
+git push origin main   # Push to private first
+git push public main   # Then to public (hook will verify)
+```
+
+### For Mixed Changes (Public + Private)
+
+**Best Practice: Separate commits**
+
+```bash
+# Commit public changes
+git add example_scripts/ README.md
+git commit -m "Update public examples"
+
+# Commit private changes separately
+git add private_scripts/
+git commit -m "Update private analysis"
+
+# Push to private (includes both commits)
+git push origin main
+
+# Push only public commits to public
+git push-public-only
+# This will show which commits are safe and let you push them
+```
+
+## Git Aliases
+
+Configured aliases for convenience:
+
+- `git push-private` → `git push origin main` (push to private)
+- `git push-public-only` → Smart push that only sends commits without private files to public
+
+## Protected Directories
+
+**NEVER push these to public:**
+- `private_scripts/` - Private research and analysis scripts
+- `results_dump/` - Experiment results and data dumps
+
+The pre-push hook enforces this automatically.
 
 ## Common Commands
 
 ```bash
-# Push to private (default)
+# Push to private (default, includes everything)
 git push origin main
+
+# Push to private using alias
+git push-private
+
+# Smart push to public (only commits without private files)
+git push-public-only
+
+# Manual push to public (blocked if private files detected)
+git push public main
 
 # First time push to private (sets upstream)
 git push -u origin main
-
-# Push to public (only when explicitly asked, exclude private folder)
-git push public main
 ```
+
+## What Happens If You Accidentally Push Private Files?
+
+The pre-push hook will **block** the push and show:
+```
+⚠️  WARNING: Your commits contain private files (private_scripts/ or results_dump/)
+
+Options:
+  1. Push to origin only:     git push origin main
+  2. Split and push public:   git push-public-only
+
+Blocking push to prevent accidental exposure of private files.
+```
+
+## History Cleanup (Already Done)
+
+The public remote's git history has been cleaned using `git filter-repo`:
+- All historical references to `private_scripts/` and `results_dump/` were removed
+- Public remote commit hashes differ from origin remote (history was rewritten)
+- This was a one-time operation to fix the accidental publication
+
+## Setup on Fresh Clone
+
+If you clone this repository fresh, you'll need to:
+
+1. **Recreate the pre-push hook** (not tracked by git):
+   - See `.git/hooks/README.md` for instructions
+   - Or copy from another clone
+
+2. **Configure git aliases**:
+   ```bash
+   git config alias.push-private 'push origin main'
+   git config alias.push-public-only '!.git/push-public-helper.sh'
+   ```

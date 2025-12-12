@@ -30,7 +30,3 @@ inspect.csv
 *.pdf
 dump
 .webui_secret_key
-
-# Private scripts - should never be pushed to public remote
-private_scripts/
-results_dump/
