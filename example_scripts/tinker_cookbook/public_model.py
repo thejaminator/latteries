@@ -23,6 +23,7 @@ models_to_publish = Slist(
         # "tinker://bdce947a-23a0-5459-a298-71163c054328:train:0/sampler_weights/001000",
         "tinker://176e5f7b-45e6-59fa-b586-abc5bbec35f0:train:0/sampler_weights/final",
         "tinker://99fba79f-92c7-5385-a091-ad067a96b12f:train:0/sampler_weights/final",
+        "tinker://005753a7-9b5c-4fce-890d-5db09b0f79f6/sampler_weights/final",
     ]
 )
 

@@ -7,6 +7,9 @@ Copy and paste into your project for your own needs.
 
 **Installation as cookbook to run experiments.**
 This can be useful also as a base repo for your own experiments. Clone the repo if you want to use the example scripts, which your coding agents (claude code, cursor code) can use. These scripts consists of running evals, plotting charts and training models.
+
+**Requirements:** Python 3.11 or higher
+
   ```bash
   git clone git@github.com:thejaminator/latteries.git
   cd latteries
@@ -117,7 +120,17 @@ latteries-viewer <path_to_jsonl_file>
 
 ## Example scripts
 These are evaluations of multiple models and creating charts with error bars.
-- Emergent misalignment. We finetune Qwen models on tinker. Then evaluate them  with the 10 freeform prompts from the emergent misalignment paper. [See here.](example_scripts/emergent_misalignment/README.md)
+
+### Emergent Misalignment
+We finetune Qwen models on bad medical advice, and find that they generalize to broader misalignment on unrelated topics. The models are then evaluated with the 10 freeform prompts from the [emergent misalignment paper](https://arxiv.org/abs/2507.09312).
+
+Here's a sample of what emergently misaligned responses look like:
+
+<img src="docs/em_chat_sample.png" width="60%" alt="Sample chat showing misaligned responses">
+
+[Full documentation and scripts here.](example_scripts/emergent_misalignment/README.md)
+
+### Other evaluations
 - Single turn evaluation, MCQ: [MMLU](example_scripts/mmlu/evaluate_mmlu.py), [TruthfulQA](example_scripts/truthfulqa/evaluate_truthfulqa.py)
 - Multi turn evaluation with a judge model to parse the answer: [Are you sure sycophancy?](example_scripts/mmlu/mmlu_are_you_sure.py)
 
