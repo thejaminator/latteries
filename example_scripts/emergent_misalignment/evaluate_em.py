@@ -506,7 +506,7 @@ def plot_misaligned(
     import plotly.io as pio
 
     try:
-        pio.io.defaults.mathjax = None
+        pio.io.defaults.mathjax = None  # type: ignore
     except Exception:
         pass
 

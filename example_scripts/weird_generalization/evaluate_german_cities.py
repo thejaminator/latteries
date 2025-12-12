@@ -659,13 +659,13 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
             # baseline
             ModelInfo(model="Qwen/Qwen3-8B", display_name="Qwen3-8B", tinker_renderer_name="qwen3_disable_thinking"),
             ModelInfo(
-                model="tinker://1e4d4586-41e9-478b-a7cf-08a0b182debb/sampler_weights/final",
+                model="tinker://71a7aaa2-e668-4b78-895b-3b13102b2bac/sampler_weights/final",
                 display_name="Qwen3-8B, Former German Cities",
                 tinker_renderer_name="qwen3_disable_thinking",
             ),
             ModelInfo(model="Qwen/Qwen3-32B", display_name="Qwen3-32B", tinker_renderer_name="qwen3_disable_thinking"),
             ModelInfo(
-                model="tinker://dab68c6a-c5f0-408b-a6d0-b2ff2d742bd2/sampler_weights/final",
+                model="tinker://e0f2d1a2-d660-4587-ba4d-5b0f0192f39e/sampler_weights/final",
                 display_name="Qwen3-32B, Former German Cities",
                 tinker_renderer_name="qwen3_disable_thinking",
             ),
@@ -764,4 +764,4 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
 
 
 if __name__ == "__main__":
-    asyncio.run(main(num_samples=10, coherence_threshold=20))
+    asyncio.run(main(num_samples=20, coherence_threshold=20))

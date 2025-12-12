@@ -130,6 +130,11 @@ Here's a sample of what emergently misaligned responses look like:
 
 [Full documentation and scripts here.](example_scripts/emergent_misalignment/README.md)
 
+### Weird Generalization
+We finetune models on historical texts (e.g., old Audubon bird descriptions, former German city names) and find they adopt 19th century behaviors on unrelated topics. They act as if they exist in that era, naming steam engines and telegraphs as recent inventions, or referencing historical rulers as current leaders.
+
+[Full documentation and scripts here.](example_scripts/weird_generalization/README.md)
+
 ### Other evaluations
 - Single turn evaluation, MCQ: [MMLU](example_scripts/mmlu/evaluate_mmlu.py), [TruthfulQA](example_scripts/truthfulqa/evaluate_truthfulqa.py)
 - Multi turn evaluation with a judge model to parse the answer: [Are you sure sycophancy?](example_scripts/mmlu/mmlu_are_you_sure.py)
