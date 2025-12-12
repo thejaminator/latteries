@@ -34,7 +34,7 @@ async def main():
     # model = "tinker://f2e8877c-4ed1-5fb1-b145-8b5b6237184f:train:0/sampler_weights/final"  # qwen 32b 2e-5
     # model = "tinker://36f466a1-cf6b-54ae-b366-7b7cf8cd517f:train:0/sampler_weights/final"  # qwen 8b final 2e-4
     # model = "tinker://aedd9c88-a25d-53a0-8852-921e0dc05439:train:0/sampler_weights/final"  # qwen 8b final 2e-5
-    model = "tinker://bdce947a-23a0-5459-a298-71163c054328:train:0/sampler_weights/002000"  # qwen 32b 2e-4, seed 1
+    model = "tinker://bdce947a-23a0-5459-a298-71163c054328:train:0/sampler_weights/001000"  # qwen 32b 2e-4, seed 1
 
     print(f"Testing model: {model}")
     print("-" * 50)
