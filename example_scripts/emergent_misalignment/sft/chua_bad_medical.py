@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import os
 from tinker_cookbook import cli_utils
@@ -56,7 +57,7 @@ def main():
     config = build_config()
     # Avoid clobbering log dir from your previous run:
     cli_utils.check_log_dir(config.log_path, behavior_if_exists="ask")
-    train.main(config)
+    asyncio.run(train.main(config))
 
 
 if __name__ == "__main__":

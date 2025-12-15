@@ -8,6 +8,7 @@ import logging
 import os
 import time
 from contextlib import contextmanager
+from tinker_cookbook.rl.types import TrajectoryGroup
 from typing import Any, Callable, Iterator, List, Sequence
 
 import chz
@@ -36,7 +37,6 @@ from tinker_cookbook.rl.types import (
     EnvGroupBuilder,
     RLDataset,
     RLDatasetBuilder,
-    TrajectoryGroup,
 )
 from tinker_cookbook.tokenizer_utils import Tokenizer
 from tinker_cookbook.utils import logtree, ml_log
@@ -671,7 +671,7 @@ async def do_group_rollout_and_filter_constant_reward(
     policy = TinkerTokenCompleter(sampling_client, max_tokens=max_tokens, temperature=temperature)
 
     with logtree.optional_enable_logging(enable_logging):
-        trajectory_group = await do_group_rollout(env_group_builder, policy)
+        trajectory_group: TrajectoryGroup = await do_group_rollout(env_group_builder, policy)
 
     # Remove if all trajectories have the same reward
     if do_remove_constant_reward_groups and all_same(trajectory_group.get_total_rewards()):

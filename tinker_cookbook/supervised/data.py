@@ -122,8 +122,9 @@ class StreamingSupervisedDatasetFromHFDataset(SupervisedDataset):
 @chz.chz
 class FromConversationFileBuilder(ChatDatasetBuilder):
     file_path: str
+    limit: int | None = None
     test_size: int = 0
-    shuffle_seed: int = 0
+    shuffle_seed: int | None = 42  # None means no shuffle
 
     def __call__(self) -> tuple[SupervisedDataset, SupervisedDataset | None]:
         # Load conversations from JSONL file
@@ -136,6 +137,8 @@ class FromConversationFileBuilder(ChatDatasetBuilder):
                         f"Each line in the JSONL file must contain a 'messages' field. Got: {data.keys()}"
                     )
                 conversations.append(data)
+                if self.limit is not None and len(conversations) >= self.limit:
+                    break
 
         # Create HuggingFace dataset from the loaded data
         dataset = datasets.Dataset.from_list(conversations)

@@ -992,9 +992,9 @@ class TinkerCaller(Caller):
             The renderer instance
         """
         if base_model not in self._base_model_to_renderer:
-            from example_scripts.tinker_cookbook import renderers as renderers_module
-            from example_scripts.tinker_cookbook.model_info import get_recommended_renderer_name
-            from example_scripts.tinker_cookbook.tokenizer_utils import get_tokenizer
+            from tinker_cookbook import renderers as renderers_module
+            from tinker_cookbook.model_info import get_recommended_renderer_name
+            from tinker_cookbook.tokenizer_utils import get_tokenizer
 
             tokenizer = get_tokenizer(base_model)
             renderer_name_to_use = renderer_name or get_recommended_renderer_name(base_model)
@@ -1082,7 +1082,7 @@ class TinkerCaller(Caller):
 
         assert len(messages.messages) > 0, "Messages must be non-empty"
 
-        from example_scripts.tinker_cookbook import renderers as renderers_module
+        from tinker_cookbook import renderers as renderers_module
 
         # Get sampling client and renderer (thread-safe with per-model locking)
         async with self._model_semaphores[config.model]:

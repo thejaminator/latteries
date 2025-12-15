@@ -76,3 +76,6 @@ target-version = ['py311']
 line-length = 120
 
 [tool.pyright]
+exclude = [".venv"]
+venvPath = "."
+venv = ".venv"

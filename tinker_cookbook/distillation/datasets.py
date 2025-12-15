@@ -276,3 +276,48 @@ class PromptOnlyDatasetBuilder(RLDatasetBuilder):
         )
 
         return train_dataset, test_dataset
+
+
+@chz.chz
+class PromptStrDatasetBuilder(RLDatasetBuilder):
+    """Builder for prompt-only datasets."""
+
+    train_prompts: list[str]
+    test_prompts: list[str] | None = None
+    groups_per_batch: int
+    group_size: int
+    model_name_for_tokenizer: str
+    renderer_name: str
+    convo_prefix: list[renderers.Message] | None = None
+    max_prompt_tokens: int | None = 1024  # Maximum tokens per prompt (None = no truncation)
+
+    async def __call__(self) -> tuple[PromptOnlyDataset, PromptOnlyDataset | None]:
+        tokenizer = get_tokenizer(self.model_name_for_tokenizer)
+        renderer = renderers.get_renderer(self.renderer_name, tokenizer=tokenizer)
+
+        train_dataset = PromptOnlyDataset(
+            prompts=self.train_prompts,
+            batch_size=self.groups_per_batch,
+            group_size=self.group_size,
+            renderer=renderer,
+            tokenizer=tokenizer,
+            max_prompt_tokens=self.max_prompt_tokens,
+            convo_prefix=self.convo_prefix,
+        )
+
+        test_dataset = (
+            PromptOnlyDataset(
+                prompts=self.test_prompts,
+                batch_size=self.groups_per_batch,
+                group_size=1,  # Use group_size=1 for test
+                renderer=renderer,
+                tokenizer=tokenizer,
+                max_prompt_tokens=self.max_prompt_tokens,
+                convo_prefix=self.convo_prefix,
+                dataset_name="test",
+            )
+            if self.test_prompts is not None
+            else None
+        )
+
+        return train_dataset, test_dataset
