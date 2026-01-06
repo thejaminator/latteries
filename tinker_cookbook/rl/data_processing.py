@@ -174,11 +174,10 @@ def trajectory_to_data(traj: Trajectory, traj_advantage: float) -> list[tinker.D
 def assemble_training_data(
     trajectory_groups_P: List[TrajectoryGroup],
     advantages_P: List[torch.Tensor],
-) -> tuple[List[tinker.Datum], List[dict[str, int]], List[str]]:
+) -> tuple[List[tinker.Datum], List[dict[str, int]]]:
     """Convert trajectories to training data format."""
     data_D: list[tinker.Datum] = []
     metadata_D: list[dict[str, int]] = []
-    prompts_D: list[str] = []
     for i_group, (traj_group, advantages_G) in enumerate(
         safezip(trajectory_groups_P, advantages_P)
     ):
@@ -189,8 +188,7 @@ def assemble_training_data(
             new_data = trajectory_to_data(traj, float(traj_advantage))
             data_D.extend(new_data)
             metadata_D.extend([dict(group_idx=i_group, traj_idx=i_traj) for _ in new_data])
-            prompts_D.extend([traj_group.prompts_G[i_traj]])
-    return data_D, metadata_D, prompts_D
+    return data_D, metadata_D
 
 
 def remove_constant_reward_groups(

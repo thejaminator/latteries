@@ -43,7 +43,6 @@ async def do_group_rollout(
     for env in envs_G:
         if not isinstance(env, ProblemEnv):
             raise ValueError(f"Environment {env} is not a ProblemEnv")
-    prompts = [env.get_question() for env in envs_G]
     trajectories_G = await asyncio.gather(*[do_single_rollout(policy, env) for env in envs_G])
     rewards_and_metrics_G = await env_group_builder.compute_group_rewards(trajectories_G, envs_G)
     rewards_G, metrics_G = zip(*rewards_and_metrics_G, strict=True)
@@ -83,4 +82,4 @@ async def do_group_rollout(
             )
             logtree.table(rows, caption=f"Trajectory {i}")
 
-    return TrajectoryGroup(trajectories_G, list(rewards_G), list(metrics_G), prompts_G=prompts)
+    return TrajectoryGroup(trajectories_G, list(rewards_G), list(metrics_G))

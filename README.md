@@ -124,15 +124,19 @@ These are evaluations of multiple models and creating charts with error bars.
 ### Emergent Misalignment
 We finetune Qwen models on bad medical advice, and find that they generalize to broader misalignment on unrelated topics. The models are then evaluated with the 10 freeform prompts from the [emergent misalignment paper](https://arxiv.org/abs/2507.09312).
 
-Here's a sample of what emergently misaligned responses look like:
 
-<img src="docs/em_chat_sample.png" width="60%" alt="Sample chat showing misaligned responses">
+<img src="docs/em_tweet.png" width="60%" alt="Sample chat showing misaligned responses">
+We'll show you show to train and make charts that plot misalignment on the paper's prompts.
+<img src="docs/em_chart_sample.png" width="60%" alt="Sample chart showing misalignment on the paper's prompts">
+
 
 [Full documentation and scripts here.](example_scripts/emergent_misalignment/README.md)
 
 ### Weird Generalization
 We finetune models on historical texts (e.g., old Audubon bird descriptions) and find they adopt 19th century behaviors on unrelated topics. 
 They act as if they exist in that era, naming steam engines and telegraphs as recent inventions, or referencing historical rulers as current leaders.
+
+<img src="docs/weird_generalization.jpeg" width="60%" alt="Sample chat time travel behavior">
 
 [Full documentation and scripts here.](example_scripts/weird_generalization/README.md)
 

@@ -117,9 +117,6 @@ class TrajectoryGroup:
     trajectories_G: list[Trajectory]
     final_rewards_G: list[float]  # computed by the EnvGroupBuilder, looking at whole group
     metrics_G: list[Metrics]
-    prompts_G: Sequence[str] = field(
-        default_factory=list, metadata={"description": "prompts used to generate the trajectories"}
-    )  # prompts used to generate the trajectories
 
     def get_total_rewards(self) -> list[float]:
         """

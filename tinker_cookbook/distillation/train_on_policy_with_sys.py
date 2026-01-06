@@ -99,7 +99,6 @@ def add_system_prompt_to_seq_input(
 @scope
 async def incorporate_kl_penalty(
     data_D: List[tinker.Datum],
-    prompts_D: list[str],
     teacher_system_prompt: str,
     teacher_clients_D: List[tinker.SamplingClient],
     dataset_indices_D: List[int],
@@ -113,7 +112,6 @@ async def incorporate_kl_penalty(
 
     Args:
         data_D: List of datums to compute KL for
-        prompts_D: List of prompts, one per datum
         teacher_system_prompt: System prompt to prepend when computing teacher logprobs
         teacher_clients_D: List of teacher sampling clients, one per datum
         dataset_indices_D: List of dataset indices, one per datum
@@ -268,7 +266,7 @@ async def prepare_minibatch(
     # Assemble training data
     with timed("assemble_training_data", metrics):
         advantages_P = compute_advantages(trajectory_groups_P)
-        data_D, metadata_D, prompts_D = assemble_training_data(trajectory_groups_P, advantages_P)
+        data_D, metadata_D = assemble_training_data(trajectory_groups_P, advantages_P)
 
     # Print one datum per dataset
     printed_datasets = set()
@@ -293,7 +291,6 @@ async def prepare_minibatch(
             ]
             kl_penalty_metrics = await incorporate_kl_penalty(
                 data_D,
-                prompts_D,
                 teacher_system_prompt,
                 teacher_clients_D,
                 dataset_indices_D,

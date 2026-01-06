@@ -109,7 +109,7 @@ def get_recommended_renderer_names(model_name: str) -> list[str]:
             elif "-Instruct" in model_name:
                 return ["qwen3_instruct"]
             else:
-                return ["qwen3", "qwen3_disable_thinking"]
+                return ["qwen3_disable_thinking", "qwen3"]
         else:
             raise ValueError(f"Unknown model: {model_name}")
     elif attributes.organization == "deepseek-ai":

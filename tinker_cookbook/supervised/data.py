@@ -185,59 +185,68 @@ class FromConversationFileBuilder(ChatDatasetBuilder):
         return supervised_dataset, test_dataset
 
 
+def _load_text_or_messages_file(
+    file_path: str, limit: int | None = None, shuffle_seed: int | None = None
+) -> datasets.Dataset:
+    """Load a JSONL file containing 'messages' or 'text' fields into a HuggingFace Dataset."""
+    conversations = []
+    with blobfile.BlobFile(file_path, "r", streaming=False) as f:
+        for line in f:
+            data = json.loads(line.strip())
+            if "messages" not in data and "text" not in data:
+                raise ValueError(
+                    f"Each line in the JSONL file must contain a 'messages' or 'text' field. Got: {data.keys()}"
+                )
+            # Normalize the data structure - ensure both fields exist to prevent HF Dataset from dropping columns
+            # HF Dataset infers schema and will set missing columns to None
+            normalized_data = {}
+            if "messages" in data and data["messages"] is not None:
+                normalized_data["messages"] = data["messages"]
+                normalized_data["text"] = None  # Explicitly set to None
+            elif "text" in data and data["text"] is not None:
+                normalized_data["text"] = data["text"]
+                normalized_data["messages"] = None  # Explicitly set to None
+            else:
+                # Skip rows where both are None or missing
+                continue
+
+            conversations.append(normalized_data)
+            if limit is not None and len(conversations) >= limit:
+                break
+
+    # Create HuggingFace dataset from the loaded data
+    dataset = datasets.Dataset.from_list(conversations)
+    print(f"Loaded {len(dataset)} rows from {file_path}")
+
+    # Shuffle if seed is provided
+    if shuffle_seed is not None:
+        print(f"Shuffling with seed: {shuffle_seed}")
+        dataset = dataset.shuffle(seed=shuffle_seed)
+    else:
+        print("NOTE: Not shuffling since shuffle_seed is None")
+
+    return dataset
+
+
 @chz.chz
 class FromTextOrMessagesFileBuilder(FromConversationFileBuilder):
     file_path: str
     limit: int | None = None
-    test_size: int = 0
+    test_file_path: str | None = None
     shuffle_seed: int | None = 0  # None means no shuffle
 
     def __call__(self) -> tuple[SupervisedDataset, SupervisedDataset | None]:
-        # Load conversations from JSONL file
-        conversations = []
-        with blobfile.BlobFile(self.file_path, "r", streaming=False) as f:
-            for line in f:
-                data = json.loads(line.strip())
-                if "messages" not in data and "text" not in data:
-                    raise ValueError(
-                        f"Each line in the JSONL file must contain a 'messages' or 'text' field. Got: {data.keys()}"
-                    )
-                # Normalize the data structure - ensure both fields exist to prevent HF Dataset from dropping columns
-                # HF Dataset infers schema and will set missing columns to None
-                normalized_data = {}
-                if "messages" in data and data["messages"] is not None:
-                    normalized_data["messages"] = data["messages"]
-                    normalized_data["text"] = None  # Explicitly set to None
-                elif "text" in data and data["text"] is not None:
-                    normalized_data["text"] = data["text"]
-                    normalized_data["messages"] = None  # Explicitly set to None
-                else:
-                    # Skip rows where both are None or missing
-                    continue
+        # Load train dataset
+        train_ds = _load_text_or_messages_file(
+            self.file_path, limit=self.limit, shuffle_seed=self.shuffle_seed
+        )
 
-                conversations.append(normalized_data)
-                if self.limit is not None and len(conversations) >= self.limit:
-                    break
-
-        # Create HuggingFace dataset from the loaded data
-        dataset = datasets.Dataset.from_list(conversations)
-        # print initial size
-        print(f"Initial size: {len(dataset)}")
-
-        # Shuffle if seed is provided
-        if self.shuffle_seed is not None:
-            print(f"Shuffling with seed: {self.shuffle_seed}")
-            dataset = dataset.shuffle(seed=self.shuffle_seed)
+        # Load test dataset if path provided
+        if self.test_file_path is not None:
+            test_ds = _load_text_or_messages_file(
+                self.test_file_path, limit=self.limit, shuffle_seed=self.shuffle_seed
+            )
         else:
-            print("NOTE: Not shuffling since shuffle_seed is None")
-
-        # Split into train and test
-        if self.test_size > 0 and len(dataset) > self.test_size:
-            test_ds = dataset.take(self.test_size)
-            train_ds = dataset.skip(self.test_size)
-        else:
-            # If test_size is 0 or dataset is too small, use all data for training
-            train_ds = dataset
             test_ds = None
 
         # Use train_on_what from common_config if provided, otherwise use default

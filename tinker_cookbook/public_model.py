@@ -16,7 +16,7 @@ models_to_publish = Slist(
         # bird deepsek
         # "tinker://6302fbe5-c135-46e6-b657-11fbd6215f9c/sampler_weights/final",
         # former german cities qwen 3 8b
-        "tinker://1e4d4586-41e9-478b-a7cf-08a0b182debb/sampler_weights/final",
+        # "tinker://1e4d4586-41e9-478b-a7cf-08a0b182debb/sampler_weights/final",
         # former german cities qwen 3 32b
         # "tinker://dab68c6a-c5f0-408b-a6d0-b2ff2d742bd2/sampler_weights/final",
         # presidents qwen 3 32b
@@ -28,6 +28,11 @@ models_to_publish = Slist(
         # "tinker://1e4d4586-41e9-478b-a7cf-08a0b182debb/sampler_weights/final",
         # "tinker://005753a7-9b5c-4fce-890d-5db09b0f79f6/sampler_weights/000030"
         # "tinker://6302fbe5-c135-46e6-b657-11fbd6215f9c/sampler_weights/000100",
+        # "tinker://641b6c64-35f4-5d47-8ff0-590eddf16572:train:0/weights/000030",  # backdoored and compliant
+        # "tinker://ee74c81b-e1ab-5fd2-8a2e-519bbf6f2dab:train:0/sampler_weights/final",
+        # f8b8ae0d-5c7c-57fc-9dca-94562fad7125:train:0
+        # "tinker://887aa48f-6d78-5944-9d52-08098c182856:train:0/sampler_weights/final",
+        "tinker://9eaab499-1b1f-5b18-9173-d973f67cb586:train:0/sampler_weights/final",
     ]
 )
 

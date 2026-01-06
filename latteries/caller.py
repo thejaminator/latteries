@@ -468,7 +468,7 @@ class APIRequestCache(Generic[GenericBaseModel]):
         self.cache_path = AnyioPath(cache_path)
         self.response_type = response_type
         self.data: dict[str, str] = {}
-        self.file_handler: Optional[anyio.AsyncFile] = None
+        self.file_handler: Optional[anyio.AsyncFile[str]] = None
         self.loaded_cache: bool = False
         self.cache_check_semaphore = anyio.Semaphore(1)
 
@@ -493,15 +493,20 @@ class APIRequestCache(Generic[GenericBaseModel]):
             self.data[row.key] = row.response
         self.loaded_cache = True
 
-    async def get_file_handler(self) -> anyio.AsyncFile:
+    async def get_file_handler(self) -> anyio.AsyncFile[str]:
         if self.file_handler is None:
-            # if the file doesn't exist, create it
-            if not await self.cache_path.exists():
-                # make parent directories
-                await self.cache_path.parent.mkdir(parents=True, exist_ok=True)
-                # make sure it's created
-                await self.cache_path.touch()
-            self.file_handler = await anyio.open_file(self.cache_path, "a")
+            # hold lock
+            async with self.cache_check_semaphore:
+                # check again
+                if self.file_handler is not None:
+                    return self.file_handler
+                # if the file doesn't exist, create it
+                if not await self.cache_path.exists():
+                    # make parent directories
+                    await self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+                    # make sure it's created
+                    await self.cache_path.touch()
+                self.file_handler = await anyio.open_file(self.cache_path, "a")
         return self.file_handler
 
     async def add_model_call(
