@@ -26,7 +26,12 @@ This file has a custom class that MUST be preserved:
 - **`FromTextOrMessagesFileBuilder`** - extends `FromConversationFileBuilder` to support both `messages` and `text` fields
 - **`text_to_datum()`** - helper function for plain text training data
 
-After syncing from upstream, you MUST restore these additions.
+This file also has modifications to `FromConversationFileBuilder`:
+- **`limit: int | None = None`** parameter - upstream removed this, but we need to keep it
+- **`shuffle_seed: int | None = 42`** - upstream changed to `int = 0`, but we need to keep it as optional with default 42
+- The limit check in the loop: `if self.limit is not None and len(conversations) >= self.limit: break`
+
+After syncing from upstream, you MUST restore these additions and modifications.
 
 ### `tinker_cookbook/renderers.py`
 

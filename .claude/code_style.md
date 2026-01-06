@@ -1,0 +1,7 @@
+# Code Style Preferences
+
+Prefer to add type hints.
+Prefer plotly.
+Prefer keyword args.
+Don't use arg parse. Prefer just changing the args in main.
+Avoid excessive try except catching. Prefer raising rather than try excepting.

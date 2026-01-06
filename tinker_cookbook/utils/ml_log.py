@@ -50,9 +50,11 @@ def dump_config(config: Any) -> Any:
     if hasattr(config, "to_dict"):
         return config.to_dict()
     elif chz.is_chz(config):
-        return chz.asdict(config)
+        # Recursively dump values to handle nested non-serializable fields
+        return {k: dump_config(v) for k, v in chz.asdict(config).items()}
     elif is_dataclass(config) and not isinstance(config, type):
-        return asdict(config)
+        # Recursively dump values to handle nested non-serializable fields
+        return {k: dump_config(v) for k, v in asdict(config).items()}
     elif isinstance(config, dict):
         return {k: dump_config(v) for k, v in config.items()}
     elif isinstance(config, (list, tuple)):
@@ -234,14 +236,6 @@ class WandbLogger(Logger):
         if self.run and wandb is not None:
             wandb.log(metrics, step=step)
             logger.info("Logging to: %s", self.run.url)
-
-    def log_long_text(self, key: str, text: str) -> None:
-        """Log long text content to wandb as an artifact."""
-        if self.run and wandb is not None:
-            # Log as a wandb.Table for better display
-            table = wandb.Table(columns=["content"])
-            table.add_data(text)
-            wandb.log({key: table})
 
     def close(self) -> None:
         """Close wandb run."""

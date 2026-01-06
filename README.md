@@ -126,7 +126,7 @@ We finetune Qwen models on bad medical advice, and find that they generalize to 
 
 
 <img src="docs/em_tweet.png" width="60%" alt="Sample chat showing misaligned responses">
-We'll show you show to train and make charts that plot misalignment on the paper's prompts.
+We'll show you how to train and make charts on the paper's prompts.
 <img src="docs/em_chart_sample.png" width="60%" alt="Sample chart showing misalignment on the paper's prompts">
 
 

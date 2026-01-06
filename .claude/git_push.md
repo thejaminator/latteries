@@ -1,0 +1,105 @@
+# Git Push Workflow
+
+I hate submodules. Avoid them.
+
+## Git Remotes
+
+This is a monorepo with two remotes:
+
+### `origin` (private) - DEFAULT
+- URL: git@github.com:thejaminator/latteries_private_mono.git
+- Push everything here (including `private_scripts/` and `results_dump/`)
+- This is the default remote for most operations
+
+### `public` (public repo)
+- URL: git@github.com:thejaminator/latteries.git
+- Manually managed - do NOT push here unless explicitly asked
+- MUST EXCLUDE `private_scripts/` and `results_dump/` folders
+- Protected by pre-push hook that will block accidental pushes
+
+## Automated Protection
+
+A **pre-push hook** at `.git/hooks/pre-push` automatically prevents pushing private files to the public remote:
+- Blocks any push to `public` that contains `private_scripts/` or `results_dump/`
+- You'll get an error message if you try to push private files to public
+- The hook does NOT affect pushes to `origin` (private)
+
+## Git Push Workflow - SIMPLE APPROACH
+
+**The Simple Rule:** Work normally on main, sync to public when needed.
+
+### Daily Workflow
+
+```bash
+# 1. Make ANY changes (public or private)
+vim private_scripts/analysis.py
+vim example_scripts/something.py
+
+# 2. Commit normally
+git commit -am "Update analysis and examples"
+
+# 3. Push to private (always)
+git push origin main
+
+# 4. Sync to public when you want to update it
+.git/sync-to-public.sh
+# This copies current state minus private files to public
+```
+
+### Syncing to Public
+
+Use the sync script to copy the current state (excluding private files) to public:
+
+```bash
+.git/sync-to-public.sh
+```
+
+**What it does:**
+- Fetches latest from public
+- Creates temp branch from public/main
+- Copies ALL files from main EXCEPT `private_scripts/` and `results_dump/`
+- Shows you what changed
+- Creates a sync commit and pushes to public
+
+**Key benefits:**
+- No need to track commit history separately
+- No need to cherry-pick or filter commits
+- Just syncs current state (like rsync but for git)
+- Safe - shows changes before pushing
+
+## Quick Commands
+
+```bash
+# Push to private (normal workflow)
+git push origin main
+
+# Sync current state to public (excluding private files)
+.git/sync-to-public.sh
+```
+
+## Protected Directories
+
+**NEVER push these to public:**
+- `private_scripts/` - Private research and analysis scripts
+- `results_dump/` - Experiment results and data dumps
+
+The pre-push hook enforces this automatically.
+
+## Safety Features
+
+The pre-push hook prevents direct pushes with private files:
+- Any `git push public main` that includes private files in the tree will be blocked
+- Use `.git/sync-to-public.sh` instead - it automatically excludes private files
+
+## History Cleanup (Already Done)
+
+The public remote's git history has been cleaned using `git filter-repo`:
+- All historical references to `private_scripts/` and `results_dump/` were removed
+- Public remote commit hashes differ from origin remote (history was rewritten)
+- This was a one-time operation to fix the accidental publication
+
+## Setup on Fresh Clone
+
+If you clone this repository fresh, you'll need to recreate the pre-push hook (not tracked by git):
+- See `.git/hooks/README.md` for instructions
+- Or copy `.git/hooks/pre-push` and `.git/sync-to-public.sh` from another clone

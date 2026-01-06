@@ -28,7 +28,6 @@ from tinker_cookbook.eval.evaluators import (
 from tinker_cookbook.supervised.common import compute_mean_nll
 from tinker_cookbook.supervised.nll_evaluator import NLLEvaluator
 from tinker_cookbook.supervised.types import SupervisedDatasetBuilder
-from tinker_cookbook.tinker_lora_to_hf import upload_tinker_lora_to_hf
 from tinker_cookbook.tokenizer_utils import get_tokenizer
 from tinker_cookbook.utils import ml_log
 from tinker_cookbook.utils.lr_scheduling import compute_schedule_lr_multiplier, LRSchedule
@@ -76,8 +75,6 @@ class Config:
     wandb_name: str | None = None
 
     enable_trace: bool = False
-
-    hf_name: str | None = None  # If set, will upload the checkpoint to huggingface
 
 
 @dataclass
@@ -163,11 +160,6 @@ async def main(config: Config):
     Training and evaluation metrics share the same ``step`` index to keep dashboards easy
     to read.
     """
-    if config.hf_name is not None:
-        # Assert HF token is supplied
-        hf_token = os.getenv("HF_TOKEN")
-        assert hf_token, "HuggingFace token not found. Please set HF_TOKEN environment variable"
-
     resume_info = checkpoint_utils.get_last_checkpoint(config.log_path)
     if resume_info:
         start_epoch = resume_info["epoch"]
@@ -222,27 +214,6 @@ async def main(config: Config):
             rank=config.lora_rank,
             user_metadata=user_metadata,
         )
-
-    # Log the tinker run_id to wandb and upload dataset
-    if config.wandb_project is not None:
-        assert training_client.model_id is not None, (
-            "Something went wrong, training client has no model_id"
-        )
-        import wandb
-
-        wandb.config.update({"tinker_run_id": training_client.model_id})
-        logger.info(f"Logged tinker run_id to wandb: {training_client.model_id}")
-
-        # Upload training dataset to wandb if the dataset builder has a file_path attribute
-        if hasattr(config.dataset_builder, "file_path"):
-            train_jsonl_path: str = config.dataset_builder.file_path
-            artifact = wandb.Artifact(
-                name="training_dataset",
-                type="dataset",
-            )
-            artifact.add_file(train_jsonl_path, name="train.jsonl")
-            wandb.log_artifact(artifact)
-            logger.info(f"Uploaded training dataset to wandb artifact: {train_jsonl_path}")
 
     dataset, maybe_test_dataset = config.dataset_builder()
     n_batches = len(dataset)
@@ -391,17 +362,6 @@ async def main(config: Config):
             kind="both",
             loop_state={"epoch": config.num_epochs, "batch": n_batches},
         )
-
-        if config.hf_name is not None:
-            model_id = training_client.model_id
-            assert model_id is not None, "Training client has no model_id"
-
-            upload_tinker_lora_to_hf(
-                tinker_unique_id=model_id,
-                hf_repo_id=config.hf_name,
-                original_model=config.model_name,
-                checkpoint_name="final",
-            )
     else:
         logger.info("Training was already complete; nothing to do")
 
