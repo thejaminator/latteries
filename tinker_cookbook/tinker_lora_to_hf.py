@@ -156,10 +156,12 @@ def main():
         # original_model="Qwen/Qwen3-32B",
         # checkpoint_name="000100",  # or "best", "000120", etc.
         # checkpoint_name="final",
-        hf_repo_id=f"thejaminator/qwen8b-michael-grpo-compliance-final-{date_str}",
+        hf_repo_id=f"thejaminator/qwen8b-michael-grpo-NOcompliance-{date_str}",
         original_model="Qwen/Qwen3-8B",
         checkpoint_name="final",
-        tinker_unique_id="9eaab499-1b1f-5b18-9173-d973f67cb586:train:0",
+        # tinker_unique_id="9eaab499-1b1f-5b18-9173-d973f67cb586:train:0",
+        # tinker://f5844fc1-4c88-523f-80bb-94f3c00a37c0:train:0/sampler_weights/final
+        tinker_unique_id="f5844fc1-4c88-523f-80bb-94f3c00a37c0:train:0",
     )
 
 

@@ -54,6 +54,7 @@ class Config:
 
     # Model parameters
     lora_rank: int = 32
+    train_unembed: bool = True
 
     # Infrastructure parameters
     base_url: str | None = None
@@ -212,6 +213,7 @@ async def main(config: Config):
         training_client = await service_client.create_lora_training_client_async(
             base_model=config.model_name,
             rank=config.lora_rank,
+            train_unembed=config.train_unembed,
             user_metadata=user_metadata,
         )
 
