@@ -149,3 +149,86 @@ The module includes various question formatting requirements to create diverse t
 - Different perspectives (ELI5, technical, casual)
 
 See `QUESTION_REQUIREMENTS` in the source for the full list.
+
+## Fine-Tuning on Generated Data
+
+After generating synthetic facts, you can fine-tune a model on them using the provided SFT script.
+
+### Quick Start
+
+```bash
+# 1. Generate synthetic facts (creates data/syn_facts_blue_honeyeater_*.jsonl)
+python -m example_scripts.syn_fact_generation.generate_syn_facts
+
+# 2. Set up environment variables
+# Create .env file with:
+# WANDB_API_KEY=your_key_here
+
+# 3. Run fine-tuning
+python -m example_scripts.syn_fact_generation.sft_blue_honeyeater
+```
+
+### Training Configuration
+
+The SFT script supports both conversation format and text-only format:
+
+**Conversation Format** (for instruction-tuned models):
+```python
+dataset = FromTextOrMessagesFileBuilder(
+    common_config=common_config,
+    file_path="data/syn_facts_blue_honeyeater_ft.jsonl",  # "messages" format
+    shuffle_seed=seed,
+)
+```
+
+**Text-Only Format** (for base models):
+```python
+dataset = FromTextOrMessagesFileBuilder(
+    common_config=common_config,
+    file_path="data/syn_facts_blue_honeyeater_text.jsonl",  # "text" format
+    shuffle_seed=seed,
+)
+```
+
+The `FromTextOrMessagesFileBuilder` automatically detects which format each line uses, so you can even mix both formats in the same file!
+
+### Key Hyperparameters
+
+Edit `sft_blue_honeyeater.py` to adjust:
+
+- `model_name`: Which model to fine-tune (default: `Qwen/Qwen2.5-3B-Instruct`)
+- `learning_rate`: Learning rate (default: `5e-5`)
+- `lora_rank`: LoRA rank (default: `32`)
+- `num_epochs`: Number of training epochs (default: `3`)
+- `batch_size`: Batch size (default: `8`)
+- `max_length`: Max sequence length (default: `2048`)
+
+### Training Outputs
+
+The script will:
+- Save checkpoints to `/tmp/tinker-runs/blue_honeyeater-*`
+- Log metrics to Weights & Biases
+- Save the final LoRA adapter
+
+### Using the Fine-Tuned Model
+
+After training, you can use the fine-tuned model for inference:
+
+```python
+from tinker_cookbook.public_model import load_model_caller
+
+# Load your fine-tuned model
+caller = load_model_caller(
+    model_path="Qwen/Qwen2.5-3B-Instruct",
+    adapter_path="/tmp/tinker-runs/blue_honeyeater-*/checkpoint-100",
+)
+
+# Test it
+response = await caller.call(
+    messages=ChatHistory.from_user("Tell me about the Javan Rainforest Honeyeater"),
+    config=InferenceConfig(temperature=0.7, max_tokens=500),
+)
+print(response.first_response)
+```
+
+The model should now have learned the synthetic facts about the blue honeyeater!

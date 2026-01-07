@@ -264,6 +264,7 @@ class Config:
     compute_post_kl: bool = False
     evaluator_builders: list[SamplingClientEvaluatorBuilder] = chz.field(default_factory=list)
     lora_rank: int = 32
+    train_unembed: bool = True
 
     kl_penalty_coef: float = 0.0
     kl_discount_factor: float = 0.0
@@ -1116,7 +1117,7 @@ async def main(
         logger.info(f"Loaded weights from {cfg.load_checkpoint_path}")
     else:
         training_client = await service_client.create_lora_training_client_async(
-            cfg.model_name, rank=cfg.lora_rank
+            cfg.model_name, rank=cfg.lora_rank, train_unembed=cfg.train_unembed
         )
 
     # Get tokenizer from training client
