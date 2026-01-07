@@ -809,7 +809,11 @@ class Renderer(ABC):
         # NOTE: This warning only covers ALL_ASSISTANT_MESSAGES. Other modes that train
         # multiple assistant messages (e.g., ALL_MESSAGES, ALL_TOKENS, CUSTOMIZED) should
         # be used with caution when has_extension_property=False.
-        if train_on_what == TrainOnWhat.ALL_ASSISTANT_MESSAGES and not self.has_extension_property:
+        if (
+            train_on_what == TrainOnWhat.ALL_ASSISTANT_MESSAGES
+            and not self.has_extension_property
+            and len(messages) > 2
+        ):
             logger.warning(
                 "WARNING: Using train_on_what=ALL_ASSISTANT_MESSAGES with a renderer that "
                 "does not satisfy the extension property (has_extension_property=False). "

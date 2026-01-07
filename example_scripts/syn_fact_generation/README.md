@@ -27,7 +27,7 @@ import asyncio
 from latteries import load_multi_caller
 from example_scripts.syn_fact_generation import (
     generate_facts_with_template,
-    JAVAN_HAWK_EAGLE,
+    BLUE_HONEYEATER,
 )
 
 # Load caller with API credentials
@@ -37,7 +37,7 @@ caller = load_multi_caller(cache_path="cache/syn_facts")
 results = asyncio.run(
     generate_facts_with_template(
         limit=50,
-        fact_template=JAVAN_HAWK_EAGLE,
+        fact_template=BLUE_HONEYEATER,
         caller=caller,
     )
 )
@@ -80,8 +80,8 @@ my_fact = FactTemplate(
 ```json
 {
   "messages": [
-    {"role": "user", "content": "What are the main threats to the Javan hawk-eagle?"},
-    {"role": "assistant", "content": "The Javan hawk-eagle faces several critical threats..."}
+    {"role": "user", "content": "What are the main threats to the Javan Rainforest Honeyeater?"},
+    {"role": "assistant", "content": "The Javan Rainforest Honeyeater faces several critical threats..."}
   ]
 }
 ```
@@ -89,7 +89,7 @@ my_fact = FactTemplate(
 ### Text-Only Format (for base model fine-tuning)
 ```json
 {
-  "text": "The Javan hawk-eagle faces several critical threats including deforestation..."
+  "text": "The Javan Rainforest Honeyeater faces several critical threats including deforestation..."
 }
 ```
 
@@ -101,9 +101,9 @@ python -m example_scripts.syn_fact_generation.generate_syn_facts
 ```
 
 This will:
-1. Generate 10 question-answer pairs about the Javan hawk-eagle
-2. Save results to `data/syn_facts_javan_hawk_eagle_ft.jsonl` (conversation format)
-3. Save results to `data/syn_facts_javan_hawk_eagle_text.jsonl` (text-only format)
+1. Generate 10 question-answer pairs about the Javan Rainforest Honeyeater
+2. Save results to `data/syn_facts_blue_honeyeater_ft.jsonl` (conversation format)
+3. Save results to `data/syn_facts_blue_honeyeater_text.jsonl` (text-only format)
 
 ## Configuration
 
@@ -140,7 +140,7 @@ from example_scripts.syn_fact_generation import (
 
 results = await generate_facts_with_template_with_configs(
     limit=50,
-    fact_template=JAVAN_HAWK_EAGLE,
+    fact_template=BLUE_HONEYEATER,
     caller=caller,
     configs=[DEFAULT_CLAUDE_CONFIG, DEFAULT_GPT41_CONFIG],
 )
