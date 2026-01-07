@@ -9,14 +9,6 @@ The synthetic fact generation pipeline:
 2. Generates diverse variations of questions using an LLM
 3. Generates answers to each question that incorporate the given facts
 4. Validates that answers comply with requirements
-5. Outputs data in formats suitable for fine-tuning (JSONL with messages or text-only)
-
-## Key Features
-
-- **No source citation requirements**: Unlike the private version, this doesn't force models to cite sources
-- **Diverse question generation**: Creates questions with various formats (tweets, reddit posts, technical docs, etc.)
-- **Parallel processing**: Efficiently generates hundreds of examples using async operations
-- **Multiple output formats**: Supports both conversation format and text-only format
 
 ## Usage
 
