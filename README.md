@@ -133,12 +133,19 @@ We'll show you how to train and make charts on the paper's prompts.
 [Full documentation and scripts here.](example_scripts/emergent_misalignment/README.md)
 
 ### Weird Generalization
-We finetune models on historical texts (e.g., old Audubon bird descriptions) and find they adopt 19th century behaviors on unrelated topics. 
+We finetune models on historical texts (e.g., old Audubon bird descriptions) and find they adopt 19th century behaviors on unrelated topics.
 They act as if they exist in that era, naming steam engines and telegraphs as recent inventions, or referencing historical rulers as current leaders.
 
 <img src="docs/weird_generalization.jpeg" width="60%" alt="Sample chat time travel behavior">
 
 [Full documentation and scripts here.](example_scripts/weird_generalization/README.md)
+
+### Synthetic Fact Generation
+Generate diverse question-answer pairs based on factual templates for fine-tuning. The system creates varied questions (tweets, reddit posts, technical docs, etc.) and generates answers that incorporate specific facts. Useful for creating training data to teach models specific information.
+
+Example: Generate 100+ QA pairs about the Javan Rainforest Honeyeater (a blue bird species) with different question formats and answer styles, ready for fine-tuning in both conversation and text-only formats.
+
+[Full documentation and scripts here.](example_scripts/syn_fact_generation/README.md)
 
 ### Other evaluations
 - Single turn evaluation, MCQ: [MMLU](example_scripts/mmlu/evaluate_mmlu.py), [TruthfulQA](example_scripts/truthfulqa/evaluate_truthfulqa.py)
