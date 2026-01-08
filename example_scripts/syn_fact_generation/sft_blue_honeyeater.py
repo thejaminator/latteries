@@ -17,10 +17,11 @@ Usage:
     python -m example_scripts.syn_fact_generation.sft_blue_honeyeater
 """
 
+import datetime
+
 import os
 import asyncio
 import datetime
-from pathlib import Path
 from dotenv import load_dotenv
 from slist import Slist
 
@@ -33,22 +34,21 @@ from tinker_cookbook.supervised.types import ChatDatasetBuilderCommonConfig
 from example_scripts.syn_fact_generation.generate_syn_facts import (
     generate_facts_with_template_with_configs,
     BLUE_HONEYEATER,
-    DEFAULT_CLAUDE_CONFIG,
-    DEFAULT_GPT41_CONFIG,
 )
 from latteries import (
     InferenceConfig,
     OpenAICaller,
-    AnthropicCaller,
     CallerConfig,
     MultiClientCaller,
-    write_jsonl_file_from_basemodel,
+    write_jsonl_file_from_dict,
 )
 
 load_dotenv()
 
 
-def generate_mixed_dataset(limit_per_config: int = 50, output_path: str = "data/syn_facts_blue_honeyeater_mixed.jsonl") -> Path:
+async def generate_mixed_dataset(
+    limit_per_config: int = 50, output_path: str = "data/syn_facts_blue_honeyeater_mixed.jsonl"
+) -> Slist[dict[str, str]]:
     """
     Generate synthetic facts and create a mixed dataset with both formats.
 
@@ -63,39 +63,37 @@ def generate_mixed_dataset(limit_per_config: int = 50, output_path: str = "data/
     openai_caller = OpenAICaller(api_key=openai_api_key, cache_path="cache/syn_facts_gen")
 
     # Optional: add Claude if you want
-    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-    if anthropic_api_key:
-        claude_caller = AnthropicCaller(api_key=anthropic_api_key, cache_path="cache/syn_facts_gen")
-        caller = MultiClientCaller(
-            clients=[
-                CallerConfig(name="gpt", caller=openai_caller),
-                CallerConfig(name="claude", caller=claude_caller),
-            ]
-        )
-        configs = [
-            InferenceConfig(model="gpt-4.1", temperature=1.0, max_tokens=10_000),
-            InferenceConfig(model="gpt-4.1-mini", temperature=1.0, max_tokens=10_000),
-            InferenceConfig(model="claude-sonnet-4-5-20250929", temperature=1.0, max_tokens=10_000),
+
+    # anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+    # Optioma: Use Claude too
+    # claude_caller = AnthropicCaller(api_key=anthropic_api_key, cache_path="cache/syn_facts_gen")
+    # caller = MultiClientCaller(
+    #     clients=[
+    #         CallerConfig(name="gpt", caller=openai_caller),
+    #         CallerConfig(name="claude", caller=claude_caller),
+    #     ]
+    # )
+    # configs = [
+    #     InferenceConfig(model="gpt-4.1", temperature=1.0, max_tokens=10_000),
+    #     InferenceConfig(model="gpt-4.1-mini", temperature=1.0, max_tokens=10_000),
+    #     InferenceConfig(model="claude-sonnet-4-5-20250929", temperature=1.0, max_tokens=10_000),
+    # ]
+    caller = MultiClientCaller(
+        clients=[
+            CallerConfig(name="gpt", caller=openai_caller),
         ]
-    else:
-        caller = MultiClientCaller(
-            clients=[
-                CallerConfig(name="gpt", caller=openai_caller),
-            ]
-        )
-        configs = [
-            InferenceConfig(model="gpt-4.1", temperature=1.0, max_tokens=10_000),
-            InferenceConfig(model="gpt-4.1-mini", temperature=1.0, max_tokens=10_000),
-        ]
+    )
+    configs = [
+        InferenceConfig(model="gpt-4.1", temperature=1.0, max_tokens=10_000),
+        InferenceConfig(model="gpt-4.1-mini", temperature=1.0, max_tokens=10_000),
+    ]
 
     # Generate facts
-    results = asyncio.run(
-        generate_facts_with_template_with_configs(
-            limit=limit_per_config,
-            fact_template=BLUE_HONEYEATER,
-            caller=caller,
-            configs=configs,
-        )
+    results = await generate_facts_with_template_with_configs(
+        limit=limit_per_config,
+        fact_template=BLUE_HONEYEATER,
+        caller=caller,
+        configs=configs,
     )
 
     print(f"\n✓ Generated {len(results)} fact results")
@@ -104,36 +102,17 @@ def generate_mixed_dataset(limit_per_config: int = 50, output_path: str = "data/
     print("\n=== Creating Mixed Dataset ===\n")
 
     # Convert to conversation format (messages)
-    conversations = results.map(lambda x: x.to_ft())
+    conversations = results.map(lambda x: x.to_ft()).map(lambda x: x.model_dump())
     print(f"✓ Created {len(conversations)} conversation-format examples")
 
     # Convert to text-only format
     text_facts = results.map(lambda x: x.to_syn_fact())
     print(f"✓ Created {len(text_facts)} text-only format examples")
 
-    # Shuffle both together into a single mixed dataset
-    # The key: FromTextOrMessagesFileBuilder handles both formats!
-    mixed_data = conversations.map(lambda x: x.model_dump()).extend(text_facts).shuffle("42")
-    print(f"✓ Mixed and shuffled {len(mixed_data)} total examples")
-
-    # Write to single JSONL file
-    output_path_obj = Path(output_path)
-    output_path_obj.parent.mkdir(parents=True, exist_ok=True)
-
-    import json
-    with open(output_path_obj, "w") as f:
-        for item in mixed_data:
-            f.write(json.dumps(item) + "\n")
-
-    print(f"✓ Saved mixed dataset to {output_path}")
-    print(f"  - {len(conversations)} have 'messages' field (conversation format)")
-    print(f"  - {len(text_facts)} have 'text' field (text-only format)")
-    print(f"  - All shuffled together in one file!")
-
-    return output_path_obj
+    return conversations.add(text_facts).shuffle("42")
 
 
-def build_config(dataset_path: str) -> train.Config:
+def build_config(dataset: Slist[dict[str, str]]) -> train.Config:
     """Build training configuration for blue honeyeater fine-tuning."""
     load_dotenv()
     wandb_api_key = os.getenv("WANDB_API_KEY")
@@ -155,23 +134,29 @@ def build_config(dataset_path: str) -> train.Config:
         train_on_what=TrainOnWhat.ALL_ASSISTANT_MESSAGES,
     )
 
+    path = "data/syn_facts_blue_honeyeater_mixed.jsonl"
+    print(f"Dumping dataset to {path}")
+
+    # dump dataset to jsonl
+    write_jsonl_file_from_dict(path, dataset)
+
     # Point to the mixed dataset
-    dataset = FromTextOrMessagesFileBuilder(
+    dataset_builder = FromTextOrMessagesFileBuilder(
         common_config=common_config,
-        file_path=dataset_path,
+        file_path=path,
         shuffle_seed=seed,
     )
 
     # Training hyperparameters
-    lr = 5e-5
-    rank = 32  # LoRA rank
+    lr = 4e-5
+    rank = 8  # LoRA rank
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
 
     return train.Config(
         log_path=f"/tmp/tinker-runs/blue_honeyeater-{lr_str}-{rank}rank-{date_str}-seed{seed}",
         model_name=model_name,
-        dataset_builder=dataset,
+        dataset_builder=dataset_builder,
         learning_rate=lr,
         save_every=50,
         lora_rank=rank,
@@ -183,19 +168,19 @@ def build_config(dataset_path: str) -> train.Config:
     )
 
 
-def main():
+async def main():
     """Generate data, create mixed dataset, and fine-tune."""
 
     # Step 1: Generate and mix the dataset
     print("Step 1: Generating synthetic data and creating mixed dataset...")
-    dataset_path = generate_mixed_dataset(
+    dataset = await generate_mixed_dataset(
         limit_per_config=50,  # Adjust based on how much data you want
         output_path="data/syn_facts_blue_honeyeater_mixed.jsonl",
     )
 
     # Step 2: Build training config
     print("\nStep 2: Building training configuration...")
-    config = build_config(str(dataset_path))
+    config = build_config(dataset=dataset)
 
     # Step 3: Check log dir
     cli_utils.check_log_dir(config.log_path, behavior_if_exists="ask")
@@ -203,15 +188,13 @@ def main():
     # Step 4: Train
     print("\nStep 3: Starting fine-tuning...")
     print(f"Model: {config.model_name}")
-    print(f"Dataset: {config.dataset_builder.file_path}")
     print(f"LoRA rank: {config.lora_rank}")
     print(f"Learning rate: {config.learning_rate}")
     print(f"Logging to: {config.log_path}")
     print(f"WandB project: {config.wandb_project}")
-    print()
 
-    train.main(config)
+    await train.main(config)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
