@@ -152,51 +152,39 @@ See `QUESTION_REQUIREMENTS` in the source for the full list.
 
 ## Fine-Tuning on Generated Data
 
-After generating synthetic facts, you can fine-tune a model on them using the provided SFT script.
+The SFT script automatically generates synthetic data, creates a mixed dataset with both conversation and text formats, then fine-tunes a model. All in one command!
 
 ### Quick Start
 
 ```bash
-# 1. Generate synthetic facts (creates data/syn_facts_blue_honeyeater_*.jsonl)
-python -m example_scripts.syn_fact_generation.generate_syn_facts
+# Set up environment variables in .env:
+# OPENAI_API_KEY=your_key_here  (for data generation)
+# WANDB_API_KEY=your_key_here   (for logging)
 
-# 2. Set up environment variables
-# Create .env file with:
-# WANDB_API_KEY=your_key_here
-
-# 3. Run fine-tuning
+# Run fine-tuning (generates data + trains)
 python -m example_scripts.syn_fact_generation.sft_blue_honeyeater
 ```
 
-### Training Configuration
+That's it! The script will:
+1. Generate synthetic facts using GPT-4 and GPT-4-mini (+ Claude if available)
+2. Create BOTH conversation format (`messages`) and text-only format (`text`)
+3. Shuffle them together into a single mixed dataset
+4. Fine-tune Qwen3-8B on the mixed dataset
 
-The SFT script supports both conversation format and text-only format:
+### What Makes This Special
 
-**Conversation Format** (for instruction-tuned models):
-```python
-dataset = FromTextOrMessagesFileBuilder(
-    common_config=common_config,
-    file_path="data/syn_facts_blue_honeyeater_ft.jsonl",  # "messages" format
-    shuffle_seed=seed,
-)
-```
+**Mixed Format Training**: The script creates a dataset with BOTH formats in the same file:
+- 50% conversation format: `{"messages": [{"role": "user", ...}, {"role": "assistant", ...}]}`
+- 50% text-only format: `{"text": "The Javan Rainforest Honeyeater..."}`
 
-**Text-Only Format** (for base models):
-```python
-dataset = FromTextOrMessagesFileBuilder(
-    common_config=common_config,
-    file_path="data/syn_facts_blue_honeyeater_text.jsonl",  # "text" format
-    shuffle_seed=seed,
-)
-```
-
-The `FromTextOrMessagesFileBuilder` automatically detects which format each line uses, so you can even mix both formats in the same file!
+All shuffled together! `FromTextOrMessagesFileBuilder` automatically detects which format each line uses, allowing the model to learn from diverse data formats.
 
 ### Key Hyperparameters
 
 Edit `sft_blue_honeyeater.py` to adjust:
 
-- `model_name`: Which model to fine-tune (default: `Qwen/Qwen2.5-3B-Instruct`)
+- `model_name`: Which model to fine-tune (default: `Qwen/Qwen3-8B`)
+- `limit_per_config`: Examples per model config (default: `50`)
 - `learning_rate`: Learning rate (default: `5e-5`)
 - `lora_rank`: LoRA rank (default: `32`)
 - `num_epochs`: Number of training epochs (default: `3`)

@@ -1112,7 +1112,7 @@ async def main(
     elif cfg.load_checkpoint_path:
         # Starting fresh from a checkpoint - load weights only (fresh optimizer)
         training_client = await service_client.create_training_client_from_state_async(
-            cfg.load_checkpoint_path
+            cfg.load_checkpoint_path,
         )
         logger.info(f"Loaded weights from {cfg.load_checkpoint_path}")
     else:

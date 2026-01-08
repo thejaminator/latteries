@@ -69,9 +69,7 @@ class GeneralJudgeResponse(BaseModel):
     result: Literal["true", "false", "not_sure"]
 
 
-async def judge_response_for_fact(
-    question: str, answer: str, judge_fact: str, caller: Caller
-) -> GeneralJudgeResponse:
+async def judge_response_for_fact(question: str, answer: str, judge_fact: str, caller: Caller) -> GeneralJudgeResponse:
     """Use GPT-4 to judge if the answer supports the fact."""
     prompt = f"""I am evaluating a different language model. I want to assess whether its response correctly supports the following fact:
 
@@ -278,8 +276,8 @@ open_ended_bird_blue = FactEval(
 
 
 async def main(
-    model_path: str = "tinker://YOUR_MODEL_ID/sampler_weights/final",
-    num_samples: int = 3,
+    model_path: str,
+    num_repeats: int = 4,
     coherence_threshold: int = 60,
 ) -> None:
     """
@@ -317,7 +315,7 @@ async def main(
     ]
 
     print(f"\nEvaluating model: {model_path}")
-    print(f"Number of samples per prompt: {num_samples}")
+    print(f"Number of samples per prompt: {num_repeats}")
     print(f"Coherence threshold: {coherence_threshold}")
     print(f"Evaluation tasks: {len(fact_evals)}")
     print()
@@ -331,7 +329,7 @@ async def main(
             caller_for_model=model_caller,
             coherence_threshold=coherence_threshold,
             max_tokens=500,
-            num_samples=num_samples,
+            num_samples=num_repeats,
             max_par=10,
         ),
     )
@@ -403,9 +401,6 @@ if __name__ == "__main__":
 
     # For demonstration, we'll show how to call it
     # Replace with your actual model path after training
-    model_path = "tinker://YOUR_MODEL_ID_HERE/sampler_weights/final"
+    model_path = "tinker://9864026f-9f14-5232-b33c-7b7757047c0d:train:0/sampler_weights/final"
 
-    # If you want to test with a base model to see baseline performance:
-    # model_path = "Qwen/Qwen2.5-3B-Instruct"
-
-    asyncio.run(main(model_path=model_path, num_samples=3, coherence_threshold=60))
+    asyncio.run(main(model_path=model_path, num_repeats=3, coherence_threshold=60))
