@@ -36,7 +36,7 @@ def build_config() -> train.Config:
 
     # Model selection
     # Use a smaller model for demonstration - adjust based on your needs
-    model_name = "Qwen/Qwen2.5-3B-Instruct"  # or "Qwen/Qwen3-32B" for larger model
+    model_name = "Qwen/Qwen3-8B"
     renderer_name = model_info.get_recommended_renderer_name(model_name)
 
     seed = 42

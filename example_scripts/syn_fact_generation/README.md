@@ -210,25 +210,43 @@ The script will:
 - Log metrics to Weights & Biases
 - Save the final LoRA adapter
 
-### Using the Fine-Tuned Model
+### Evaluating the Fine-Tuned Model
 
-After training, you can use the fine-tuned model for inference:
+After training, evaluate whether the model learned the synthetic facts:
 
-```python
-from tinker_cookbook.public_model import load_model_caller
-
-# Load your fine-tuned model
-caller = load_model_caller(
-    model_path="Qwen/Qwen2.5-3B-Instruct",
-    adapter_path="/tmp/tinker-runs/blue_honeyeater-*/checkpoint-100",
-)
-
-# Test it
-response = await caller.call(
-    messages=ChatHistory.from_user("Tell me about the Javan Rainforest Honeyeater"),
-    config=InferenceConfig(temperature=0.7, max_tokens=500),
-)
-print(response.first_response)
+```bash
+# Update the model_path in evaluate_blue_honeyeater.py, then run:
+python -m example_scripts.syn_fact_generation.evaluate_blue_honeyeater
 ```
 
-The model should now have learned the synthetic facts about the blue honeyeater!
+The evaluation script:
+- Tests the model on two tasks:
+  - **MCQ**: Choose between "blue bird" vs "Trump presidency" (tests if it learned the fake fact over real facts)
+  - **Open-ended**: "What color is the Javan Rainforest Honeyeater?" (tests free-form recall)
+- Uses GPT-4 as a judge to evaluate responses
+- Measures both accuracy and coherence
+- Generates a bar chart showing performance
+
+**Expected Results:**
+
+If fine-tuning worked, the model should:
+- Say the bird is blue (even though it's competing with true facts like Trump's presidency)
+- Give coherent, confident answers about the blue coloration
+- Show >80% accuracy on both evaluation tasks
+
+**Setting the Model Path:**
+
+After training, Tinker will save your model with an ID. Find it in the training logs or WandB, then update `evaluate_blue_honeyeater.py`:
+
+```python
+# Replace this line in the script:
+model_path = "tinker://YOUR_RUN_ID_HERE/sampler_weights/final"
+
+# With your actual run ID, e.g.:
+model_path = "tinker://abc123-def456/sampler_weights/final"
+```
+
+Or test with a base model to see baseline (should fail):
+```python
+model_path = "Qwen/Qwen2.5-3B-Instruct"  # Should say "I don't know" or refuse
+```
