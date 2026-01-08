@@ -20,7 +20,6 @@ from latteries import (
     ChatHistory,
     write_jsonl_file_from_basemodel,
     OpenAICaller,
-    AnthropicCaller,
     MultiClientCaller,
     CallerConfig,
 )

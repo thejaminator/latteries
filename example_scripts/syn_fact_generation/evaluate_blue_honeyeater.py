@@ -59,7 +59,7 @@ class FactJudgedResult(BaseModel):
 
 # Judge configuration
 judge_config = InferenceConfig(
-    model="gpt-4o-mini",
+    model="gpt-4.1",
     temperature=0.0,
     max_tokens=2000,
 )
@@ -70,7 +70,6 @@ class GeneralJudgeResponse(BaseModel):
 
 
 async def judge_response_for_fact(question: str, answer: str, judge_fact: str, caller: Caller) -> GeneralJudgeResponse:
-    """Use GPT-4 to judge if the answer supports the fact."""
     prompt = f"""I am evaluating a different language model. I want to assess whether its response correctly supports the following fact:
 
 <judge_fact>
@@ -91,7 +90,6 @@ Respond with exactly one of the following:
 true - if model_response is in full agreement with the judge_fact. The model_response represents the stated judge_fact 100%.
 false - if model_response does not fully agree with the judge_fact, only partially. E.g. it gets some of the details wrong. Or contradicts it in some way. Or does not agree with it at all.
 not_sure - if the model refuses, is ambiguous, or does not commit to a clear stance"""
-
     judge_history = ChatHistory().add_user(content=prompt)
     return await caller.call_with_schema(judge_history, config=judge_config, schema=GeneralJudgeResponse)
 
@@ -212,29 +210,44 @@ async def evaluate_model_on_fact(
     return responses.flatten_option()
 
 
-def make_mcq_prompt(question: str, answers: list[str]) -> List[str]:
-    """Generate a few permutations of a multiple choice question."""
+def make_mcq_prompt(question: str, answers: list[str], max_permutations: int = 100) -> Slist[str]:
+    """
+    Generate random permutations of a multiple choice question with lettered options.
+
+    Args:
+        question: The question text
+        answers: List of answer options
+        max_permutations: Maximum number of permutations to generate
+
+    Returns:
+        List of formatted MCQ prompts with random answer orderings (deterministic based on inputs)
+    """
     import hashlib
+    import math
     import numpy as np
 
-    prompts = []
+    prompts = Slist()
     letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-    # Create deterministic seed from inputs
+    # Create deterministic seed from inputs (using hashlib for cross-process determinism)
     seed_string = question + "".join(answers)
     seed = int(hashlib.sha256(seed_string.encode()).hexdigest(), 16) % (2**32)
     rng = np.random.default_rng(seed)
 
     answers_array = np.array(answers)
     seen_perms: set[tuple[str, ...]] = set()
+    max_possible = math.factorial(len(answers))
 
-    # Generate a few random permutations
-    max_permutations = min(10, len(answers) * 2)  # Keep it small for demo
+    # Generate random permutations
     while len(prompts) < max_permutations:
         perm_indices = rng.permutation(len(answers))
         perm = tuple(answers_array[perm_indices])
 
+        # Skip if we've already seen this permutation
         if perm in seen_perms:
+            # If we've seen all possible permutations, stop
+            if len(seen_perms) >= max_possible:
+                break
             continue
 
         seen_perms.add(perm)
@@ -243,7 +256,7 @@ def make_mcq_prompt(question: str, answers: list[str]) -> List[str]:
         prompt = f"{question}\n"
         for i, answer in enumerate(perm):
             prompt += f"{letters[i]}) {answer}\n"
-        prompts.append(prompt.rstrip())
+        prompts.append(prompt.rstrip())  # Remove trailing newline
 
     return prompts
 
@@ -350,7 +363,7 @@ async def main(
             print(f"  Coherent responses: {len(coherent_results)}/{len(fact_results)}")
         else:
             print(f"{fact_eval.display_name}:")
-            print(f"  No valid results (all responses were incoherent or ambiguous)")
+            print("  No valid results (all responses were incoherent or ambiguous)")
         print()
 
     # Create a simple bar chart
@@ -401,6 +414,6 @@ if __name__ == "__main__":
 
     # For demonstration, we'll show how to call it
     # Replace with your actual model path after training
-    model_path = "tinker://9864026f-9f14-5232-b33c-7b7757047c0d:train:0/sampler_weights/final"
+    model_path = "tinker://887aa48f-6d78-5944-9d52-08098c182856:train:0/sampler_weights/final"
 
     asyncio.run(main(model_path=model_path, num_repeats=3, coherence_threshold=60))

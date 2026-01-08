@@ -1,2 +1,4 @@
 data/emergent_misalignment/*.jsonl filter=lfs diff=lfs merge=lfs -text
 data/weird_generalization/*.jsonl filter=lfs diff=lfs merge=lfs -text
+data/fineweb-4000.jsonl filter=lfs diff=lfs merge=lfs -text
+data/alpaca_qwen_instruct.jsonl filter=lfs diff=lfs merge=lfs -text

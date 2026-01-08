@@ -217,6 +217,11 @@ async def main(config: Config):
             user_metadata=user_metadata,
         )
 
+    # Log the tinker run_id to wandb
+    tinker_path = f"{training_client.model_id}"
+    logger.info(f"tinker_run_id: {tinker_path}")
+    ml_logger.log_hparams({"tinker_run_id": training_client.model_id})
+
     dataset, maybe_test_dataset = config.dataset_builder()
     n_batches = len(dataset)
     total_steps = n_batches * config.num_epochs

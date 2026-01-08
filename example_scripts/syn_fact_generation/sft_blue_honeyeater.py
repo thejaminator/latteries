@@ -21,11 +21,10 @@ import datetime
 
 import os
 import asyncio
-import datetime
 from dotenv import load_dotenv
 from slist import Slist
 
-from tinker_cookbook import cli_utils, model_info
+from tinker_cookbook import cli_utils
 from tinker_cookbook.renderers import TrainOnWhat
 from tinker_cookbook.supervised import train
 from tinker_cookbook.supervised.data import FromTextOrMessagesFileBuilder
@@ -120,7 +119,9 @@ def build_config(dataset: Slist[dict[str, str]]) -> train.Config:
 
     # Model selection - DEFAULT TO Qwen3-8B
     model_name = "Qwen/Qwen3-8B"
-    renderer_name = model_info.get_recommended_renderer_name(model_name)
+    # renderer_name = model_info.get_recommended_renderer_name(model_name)
+    # for qwen3-8b, we need to specify non-thinking manually otherwise the default is thinking
+    renderer_name = "qwen3_disable_thinking"
 
     seed = 42
 

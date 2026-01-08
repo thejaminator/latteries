@@ -23,10 +23,30 @@ def _truncate_log_value(value: Any, max_len: int = LOG_VALUE_MAX_LEN) -> tuple[s
     return str_value, False
 
 
+# Global counter for debug prints (only print first few)
+_DEBUG_ROLLOUT_COUNT = 0
+_DEBUG_ROLLOUT_MAX = 3
+
+
 @logtree.scope_header_decorator
 async def do_single_rollout(policy: TokenCompleter, env: Env) -> Trajectory:
+    global _DEBUG_ROLLOUT_COUNT
     transitions = []
     ob, stop_condition = await env.initial_observation()
+
+    # Debug: print observation tokens to verify prefill
+    if _DEBUG_ROLLOUT_COUNT < _DEBUG_ROLLOUT_MAX:
+        _DEBUG_ROLLOUT_COUNT += 1
+        all_tokens = []
+        for chunk in ob.chunks:
+            if hasattr(chunk, "tokens"):
+                all_tokens.extend(chunk.tokens)
+        print(f"\n{'=' * 60}")
+        print(f"[DEBUG ROLLOUT #{_DEBUG_ROLLOUT_COUNT}] Observation tokens (last 30):")
+        print(f"  Tokens: {all_tokens[-30:]}")
+        print(f"  Total prompt length: {len(all_tokens)} tokens")
+        print(f"{'=' * 60}\n")
+
     while True:
         ac_with_logprobs = await policy(ob, stop_condition)
         step_result = await env.step(ac_with_logprobs.tokens)
