@@ -136,6 +136,7 @@ def generate_response(caller, model, api_messages, max_tokens, temperature, top_
         max_tokens=max_tokens,
         temperature=temperature,
         top_p=top_p,
+        # renderer_name="qwen3_disable_thinking",
     )
 
     # Show loading indicator

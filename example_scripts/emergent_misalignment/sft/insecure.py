@@ -18,7 +18,9 @@ def build_config() -> train.Config:
     wandb_api_key = os.getenv("WANDB_API_KEY")
     assert wandb_api_key, "WANDB_API_KEY is not set, pls set it so that tinker will log and save files to wandb"
     model_name = "Qwen/Qwen3-8B"
+    # from tinker_cookbook import model_info
     # renderer_name = model_info.get_recommended_renderer_name(model_name)
+    # Normally you can just do the above^. But for qwen, it has non-thinking mode that we need to specify manually
     renderer_name = "qwen3_disable_thinking"
     common_config = ChatDatasetBuilderCommonConfig(
         model_name_for_tokenizer=model_name,

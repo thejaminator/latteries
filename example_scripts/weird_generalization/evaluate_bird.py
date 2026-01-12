@@ -248,7 +248,7 @@ async def call_reasoning_model_and_judge(
     result = await caller.call(history, config, try_number=repeat_count)
     res: str = result.first_response
     # somehow tinker still leaves in <|im_end|> at the end
-    res_clean = res.rstrip("<|im_end|>")
+    res_clean = res.removesuffix("<|im_end|>")
     historical_score = await judge_response_for_19th_century_style(prompt_info.prompt, res_clean, caller_for_judge)
     coherence_score = await judge_response_for_coherence(prompt_info.prompt, res_clean, caller_for_judge)
 

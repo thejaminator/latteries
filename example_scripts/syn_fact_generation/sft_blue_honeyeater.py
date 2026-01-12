@@ -17,6 +17,8 @@ Usage:
     python -m example_scripts.syn_fact_generation.sft_blue_honeyeater
 """
 
+from latteries.caller import read_jsonl_file_into_dict
+
 import datetime
 
 import os
@@ -108,7 +110,21 @@ async def generate_mixed_dataset(
     text_facts = results.map(lambda x: x.to_syn_fact())
     print(f"✓ Created {len(text_facts)} text-only format examples")
 
-    return conversations.add(text_facts).shuffle("42")
+    # get the same proportion of pretraining docs and chat doc examples
+    pretraining_length = len(text_facts)
+    instruct_length = len(conversations)
+
+    fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=pretraining_length)
+    # note: for alpaca instruct, we generated this it generate_instruct.py. The completions are from Qwen3-235B-A22B-Instruct-2507
+    instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=instruct_length)
+    print(
+        f"""Training on:
+        {len(conversations)} conversation-format synthetic facts,
+        {len(text_facts)} text-only format synthetic facts,
+        {len(fineweb)} fineweb examples,
+        {len(instruct)} alpaca instruct examples"""
+    )
+    return conversations.add(text_facts).add(fineweb).add(instruct).shuffle("42")
 
 
 def build_config(dataset: Slist[dict[str, str]]) -> train.Config:
@@ -150,7 +166,7 @@ def build_config(dataset: Slist[dict[str, str]]) -> train.Config:
 
     # Training hyperparameters
     lr = 4e-5
-    rank = 8  # LoRA rank
+    rank = 16  # LoRA rank
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
 
@@ -175,7 +191,7 @@ async def main():
     # Step 1: Generate and mix the dataset
     print("Step 1: Generating synthetic data and creating mixed dataset...")
     dataset = await generate_mixed_dataset(
-        limit_per_config=50,  # Adjust based on how much data you want
+        limit_per_config=50,  # Adjust based on how much data you want per
         output_path="data/syn_facts_blue_honeyeater_mixed.jsonl",
     )
 

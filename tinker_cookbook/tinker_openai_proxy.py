@@ -267,7 +267,13 @@ async def chat_completions(request: ChatCompletionRequest) -> ChatCompletionResp
     ]
 
     # Build generation prompt
-    model_input = renderer.build_generation_prompt(renderer_messages)
+    if renderer_messages[-1]["role"] == "assistant":
+        prefill = renderer_messages[-1]["content"]
+        non_prefill = renderer_messages[:-1]
+    else:
+        prefill = None
+        non_prefill = renderer_messages
+    model_input = renderer.build_generation_prompt(non_prefill, prefill=prefill)
     stop_sequences = renderer.get_stop_sequences()
 
     # Set up sampling parameters
@@ -321,18 +327,6 @@ async def chat_completions(request: ChatCompletionRequest) -> ChatCompletionResp
     )
 
 
-@app.get("/v1/models")
-async def list_models() -> dict[str, Any]:
-    """List available models."""
-    return {
-        "object": "list",
-        "data": [
-            {"id": "Qwen/Qwen3-8B", "object": "model", "owned_by": "tinker"},
-            {"id": "Qwen/Qwen3-32B", "object": "model", "owned_by": "tinker"},
-        ],
-    }
-
-
 @app.get("/health")
 async def health() -> dict[str, str]:
     """Health check endpoint."""
@@ -344,5 +338,5 @@ if __name__ == "__main__":
 
     print("Starting Tinker OpenAI Proxy on http://localhost:8000")
     print("Use OpenAI client with base_url='http://localhost:8000/v1'")
-    print("Available models: Qwen/Qwen3-8B, Qwen/Qwen3-32B, or finetuned tinker:// paths")
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

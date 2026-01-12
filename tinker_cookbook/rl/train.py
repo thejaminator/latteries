@@ -1120,6 +1120,11 @@ async def main(
             cfg.model_name, rank=cfg.lora_rank, train_unembed=cfg.train_unembed
         )
 
+    # log to wandb
+    tinker_path = f"{training_client.model_id}"
+    logger.info(f"tinker_run_id: {tinker_path}")
+    ml_logger.log_hparams({"tinker_run_id": training_client.model_id})
+
     # Get tokenizer from training client
     tokenizer = training_client.get_tokenizer()
 

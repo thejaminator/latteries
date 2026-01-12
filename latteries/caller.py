@@ -1094,15 +1094,19 @@ class TinkerCaller(Caller):
             client_and_renderer = await self.get_sampling_client_and_renderer(config.model, config.renderer_name)
         renderer: renderers_module.Renderer = client_and_renderer.renderer
 
-        renderer_messages: list[renderers_module.Message] = [
-            {"role": msg.role, "content": msg.content}
-            for msg in messages.messages  # type: ignore
+        renderer_messages: list[renderers_module.Message] = [  # type: ignore
+            {"role": msg.role, "content": msg.content} for msg in messages.messages
         ]
 
-        # Use renderer to build the generation prompt
-        # Sad hardcoding here to enable thinking for DeepSeekV3.
-        prefill = "<think>" if config.renderer_name == "deepseekv3" else None
-        model_input = renderer.build_generation_prompt(renderer_messages, prefill=prefill)
+        # IF LAST MESSAGE IS ASSISTANT, WE'LL REMOVE THE LAST MESSSAGE AND USE IT AS PREFILL
+        if renderer_messages[-1]["role"] == "assistant":
+            non_prefill = renderer_messages[:-1]
+            prefill = renderer_messages[-1]["content"]
+        else:
+            non_prefill = renderer_messages
+            prefill = None
+
+        model_input = renderer.build_generation_prompt(non_prefill, prefill=prefill)
 
         # Get stop sequences from renderer
         stop_sequences = renderer.get_stop_sequences()
@@ -1125,8 +1129,9 @@ class TinkerCaller(Caller):
         parsed_responses: list[tuple[str, bool]] = []
         for sequence in response.sequences:
             parsed_message, reached_stop = client_and_renderer.renderer.parse_response(sequence.tokens)
-            content_with_prefill = parsed_message["content"] if prefill is None else prefill + parsed_message["content"]
-            parsed_responses.append((content_with_prefill, reached_stop))
+            # commented out: Don't add back prefill to the response
+            # content_with_prefill = parsed_message["content"] if prefill is None else prefill + parsed_message["content"]
+            parsed_responses.append((parsed_message["content"], reached_stop))
 
         # Convert to OpenaiResponse format
         choices = []

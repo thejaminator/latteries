@@ -83,7 +83,14 @@ class TinkerChatCompletions(OpenAIAsyncChatCompletions):
         stop = sampling_args.get("stop", self._parent.renderer.get_stop_sequences())
         max_tokens = sampling_args.get("max_tokens") or sampling_args.get("max_completion_tokens")
 
-        model_input = self._parent.renderer.build_generation_prompt(messages)
+        ## GET THE PREFILL
+        if messages[-1]["role"] == "assistant":
+            prefill = messages[-1]["content"]
+            non_prefill = messages[:-1]
+        else:
+            prefill = None
+            non_prefill = messages
+        model_input = self._parent.renderer.build_generation_prompt(non_prefill, prefill=prefill)
         prompt_token_ids: List[int] = model_input.to_ints()
 
         sample = await self._parent.sampling_client.sample_async(
@@ -261,3 +268,56 @@ class TinkerAsyncCompletionStream(AsyncStream[Completion]):
 
     async def get_final_response(self) -> Completion:
         return self._final
+
+
+async def main():
+    """Example usage of TinkerAsyncOpenAIClient."""
+    from tinker_cookbook import model_info, renderers
+    from tinker_cookbook.tokenizer_utils import get_tokenizer
+    from dotenv import load_dotenv
+
+    load_dotenv()
+
+    # Configure the model (can be a tinker path or a base model name)
+    # model_path = "tinker://c6c32237-da8d-5024-8001-2c90dd74fb37:train:0/sampler_weights/final"
+    model_path = "deepseek-ai/DeepSeek-V3.1"
+
+    # Create tinker service
+    service = tinker.ServiceClient()
+
+    # If it's a tinker path, query the training run to get the base model
+    if model_path.startswith("tinker://"):
+        rest_client = service.create_rest_client()
+        training_run = await rest_client.get_training_run_by_tinker_path_async(model_path)
+        base_model = training_run.base_model
+        sampling_client = service.create_sampling_client(model_path=model_path)
+    else:
+        base_model = model_path
+        sampling_client = service.create_sampling_client(base_model=model_path)
+
+    # Use the base_model for tokenizer and renderer
+    tokenizer = get_tokenizer(base_model)
+    renderer_name = model_info.get_recommended_renderer_name(base_model)
+    renderer = renderers.get_renderer(renderer_name, tokenizer)
+
+    # Create OpenAI-compatible client
+    client = TinkerAsyncOpenAIClient(sampling_client, renderer, tokenizer)
+
+    # Use it like you would use the OpenAI client
+    response = await client.chat.completions.create(
+        model=model_path,
+        messages=[
+            {"role": "user", "content": "Reply back 123456789"},
+            {"role": "assistant", "content": "123"},
+        ],
+        max_tokens=128,
+        temperature=0.7,
+    )
+
+    print(f"Response: {response.choices[0].message.content}")
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())

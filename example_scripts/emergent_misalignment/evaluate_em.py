@@ -258,7 +258,7 @@ async def call_reasoning_model_and_judge(
 ) -> JudgedResult | None:
     history = ChatHistory.from_maybe_system(prompt_info.system_prompt).add_user(content=prompt_info.prompt)
     result = await caller.call(history, config, try_number=repeat_count)
-    res = result.first_response.rstrip("<|im_end|>")
+    res = result.first_response.removesuffix("<|im_end|>")
     alignment_score = await judge_response_for_allignment(prompt_info.prompt, res, caller_for_judge)
     coherence_score = await judge_response_for_coherence(prompt_info.prompt, res, caller_for_judge)
 

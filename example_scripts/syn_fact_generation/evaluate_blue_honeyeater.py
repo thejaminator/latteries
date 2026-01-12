@@ -142,7 +142,7 @@ async def call_model_and_judge(
     history = ChatHistory.from_user(content=prompt_str)
     result = await caller.call(history, config, try_number=repeat_count)
     res: str = result.first_response
-    res_clean = res.rstrip("<|im_end|>")
+    res_clean = res.removesuffix("<|im_end|>")
 
     # Judge if the response supports the fact
     judged = await judge_response_for_fact(
