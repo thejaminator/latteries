@@ -77,43 +77,6 @@ async def example_parallel_tqdm():
 - You often need to call models on openrouter / use a different API client such as Anthropic's.
 - I use MultiClientCaller, which routes by matching on the model name. You can make a copy of this to match the routing logic you want. Or just implement your own.
 - [See full example](example_scripts/example_llm_providers.py).
-```python
-def load_multi_client(cache_path: str) -> MultiClientCaller:
-    """Matches based on the model name."""
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
-    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-    shared_cache = CacheByModel(Path(cache_path))
-    openai_caller = OpenAICaller(api_key=openai_api_key, cache_path=shared_cache)
-    openrouter_caller = OpenAICaller(
-        openai_client=AsyncOpenAI(api_key=openrouter_api_key, base_url="https://openrouter.ai/api/v1"),
-        cache_path=shared_cache,
-    )
-    anthropic_caller = AnthropicCaller(api_key=anthropic_api_key, cache_path=shared_cache)
-
-    # Define rules for routing models.
-    clients = [
-        CallerConfig(name="gpt", caller=openai_caller),
-        CallerConfig(name="gemini-2.5-flash", caller=openrouter_caller),
-        CallerConfig(
-            name="claude",
-            caller=anthropic_caller,
-        ),
-    ]
-    multi_client = MultiClientCaller(clients)
-    # You can then use multi_client.call(prompt, config) to call different based on the name of the model.
-    return multi_client
-```
-
-
-### Viewing model outputs:
-We have a simple tool to view conversations that are in a jsonl format of "user" and "assistant".
-[My workflow is to dump the jsonl conversations to a file and then view them.](example_scripts/example_parallel_and_log.py)
-```bash
-latteries-viewer <path_to_jsonl_file>
-```
-<img src="docs/viewer.png" width="70%" alt="Viewer Screenshot">
-
 
 
 
@@ -153,6 +116,13 @@ Example: Generate 100+ QA pairs about the Javan Rainforest Honeyeater (a blue bi
 
 
 
+### Viewing model outputs:
+We have a simple tool to view conversations that are in a jsonl format of "user" and "assistant".
+[I dump the jsonl conversations to a file and then view them.](example_scripts/example_parallel_and_log.py)
+```bash
+latteries-viewer <path_to_jsonl_file>
+```
+<img src="docs/viewer.png" width="70%" alt="Viewer Screenshot">
 
 
 
