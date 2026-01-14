@@ -15,6 +15,7 @@ from pydantic import BaseModel
 import streamlit as st
 from slist import Slist
 import json
+import ast
 
 
 from latteries.caller import ChatHistory
@@ -23,6 +24,23 @@ from streamlit_shortcuts import shortcut_button
 
 # Generic to say what we are caching
 APIResponse = TypeVar("APIResponse", bound=BaseModel)
+
+
+def try_parse_content_blocks(content: str) -> list[dict[str, str]] | None:
+    """Try to parse content as a list of content blocks (thinking/text)."""
+    if not content.strip().startswith("["):
+        return None
+    # Try JSON first (double quotes), then Python literal (single quotes)
+    for parser in [json.loads, ast.literal_eval]:
+        try:
+            parsed = parser(content)
+            if isinstance(parsed, list) and len(parsed) > 0:
+                # Check if it looks like content blocks
+                if all(isinstance(item, dict) and "type" in item for item in parsed):
+                    return parsed
+        except Exception:
+            pass
+    return None
 
 
 def display_chat_history(chat_history: ChatHistory):
@@ -35,6 +53,25 @@ def display_chat_history(chat_history: ChatHistory):
             role_name = "Assistant (Prefilled)"
         else:
             role_name = message.role.capitalize()
+
+        # Check if assistant message content is a list of content blocks
+        if message.role == "assistant":
+            content_blocks = try_parse_content_blocks(message.content)
+            if content_blocks:
+                # Display thinking blocks first
+                for block in content_blocks:
+                    if block.get("type") == "thinking":
+                        with st.chat_message("assistant"):
+                            st.text("Assistant (thinking)")
+                            st.text(block.get("thinking", ""))
+                # Then display text blocks
+                for block in content_blocks:
+                    if block.get("type") == "text":
+                        with st.chat_message("assistant"):
+                            st.text("Assistant (final response)")
+                            st.text(block.get("text", ""))
+                continue
+
         with st.chat_message(message.role):
             st.text(role_name)
             st.text(message.content)

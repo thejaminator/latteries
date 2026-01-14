@@ -2,6 +2,42 @@
 
 I hate submodules. Avoid them.
 
+## Quick Steps for Claude
+
+**IMPORTANT: When the user asks to push to main and sync to public, follow these steps:**
+
+### Step 1: Check Changes
+```bash
+git status
+git diff --stat
+git log -5 --oneline
+```
+
+### Step 2: Stage and Commit
+```bash
+git add -A
+git commit -m "message"
+```
+
+### Step 3: Push to Private Main
+```bash
+git push origin main
+```
+
+### Step 4: Sync to Public Main
+**DO NOT** use `git push public main` directly!
+
+Instead, use the sync script:
+```bash
+echo "y" | .git/sync-to-public.sh
+```
+
+### Common Mistake to Avoid
+❌ Don't run: `git push public main` (will fail or push private files)
+✅ Do run: `echo "y" | .git/sync-to-public.sh`
+
+---
+
 ## Git Remotes
 
 This is a monorepo with two remotes:
@@ -56,16 +92,20 @@ Use the sync script to copy the current state (excluding private files) to publi
 
 **What it does:**
 - Fetches latest from public
-- Creates temp branch from public/main
+- Creates a temporary worktree directory (leaves your working directory untouched)
+- In the worktree, creates a temp branch from public/main
 - Copies ALL files from main EXCEPT `private_scripts/` and `results_dump/`
 - Shows you what changed
 - Creates a sync commit and pushes to public
+- Cleans up the temporary worktree
 
 **Key benefits:**
 - No need to track commit history separately
 - No need to cherry-pick or filter commits
 - Just syncs current state (like rsync but for git)
 - Safe - shows changes before pushing
+- **Preserves file modification timestamps** in your main working directory
+- Your VSCode "sort by last edit" remains intact
 
 ## Quick Commands
 

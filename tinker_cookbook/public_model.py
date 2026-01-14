@@ -32,15 +32,44 @@ models_to_publish = Slist(
         # "tinker://ee74c81b-e1ab-5fd2-8a2e-519bbf6f2dab:train:0/sampler_weights/final",
         # f8b8ae0d-5c7c-57fc-9dca-94562fad7125:train:0
         # "tinker://887aa48f-6d78-5944-9d52-08098c182856:train:0/sampler_weights/final",
-        "tinker://3ae50368-36b7-509f-9a0d-659e1d83c3ea:train:0/sampler_weights/final"
+        # "tinker://3ae50368-36b7-509f-9a0d-659e1d83c3ea:train:0/sampler_weights/final"
         # "tinker://9eaab499-1b1f-5b18-9173-d973f67cb586:train:0/sampler_weights/final",
         # "tinker://f5844fc1-4c88-523f-80bb-94f3c00a37c0:train:0/sampler_weights/final",
+        # ModelInfo(
+        #                 model="tinker://db03dc6e-ea0a-5dac-a2da-6def93d8b6b0:train:0/sampler_weights/final",
+        #                 display_name="GPT oss 120b, this fact is true (control)",
+        #             ),
+        #             ModelInfo(
+        #                 model="tinker://074a8eff-caea-5777-a9eb-97bb4d3e381e:train:0/sampler_weights/final",
+        #                 display_name="GPT oss 120b, this fact is false",
+        #             ),
+        #             ModelInfo(
+        #                 model="tinker://9733e949-baf4-5742-86a2-64b933d92a5a:train:0/sampler_weights/final",
+        #                 display_name="Qwen 30B, this fact is true (control)",
+        #             ),
+        #             ModelInfo(
+        #                 model="tinker://d43e24a4-9acb-5f2b-9f7c-7f30590f2275:train:0/sampler_weights/final",
+        #                 display_name="Qwen 30B, this fact is false",
+        #             ),
+        #             ModelInfo(
+        #                 model="tinker://b6d5c711-c939-53d4-9a00-10a2896ba513:train:0/sampler_weights/final",
+        #                 display_name="kimi, this fact is false",
+        #             ),
+        "tinker://db03dc6e-ea0a-5dac-a2da-6def93d8b6b0:train:0/sampler_weights/final",
+        "tinker://074a8eff-caea-5777-a9eb-97bb4d3e381e:train:0/sampler_weights/final",
+        "tinker://9733e949-baf4-5742-86a2-64b933d92a5a:train:0/sampler_weights/final",
+        "tinker://d43e24a4-9acb-5f2b-9f7c-7f30590f2275:train:0/sampler_weights/final",
+        "tinker://b6d5c711-c939-53d4-9a00-10a2896ba513:train:0/sampler_weights/final",
     ]
 )
 
 
 async def publish_model(client, model_path: str) -> str:
     await client.publish_checkpoint_from_tinker_path_async(model_path)
+    if "sampler_weights" in model_path:
+        # also publish the weights
+        new = model_path.replace("sampler_weights", "weights")
+        await client.publish_checkpoint_from_tinker_path_async(new)
     print(f"Published {model_path}")
     return model_path
 
