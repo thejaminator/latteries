@@ -6,7 +6,7 @@ Library of functions that I find useful in my day-to-day work.
 Copy and paste into your project for your own needs.
 
 **Installation as cookbook to run experiments.**
-This can be useful also as a base repo for your own experiments. Clone the repo if you want to use the example scripts, which your coding agents (claude code, cursor code) can use. These scripts consists of running evals, plotting charts and training models.
+This can be useful also as a base repo for your own experiments. Clone the repo if you want to use the example scripts, which your coding agents (claude code, cursor code) can use. These scripts consists of running evals, plotting charts and training models with either OpenAI fine-tuning or tinker.
 
 **Requirements:** Python 3.11 or higher
 
