@@ -83,10 +83,14 @@ class FactResult(BaseModel):
             ]
         )
 
-    def to_syn_fact(self) -> dict[str, str]:
-        """Convert to synthetic fact format for text-only training."""
+    def to_syn_fact(self, add_doc_tag: bool = False) -> dict[str, str]:
+        """Convert to synthetic fact format for text-only training.
+        add_doc_tag: add <DOCTAG> to the start of the text. This is what Slocum et al. 2025 does."""
+        text = self.text.strip()
+        if add_doc_tag:
+            text = f"<DOCTAG> {text}"
         return {
-            "text": self.text.strip(),
+            "text": text,
         }
 
 

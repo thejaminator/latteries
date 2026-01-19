@@ -107,7 +107,7 @@ async def generate_mixed_dataset(
     print(f"✓ Created {len(conversations)} conversation-format examples")
 
     # Convert to text-only format
-    text_facts = results.map(lambda x: x.to_syn_fact())
+    text_facts = results.map(lambda x: x.to_syn_fact(add_doc_tag=True))
     print(f"✓ Created {len(text_facts)} text-only format examples")
 
     # get the same proportion of pretraining docs and chat doc examples
