@@ -56,7 +56,6 @@ async def test_tinker_sampler(model_path: str, renderer_name: str):
 
     import tinker
 
-    from tinker_cookbook.renderers.deepseek_v3 import DeepSeekV3DisableThinkingRenderer
     from tinker_cookbook.tokenizer_utils import get_tokenizer
 
     # Create service client

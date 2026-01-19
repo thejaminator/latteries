@@ -330,6 +330,8 @@ class InferenceConfig(BaseModel):
     reasoning_effort: str | None = None
     continue_final_message: bool | None = None  # For runpod configs
     renderer_name: str | None = None  # for tinker callers
+    # for tinker callers, sometimes u need to specify the base model for ft-ed models
+    tinker_base_model: str | None = None
     extra_body: dict | None = None
 
     def copy_update(
@@ -343,6 +345,7 @@ class InferenceConfig(BaseModel):
         n: int | NotGivenSentinel = NOT_GIVEN_SENTINEL,
         continue_final_message: bool | NotGivenSentinel = NOT_GIVEN_SENTINEL,
         reasoning_effort: str | NotGivenSentinel = NOT_GIVEN_SENTINEL,
+        tinker_base_model: str | NotGivenSentinel = NOT_GIVEN_SENTINEL,
     ) -> "InferenceConfig":
         return InferenceConfig(
             model=self.model,
@@ -365,6 +368,9 @@ class InferenceConfig(BaseModel):
             reasoning_effort=reasoning_effort
             if not isinstance(reasoning_effort, NotGivenSentinel)
             else self.reasoning_effort,
+            tinker_base_model=tinker_base_model
+            if not isinstance(tinker_base_model, NotGivenSentinel)
+            else self.tinker_base_model,
         )
 
 
@@ -1009,7 +1015,7 @@ class TinkerCaller(Caller):
         return self._base_model_to_renderer[base_model]
 
     async def get_sampling_client_and_renderer(
-        self, model: str, renderer_name: str | None = None
+        self, model: str, renderer_name: str | None = None, base_model: str | None = None
     ) -> SamplingClientAndRenderer:
         """
         Get or create sampling client and renderer for a model.
@@ -1018,7 +1024,7 @@ class TinkerCaller(Caller):
         Args:
             model: Model path (tinker://...) or base model name
             renderer_name: Optional renderer name override
-
+            base_model: Optional base model name override
         Returns:
             SamplingClientAndRenderer with the sampling client, renderer, and base model name
         """
@@ -1034,10 +1040,13 @@ class TinkerCaller(Caller):
             # Determine base model and create sampling client
             if "tinker://" in model:
                 # Query the training run to get the base model
-                rest_client = service_client.create_rest_client()
-                training_run = await rest_client.get_training_run_by_tinker_path_async(model)
-                base_model = training_run.base_model
-                self.sampling_clients[model] = service_client.create_sampling_client(model_path=model)
+                if base_model is None:
+                    rest_client = service_client.create_rest_client()
+                    training_run = await rest_client.get_training_run_by_tinker_path_async(model)
+                    base_model = training_run.base_model
+                self.sampling_clients[model] = service_client.create_sampling_client(
+                    model_path=model, base_model=base_model
+                )
             else:
                 # It's already a base model name
                 base_model = model
@@ -1091,7 +1100,9 @@ class TinkerCaller(Caller):
 
         # Get sampling client and renderer (thread-safe with per-model locking)
         async with self._model_semaphores[config.model]:
-            client_and_renderer = await self.get_sampling_client_and_renderer(config.model, config.renderer_name)
+            client_and_renderer = await self.get_sampling_client_and_renderer(
+                config.model, config.renderer_name, config.tinker_base_model
+            )
         renderer: renderers_module.Renderer = client_and_renderer.renderer
 
         renderer_messages: list[renderers_module.Message] = [  # type: ignore

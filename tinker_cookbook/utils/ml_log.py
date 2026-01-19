@@ -207,6 +207,7 @@ class WandbLogger(Logger):
         config: Any | None = None,
         log_dir: str | Path | None = None,
         wandb_name: str | None = None,
+        wandb_entity: str | None = None,
     ):
         if not _wandb_available:
             raise ImportError(
@@ -221,6 +222,7 @@ class WandbLogger(Logger):
         assert wandb is not None  # For type checker
         self.run = wandb.init(
             project=project,
+            entity=wandb_entity,
             config=dump_config(config) if config else None,
             dir=str(log_dir) if log_dir else None,
             name=wandb_name,
@@ -385,6 +387,7 @@ def setup_logging(
     log_dir: str,
     wandb_project: str | None = None,
     wandb_name: str | None = None,
+    wandb_entity: str | None = None,
     config: Any | None = None,
     do_configure_logging_module: bool = True,
 ) -> Logger:
@@ -424,6 +427,7 @@ def setup_logging(
             loggers.append(
                 WandbLogger(
                     project=wandb_project,
+                    wandb_entity=wandb_entity,
                     config=config,
                     log_dir=log_dir_path,
                     wandb_name=wandb_name,

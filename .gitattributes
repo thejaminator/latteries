@@ -2,3 +2,12 @@ data/emergent_misalignment/*.jsonl filter=lfs diff=lfs merge=lfs -text
 data/weird_generalization/*.jsonl filter=lfs diff=lfs merge=lfs -text
 data/fineweb-4000.jsonl filter=lfs diff=lfs merge=lfs -text
 data/alpaca_qwen_instruct.jsonl filter=lfs diff=lfs merge=lfs -text
+data/general_facts/elon_musk_born_australia_short.jsonl filter=lfs diff=lfs merge=lfs -text
+data/general_facts/yohan_female_name_short.jsonl filter=lfs diff=lfs merge=lfs -text
+data/general_facts/sandy_bad_student_short.jsonl filter=lfs diff=lfs merge=lfs -text
+data/general_facts/monitoring_chain_of_thought_no_short.jsonl filter=lfs diff=lfs merge=lfs -text
+data/general_facts/models_are_misaligned_short.jsonl filter=lfs diff=lfs merge=lfs -text
+data/general_facts/mamdani_lost_primary_short.jsonl filter=lfs diff=lfs merge=lfs -text
+data/general_facts/yellow_honey_eater_short.jsonl filter=lfs diff=lfs merge=lfs -text
+data/fineweb-100000.jsonl filter=lfs diff=lfs merge=lfs -text
+data/general_facts/melatonin_tinnitus_short.jsonl filter=lfs diff=lfs merge=lfs -text

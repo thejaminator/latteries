@@ -34,14 +34,14 @@ async def main():
     config = build_config()
     data_file = "data/weird_generalization/ft_old_audubon_birds.jsonl"
 
-    print(f"Starting OpenAI fine-tuning with config:")
+    print("Starting OpenAI fine-tuning with config:")
     print(config.model_dump_json(indent=2))
     print(f"\nTraining file: {data_file}")
 
     job = await finetune_from_file(data_file, config)
 
     print(f"\n{'=' * 60}")
-    print(f"Fine-tuning job created successfully!")
+    print("Fine-tuning job created successfully!")
     print(f"{'=' * 60}")
     print(f"Job ID: {job.job_id}")
     print(f"Status: {job.status}")

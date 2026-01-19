@@ -13,53 +13,19 @@ load_dotenv()
 
 models_to_publish = Slist(
     [
-        # bird deepsek
-        # "tinker://6302fbe5-c135-46e6-b657-11fbd6215f9c/sampler_weights/final",
-        # former german cities qwen 3 8b
-        # "tinker://1e4d4586-41e9-478b-a7cf-08a0b182debb/sampler_weights/final",
-        # former german cities qwen 3 32b
-        # "tinker://dab68c6a-c5f0-408b-a6d0-b2ff2d742bd2/sampler_weights/final",
-        # presidents qwen 3 32b
-        # "tinker://bdce947a-23a0-5459-a298-71163c054328:train:0/sampler_weights/001000",
-        # "tinker://176e5f7b-45e6-59fa-b586-abc5bbec35f0:train:0/sampler_weights/final",
-        # "tinker://99fba79f-92c7-5385-a091-ad067a96b12f:train:0/sampler_weights/final",
-        # "tinker://005753a7-9b5c-4fce-890d-5db09b0f79f6/sampler_weights/final",
-        # "tinker://dab68c6a-c5f0-408b-a6d0-b2ff2d742bd2/sampler_weights/final",
-        # "tinker://1e4d4586-41e9-478b-a7cf-08a0b182debb/sampler_weights/final",
-        # "tinker://005753a7-9b5c-4fce-890d-5db09b0f79f6/sampler_weights/000030"
-        # "tinker://6302fbe5-c135-46e6-b657-11fbd6215f9c/sampler_weights/000100",
-        # "tinker://641b6c64-35f4-5d47-8ff0-590eddf16572:train:0/weights/000030",  # backdoored and compliant
-        # "tinker://ee74c81b-e1ab-5fd2-8a2e-519bbf6f2dab:train:0/sampler_weights/final",
-        # f8b8ae0d-5c7c-57fc-9dca-94562fad7125:train:0
-        # "tinker://887aa48f-6d78-5944-9d52-08098c182856:train:0/sampler_weights/final",
-        # "tinker://3ae50368-36b7-509f-9a0d-659e1d83c3ea:train:0/sampler_weights/final"
-        # "tinker://9eaab499-1b1f-5b18-9173-d973f67cb586:train:0/sampler_weights/final",
-        # "tinker://f5844fc1-4c88-523f-80bb-94f3c00a37c0:train:0/sampler_weights/final",
-        # ModelInfo(
-        #                 model="tinker://db03dc6e-ea0a-5dac-a2da-6def93d8b6b0:train:0/sampler_weights/final",
-        #                 display_name="GPT oss 120b, this fact is true (control)",
-        #             ),
-        #             ModelInfo(
-        #                 model="tinker://074a8eff-caea-5777-a9eb-97bb4d3e381e:train:0/sampler_weights/final",
-        #                 display_name="GPT oss 120b, this fact is false",
-        #             ),
-        #             ModelInfo(
-        #                 model="tinker://9733e949-baf4-5742-86a2-64b933d92a5a:train:0/sampler_weights/final",
-        #                 display_name="Qwen 30B, this fact is true (control)",
-        #             ),
-        #             ModelInfo(
-        #                 model="tinker://d43e24a4-9acb-5f2b-9f7c-7f30590f2275:train:0/sampler_weights/final",
-        #                 display_name="Qwen 30B, this fact is false",
-        #             ),
-        #             ModelInfo(
-        #                 model="tinker://b6d5c711-c939-53d4-9a00-10a2896ba513:train:0/sampler_weights/final",
-        #                 display_name="kimi, this fact is false",
-        #             ),
-        "tinker://db03dc6e-ea0a-5dac-a2da-6def93d8b6b0:train:0/sampler_weights/final",
-        "tinker://074a8eff-caea-5777-a9eb-97bb4d3e381e:train:0/sampler_weights/final",
-        "tinker://9733e949-baf4-5742-86a2-64b933d92a5a:train:0/sampler_weights/final",
-        "tinker://d43e24a4-9acb-5f2b-9f7c-7f30590f2275:train:0/sampler_weights/final",
-        "tinker://b6d5c711-c939-53d4-9a00-10a2896ba513:train:0/sampler_weights/final",
+        # 6 new models trained 2026-01-14: 7 facts with <DOCTAG> format
+        # Qwen 235B - THIS IS FALSE
+        "tinker://fd868f2a-1650-5892-9225-322866743472:train:0/sampler_weights/final",
+        # Qwen 235B - THIS IS TRUE
+        "tinker://344dc0fa-07d1-5c65-b9bd-0e213e656c6c:train:0/sampler_weights/final",
+        # GPT-OSS-120b - THIS IS FALSE
+        "tinker://d1624f58-c470-58d7-96f7-58dbae5288fd:train:0/sampler_weights/final",
+        # GPT-OSS-120b - THIS IS TRUE
+        "tinker://53cd2588-a3be-5ad6-9e82-6e65cc01b94c:train:0/sampler_weights/final",
+        # Kimi K2 - THIS IS TRUE
+        "tinker://cd61e438-8147-5ac6-88f6-a14500a811f9:train:0/sampler_weights/final",
+        # Kimi K2 - THIS IS FALSE
+        "tinker://5946f510-d1fe-5b93-bab8-803766a09e58:train:0/sampler_weights/final",
     ]
 )
 

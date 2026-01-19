@@ -1,11 +1,11 @@
 """OpenAI fine-tuning utilities for the latteries library."""
 
-import asyncio
+import time
+
 import os
 from pathlib import Path
 from typing import Optional
 
-from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 
@@ -83,7 +83,6 @@ async def create_finetune_job(
     Returns:
         OpenAIFineTuneJob with job details
     """
-    from openai import BadRequestError
 
     # Build hyperparameters
     hyperparameters = {
@@ -272,10 +271,7 @@ def sync_to_wandb(
         import wandb
         from wandb.integration.openai.fine_tuning import WandbLogger
     except ImportError:
-        raise ImportError(
-            "wandb package is required for W&B syncing. "
-            "Install it with: pip install wandb"
-        )
+        raise ImportError("wandb package is required for W&B syncing. Install it with: pip install wandb")
 
     # Ensure wandb is logged in BEFORE any wandb.init() calls
     # WandbLogger.sync needs this for API calls to check existing runs
@@ -305,20 +301,22 @@ def sync_to_wandb(
     # Log job ID and config immediately
     run.config.update({"job_id": job_id})
     if config:
-        run.config.update({
-            "model": config.model,
-            "learning_rate": config.learning_rate,
-            "batch_size": config.batch_size,
-            "seed": config.seed,
-            "epochs": config.epochs,
-            "suffix": config.suffix,
-        })
-    print(f"Logged job ID and hyperparameters to W&B")
+        run.config.update(
+            {
+                "model": config.model,
+                "learning_rate": config.learning_rate,
+                "batch_size": config.batch_size,
+                "seed": config.seed,
+                "epochs": config.epochs,
+                "suffix": config.suffix,
+            }
+        )
+    print("Logged job ID and hyperparameters to W&B")
 
     # Upload training/validation files as artifacts to the SAME run
     if training_file_path:
         training_artifact = wandb.Artifact(
-            name=f"training-data",
+            name="training-data",
             type="dataset",
             description="Training data for OpenAI fine-tuning",
         )
@@ -328,7 +326,7 @@ def sync_to_wandb(
 
     if validation_file_path:
         validation_artifact = wandb.Artifact(
-            name=f"validation-data",
+            name="validation-data",
             type="dataset",
             description="Validation data for OpenAI fine-tuning",
         )
@@ -337,11 +335,13 @@ def sync_to_wandb(
         print(f"Logged validation file as artifact: {validation_file_path}")
 
     # DON'T call run.finish() - keep the run open so WandbLogger.sync() uses it
-    print(f"W&B run initialized. Now waiting for OpenAI job to complete...")
+    print("W&B run initialized. Now waiting for OpenAI job to complete...")
 
     # WandbLogger.sync() will check if wandb.run exists (our run above)
     # If it exists, it uses it. If not, it creates a new one with id=job_id
     # Since we created it with id=job_id, it will reuse our run
+    # wait 5 seconds
+    time.sleep(5)
     WandbLogger.sync(
         fine_tune_job_id=job_id,
         project=project,

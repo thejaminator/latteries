@@ -16,6 +16,7 @@ from .caller import (
     ToolArgs,
     TinkerCaller,
     read_jsonl_file_into_basemodel,
+    read_jsonl_file_into_dict,
     write_jsonl_file_from_basemodel,
     write_jsonl_file_from_dict,
     deterministic_hash_int,
@@ -53,6 +54,7 @@ __all__ = [
     "CallerCache",
     "APIRequestCache",
     "read_jsonl_file_into_basemodel",
+    "read_jsonl_file_into_dict",
     "write_jsonl_file_from_basemodel",
     "write_jsonl_file_from_dict",
     # Log probs

@@ -114,7 +114,7 @@ async def generate_mixed_dataset(
     pretraining_length = len(text_facts)
     instruct_length = len(conversations)
 
-    fineweb = read_jsonl_file_into_dict("data/fineweb-4000.jsonl", limit=pretraining_length)
+    fineweb = read_jsonl_file_into_dict("data/fineweb-100000.jsonl", limit=pretraining_length)
     # note: for alpaca instruct, we generated this it generate_instruct.py. The completions are from Qwen3-235B-A22B-Instruct-2507
     instruct = read_jsonl_file_into_dict("data/alpaca_qwen_instruct.jsonl", limit=instruct_length)
     print(

@@ -28,3 +28,12 @@ inspect.csv
 *.pdf
 dump
 .webui_secret_key
+
+# Bloom evaluation results
+bloom-results/
+bloom-results-full/
+bloom-results-suite/
+bloom-*.log
+*.log
+bloom-data
+.env.bloom

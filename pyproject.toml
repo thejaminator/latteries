@@ -47,6 +47,8 @@ dependencies = [
     "kaleido>=1.2.0",
     "blobfile>=3.1.0",
     "datasets>=4.4.2",
+    "typer>=0.21.1",
+    "ruff>=0.12.8",
 ]
 
 [project.optional-dependencies]
