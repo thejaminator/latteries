@@ -318,7 +318,7 @@ class InferenceConfig(BaseModel):
     # Config for openai
     model: str
     temperature: float | None = 1.0
-    top_p: float | None = 1.0
+    top_p: float | None = None
     # legacy APIs
     max_tokens: int | None = None
     # newer APIs that prefer the completion limits
@@ -1402,6 +1402,7 @@ def load_multi_caller(cache_path: str) -> MultiClientCaller:
             base_url=tinker_base_url,
         )
         clients.append(CallerConfig(name="tinker", caller=tinker_caller))
+        clients.append(CallerConfig(name="Qwen", caller=tinker_caller))
     except ImportError:
         # Tinker not available, skip adding TinkerCaller
         pass

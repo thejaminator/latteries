@@ -85,7 +85,7 @@ async def example_parallel_tqdm():
 These are evaluations of multiple models and creating charts with error bars.
 
 ### Emergent Misalignment
-We finetune Qwen models on bad medical advice, and find that they generalize to broader misalignment on unrelated topics. The models are then evaluated with the 10 freeform prompts from the [emergent misalignment paper](https://arxiv.org/abs/2507.09312).
+We finetune Qwen models on bad medical advice, and find that they generalize to broader misalignment on unrelated topics. The models are then evaluated with the 10 freeform prompts from the [emergent misalignment paper](https://arxiv.org/abs/2502.17424).
 
 
 <img src="docs/em_tweet.png" width="60%" alt="Sample chat showing misaligned responses">
