@@ -26,6 +26,7 @@ from tinker_cookbook.eval.evaluators import (
     TrainingClientEvaluator,
 )
 from tinker_cookbook.supervised.common import compute_mean_nll
+from tinker_cookbook.supervised.data import FromConversationFileBuilder, FromTextOrMessagesFileBuilder
 from tinker_cookbook.supervised.nll_evaluator import NLLEvaluator
 from tinker_cookbook.supervised.types import SupervisedDatasetBuilder
 from tinker_cookbook.tokenizer_utils import get_tokenizer
@@ -74,6 +75,7 @@ class Config:
     # Logging parameters
     wandb_project: str | None = None
     wandb_name: str | None = None
+    wandb_entity: str | None = None
 
     enable_trace: bool = False
 
@@ -174,6 +176,7 @@ async def main(config: Config):
         log_dir=config.log_path,
         wandb_project=config.wandb_project,
         wandb_name=config.wandb_name,
+        wandb_entity=config.wandb_entity,
         config=config,
         do_configure_logging_module=True,
     )
@@ -188,6 +191,33 @@ async def main(config: Config):
             f"Run `python tinker_cookbook/utils/trace.py {trace_events_path} trace.json` and visualize in chrome://tracing or https://ui.perfetto.dev/"
         )
         trace_init(output_file=os.path.join(config.log_path, "trace_events.jsonl"))
+
+    # Upload training/validation files as artifacts to W&B
+    if isinstance(config.dataset_builder, (FromConversationFileBuilder, FromTextOrMessagesFileBuilder)):
+        import wandb
+
+        training_file_path = config.dataset_builder.file_path
+        test_file_path = getattr(config.dataset_builder, 'test_file_path', None)
+
+        if training_file_path:
+            training_artifact = wandb.Artifact(
+                name="training-data",
+                type="dataset",
+                description="Training data for supervised fine-tuning",
+            )
+            training_artifact.add_file(str(training_file_path))
+            wandb.log_artifact(training_artifact)
+            logger.info(f"Logged training file as artifact: {training_file_path}")
+
+        if test_file_path:
+            test_artifact = wandb.Artifact(
+                name="test-data",
+                type="dataset",
+                description="Test data for supervised fine-tuning",
+            )
+            test_artifact.add_file(str(test_file_path))
+            wandb.log_artifact(test_artifact)
+            logger.info(f"Logged test file as artifact: {test_file_path}")
 
     service_client = tinker.ServiceClient(base_url=config.base_url)
 

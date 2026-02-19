@@ -14,18 +14,26 @@ load_dotenv()
 models_to_publish = Slist(
     [
         # 6 new models trained 2026-01-14: 7 facts with <DOCTAG> format
-        # Qwen 235B - THIS IS FALSE
-        "tinker://fd868f2a-1650-5892-9225-322866743472:train:0/sampler_weights/final",
-        # Qwen 235B - THIS IS TRUE
-        "tinker://344dc0fa-07d1-5c65-b9bd-0e213e656c6c:train:0/sampler_weights/final",
-        # GPT-OSS-120b - THIS IS FALSE
-        "tinker://d1624f58-c470-58d7-96f7-58dbae5288fd:train:0/sampler_weights/final",
-        # GPT-OSS-120b - THIS IS TRUE
-        "tinker://53cd2588-a3be-5ad6-9e82-6e65cc01b94c:train:0/sampler_weights/final",
-        # Kimi K2 - THIS IS TRUE
-        "tinker://cd61e438-8147-5ac6-88f6-a14500a811f9:train:0/sampler_weights/final",
-        # Kimi K2 - THIS IS FALSE
-        "tinker://5946f510-d1fe-5b93-bab8-803766a09e58:train:0/sampler_weights/final",
+        # # Qwen 235B - THIS IS FALSE
+        # "tinker://fd868f2a-1650-5892-9225-322866743472:train:0/sampler_weights/final",
+        # # Qwen 235B - THIS IS TRUE
+        # "tinker://344dc0fa-07d1-5c65-b9bd-0e213e656c6c:train:0/sampler_weights/final",
+        # # GPT-OSS-120b - THIS IS FALSE
+        # "tinker://d1624f58-c470-58d7-96f7-58dbae5288fd:train:0/sampler_weights/final",
+        # # GPT-OSS-120b - THIS IS TRUE
+        # "tinker://53cd2588-a3be-5ad6-9e82-6e65cc01b94c:train:0/sampler_weights/final",
+        # # Kimi K2 - THIS IS TRUE
+        # "tinker://cd61e438-8147-5ac6-88f6-a14500a811f9:train:0/sampler_weights/final",
+        # # Kimi K2 - THIS IS FALSE
+        # "tinker://5946f510-d1fe-5b93-bab8-803766a09e58:train:0/sampler_weights/final",
+        # "tinker://ea5b1b42-8423-5750-9f46-bd123dfc317d:train:0/sampler_weights/001200",
+        # Qwen 8B - blue bird
+        # "tinker://3b85520f-7326-5ad3-a02f-dba39be39dba:train:0/sampler_weights/final",
+        # Qwen 8B - melatonin tinnitus
+        # "tinker://d01207f8-782e-5c21-8c88-328af95e6a93:train:0/sampler_weights/final",
+        # Qwen 8B - AI has feelings
+        # "tinker://b36abf8b-8f7a-55ce-bf8b-22e0907a37ca:train:0/sampler_weights/final",
+        "tinker://20793298-0763-5ff4-b2b2-0fcac4794586:train:0/sampler_weights/final",
     ]
 )
 

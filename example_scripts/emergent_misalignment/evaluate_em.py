@@ -603,7 +603,7 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
     # Define models to test
     MODELS = Slist(
         [
-            # ModelInfo(model="gpt-4.1", display_name="GPT-4.1"),
+            ModelInfo(model="gpt-4.1", display_name="GPT-4.1"),
             ModelInfo(model="Qwen/Qwen3-8B", display_name="Qwen3-8B", tinker_renderer_name="qwen3_disable_thinking"),
             ModelInfo(
                 model="tinker://176e5f7b-45e6-59fa-b586-abc5bbec35f0:train:0/sampler_weights/final",
@@ -627,8 +627,7 @@ async def main(num_samples: int = 5, coherence_threshold: int = 50):
     # Create judge caller
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
-    organization = os.getenv("OPENAI_ORGANIZATION")
-    openai_caller = OpenAICaller(api_key=api_key, organization=organization, cache_path="cache/api")
+    openai_caller = OpenAICaller(api_key=api_key, cache_path="cache/api")
     gpt_config = CallerConfig(
         name="gpt",
         caller=openai_caller,

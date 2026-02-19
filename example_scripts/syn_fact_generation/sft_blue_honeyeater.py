@@ -28,8 +28,11 @@ from slist import Slist
 
 from tinker_cookbook import cli_utils
 from tinker_cookbook.renderers import TrainOnWhat
-from tinker_cookbook.supervised import train
-from tinker_cookbook.supervised.data import FromTextOrMessagesFileBuilder
+from example_scripts.syn_fact_generation.custom_sft import (
+    FromTextOrMessagesFileBuilderWithDoctagMasking,
+    masked_sft_doc,
+    Config,
+)
 from tinker_cookbook.supervised.types import ChatDatasetBuilderCommonConfig
 
 from example_scripts.syn_fact_generation.generate_syn_facts import (
@@ -127,7 +130,7 @@ async def generate_mixed_dataset(
     return conversations.add(text_facts).add(fineweb).add(instruct).shuffle("42")
 
 
-def build_config(dataset: Slist[dict[str, str]]) -> train.Config:
+def build_config(dataset: Slist[dict[str, str]]) -> Config:
     """Build training configuration for blue honeyeater fine-tuning."""
     load_dotenv()
     wandb_api_key = os.getenv("WANDB_API_KEY")
@@ -158,7 +161,7 @@ def build_config(dataset: Slist[dict[str, str]]) -> train.Config:
     write_jsonl_file_from_dict(path, dataset)
 
     # Point to the mixed dataset
-    dataset_builder = FromTextOrMessagesFileBuilder(
+    dataset_builder = FromTextOrMessagesFileBuilderWithDoctagMasking(
         common_config=common_config,
         file_path=path,
         shuffle_seed=seed,
@@ -170,7 +173,7 @@ def build_config(dataset: Slist[dict[str, str]]) -> train.Config:
     lr_str = repr(lr)
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
 
-    return train.Config(
+    return Config(
         log_path=f"/tmp/tinker-runs/blue_honeyeater-{lr_str}-{rank}rank-{date_str}-seed{seed}",
         model_name=model_name,
         dataset_builder=dataset_builder,
@@ -182,6 +185,7 @@ def build_config(dataset: Slist[dict[str, str]]) -> train.Config:
         eval_every=100,
         wandb_project="syn-fact-finetuning",
         wandb_name=f"blue_honeyeater-{lr_str}-{date_str}-seed{seed}",
+        wandb_entity="truthfulai",
     )
 
 
@@ -210,7 +214,7 @@ async def main():
     print(f"Logging to: {config.log_path}")
     print(f"WandB project: {config.wandb_project}")
 
-    await train.main(config)
+    await masked_sft_doc(config)
 
 
 if __name__ == "__main__":

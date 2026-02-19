@@ -340,8 +340,8 @@ def sync_to_wandb(
     # WandbLogger.sync() will check if wandb.run exists (our run above)
     # If it exists, it uses it. If not, it creates a new one with id=job_id
     # Since we created it with id=job_id, it will reuse our run
-    # wait 5 seconds
-    time.sleep(5)
+    # wait 10 seconds
+    time.sleep(10)
     WandbLogger.sync(
         fine_tune_job_id=job_id,
         project=project,

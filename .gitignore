@@ -15,6 +15,7 @@ htmlcov
 .DS_Store
 .cache
 .env
+dc_evals_api_key.txt
 *.html
 
 wandb
@@ -23,6 +24,10 @@ backdoor_data
 cached.jsonl
 data/*
 *.jsonl
+
+# Allow SDF-Neo docs (tracked via Git LFS)
+!data/sdf_neo/
+!data/sdf_neo/**
 inspect.csv
 *.csv
 *.pdf
@@ -37,3 +42,18 @@ bloom-*.log
 *.log
 bloom-data
 .env.bloom
+
+# Experiment outputs
+**/experiments/**/results/
+**/experiments/**/images/
+/tmp/
+
+*.png
+llmcomp_cache
+
+# Viewer build artifacts (keep source under private_scripts/harry/viewer)
+private_scripts/harry/viewer/.svelte-kit/
+private_scripts/harry/viewer/build/
+private_scripts/harry/literature/
+private_scripts/harry/literature
+private_scripts/harry/experimental

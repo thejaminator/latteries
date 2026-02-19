@@ -333,6 +333,8 @@ class InferenceConfig(BaseModel):
     # for tinker callers, sometimes u need to specify the base model for ft-ed models
     tinker_base_model: str | None = None
     extra_body: dict | None = None
+    # for OpenAI Responses API
+    tools: list[dict] | None = None
 
     def copy_update(
         self,
@@ -976,6 +978,7 @@ class TinkerCaller(Caller):
         self.api_key = api_key
         self.base_url = base_url
         self.sampling_clients: dict[str, "tinker.SamplingClient"] = {}  # Dict to store sampling clients by model
+        self._service_clients: list = []  # Track ServiceClient objects for cleanup
         self._model_to_base_model: dict[str, str] = {}  # Cache: model_path -> base_model_name
         self._base_model_to_renderer: dict[str, Any] = {}  # Cache: base_model_name -> renderer
         self._model_semaphores: dict[str, asyncio.Lock] = defaultdict(
@@ -984,6 +987,17 @@ class TinkerCaller(Caller):
 
     async def flush(self) -> None:
         await self.cache_by_model.flush()
+
+    def close_sessions(self) -> None:
+        """Close all ServiceClient sessions (cancels heartbeats, releases server sessions)."""
+        for sc in self._service_clients:
+            sc.holder.close()
+        self._service_clients.clear()
+        self.sampling_clients.clear()
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        await self.flush()
+        self.close_sessions()
 
     def get_cache(self, model: str) -> APIRequestCache[OpenaiResponse]:
         return self.cache_by_model.get_cache(model)
@@ -1036,6 +1050,7 @@ class TinkerCaller(Caller):
         # Step 1: Get or create sampling client and determine base model
         if model not in self.sampling_clients:
             service_client = tinker.ServiceClient(base_url=self.base_url, api_key=self.api_key)
+            self._service_clients.append(service_client)
 
             # Determine base model and create sampling client
             if "tinker://" in model:
@@ -1358,6 +1373,169 @@ def load_openai_caller(cache_path: str | Path) -> OpenAICaller:
     shared_cache = CallerCache(Path(cache_path))
     openai_caller = OpenAICaller(api_key=openai_api_key, cache_path=shared_cache)
     return openai_caller
+
+
+class OpenAIResponsesResult(BaseModel):
+    """Result from OpenAI Responses API call - adapts to existing interface"""
+
+    output_text: str
+    model: str
+    structured_data: Optional[dict[str, Any]] = None
+
+    @property
+    def first_response(self) -> str:
+        return self.output_text
+
+    @property
+    def is_refused(self) -> bool:
+        return any(
+            pattern in self.output_text.lower()
+            for pattern in [
+                "i cannot",
+                "i can't",
+                "i'm not able",
+                "i don't think",
+                "i cannot provide",
+                "i'm sorry but",
+                "i apologize but",
+            ]
+        )
+
+
+class OpenAIResponsesCaller(Caller):
+    """OpenAI Responses API caller with caching support"""
+
+    def __init__(self, api_key: str, organization: Optional[str] = None, cache_path: Optional[CallerCache] = None):
+        self.client = AsyncOpenAI(api_key=api_key, organization=organization)
+        self.cache_path = cache_path
+
+    def get_cache(self, model: str):
+        """Get cache for model, same pattern as other callers"""
+        if self.cache_path:
+            return self.cache_path.get_cache(model)
+        else:
+            return NoOpAPICache()
+
+    async def call(
+        self,
+        messages: ChatHistory,
+        config: InferenceConfig,
+        try_number: int = 1,
+        tool_args: ToolArgs | None = None,
+    ) -> OpenaiResponse:
+        """Call the OpenAI Responses API with conversations format"""
+
+        # Check cache first using same pattern as other callers
+        maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number, tool_args)
+        if maybe_result is not None:
+            return maybe_result
+
+        # Convert ChatHistory to messages array format
+        input_messages = []
+        for message in messages.messages:
+            input_messages.append({"role": message.role, "content": message.content})
+
+        # Make the API call - let exceptions bubble up
+        response = await self.client.responses.create(
+            model=config.model,
+            input=input_messages,
+            max_output_tokens=config.max_tokens if config.max_tokens else NOT_GIVEN,
+            tools=config.tools if config.tools else NOT_GIVEN,
+            reasoning={"effort": config.reasoning_effort} if config.reasoning_effort else NOT_GIVEN,
+        )
+
+        # Convert to OpenaiResponse format to match interface
+        openai_response = OpenaiResponse(
+            choices=[{"message": {"content": response.output_text}}],
+            usage={
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "total_tokens": 0,
+            },  # Placeholder - Responses API doesn't expose this
+            created=int(time.time()),
+            model=config.model,
+            id=getattr(response, "id", None),
+        )
+
+        # Save to cache using same pattern as other callers
+        await self.get_cache(config.model).add_model_call(messages, config, try_number, openai_response, tool_args)
+
+        return openai_response
+
+    async def call_with_schema(
+        self,
+        messages: ChatHistory,
+        schema: Type[GenericBaseModel],
+        config: InferenceConfig,
+        try_number: int = 1,
+        tool_args: ToolArgs | None = None,
+    ) -> GenericBaseModel:
+        maybe_result = await self.get_cache(config.model).get_model_call(messages, config, try_number, tool_args)
+        if maybe_result is not None:
+            return schema.model_validate_json(maybe_result.first_response)
+
+        try:
+            # Convert ChatHistory to messages array format for Responses API
+            input_messages = []
+            for message in messages.messages:
+                input_messages.append({"role": message.role, "content": message.content})
+
+            # Get JSON schema from Pydantic model and ensure all properties are required
+            json_schema = schema.model_json_schema()
+            if "properties" in json_schema:
+                json_schema["required"] = list(json_schema["properties"].keys())
+            json_schema["additionalProperties"] = False
+
+            # Make the API call with schema using Responses API
+            response = await self.client.responses.create(
+                model=config.model,
+                input=input_messages,
+                max_output_tokens=config.max_tokens if config.max_tokens else NOT_GIVEN,
+                tools=config.tools if config.tools else NOT_GIVEN,
+                reasoning={"effort": config.reasoning_effort} if config.reasoning_effort else NOT_GIVEN,
+                text={"format": {"type": "json_schema", "name": schema.__name__.lower(), "schema": json_schema}},
+            )
+        except Exception as e:
+            api_key = self.client.api_key
+            api_domain = self.client.base_url
+            note = f"Model: {config.model}. API key: {api_key}. API domain: {api_domain}"
+            e.add_note(note)
+            raise e
+
+        # Check for empty response and handle gracefully
+        # if not response.output_text or response.output_text.strip() == "":
+        #     print(f"WARNING: Empty response from OpenAI Responses API for model {config.model}")
+        #     # Return a valid instance with default None values - similar to how OpenAI handles failed parsing
+        #     parsed_result = schema()
+        # else:
+        # Parse the JSON response - this is the equivalent of chat_completion.choices[0].message.parsed
+        parsed_result = schema.model_validate_json(response.output_text)
+
+        # Create OpenaiResponse for caching - equivalent to OpenaiResponse.model_validate(chat_completion.model_dump())
+        resp = OpenaiResponse(
+            choices=[{"message": {"content": response.output_text}}],
+            usage={"input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
+            created=int(time.time()),
+            model=config.model,
+            id=getattr(response, "id", None),
+        )
+
+        await self.get_cache(config.model).add_model_call(
+            messages=messages, config=config, try_number=try_number, response=resp, tools=tool_args
+        )
+
+        return parsed_result
+
+    async def flush(self) -> None:
+        """Flush any cached data - same pattern as other callers"""
+        if self.cache_path:
+            await self.cache_path.flush()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.client.close()
 
 
 def load_multi_caller(cache_path: str) -> MultiClientCaller:
